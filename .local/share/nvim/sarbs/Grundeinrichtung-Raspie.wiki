@@ -1,0 +1,74 @@
+= Raspberry Pi 4 Grundinstallation Headless =
+== Erste Schritte ==
+* Raspberry Pi OS Lite (arm64) herunterladen
+* Image auf SD-Karte schreiben:
+{{{bash
+dd if=raspios.img of=/dev/sdX bs=4M status=progress conv=fsync
+}}}
+
+== Root SSH-Zugang einrichten ==
+* Root-Partition mounten:
+{{{bash
+sudo mount /dev/sdX2 /tmp/piroot
+}}}
+
+* SSH für Root konfigurieren:
+{{{bash
+sudo mkdir -p /tmp/piroot/root/.ssh
+sudo cp ~/.ssh/id_rsa.pub /tmp/piroot/root/.ssh/authorized_keys
+sudo chmod 700 /tmp/piroot/root/.ssh
+sudo chmod 600 /tmp/piroot/root/.ssh/authorized_keys
+sudo chown -R 0:0 /tmp/piroot/root/.ssh
+}}}
+
+* Root-Login in SSH-Config aktivieren:
+{{{bash
+sudo sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin prohibit-password/' /tmp/piroot/etc/ssh/sshd_config
+}}}
+
+== Erster Start ==
+* Per SSH verbinden:
+{{{bash
+ssh root@raspberrypi.local
+# oder mit fester IP
+ssh root@192.168.1.106
+}}}
+
+* Dateisystem erweitern:
+{{{bash
+raspi-config --expand-rootfs
+}}}
+
+== System Einrichtung ==
+* System aktualisieren:
+{{{bash
+apt update
+apt upgrade
+}}}
+
+* Grundlegende Werkzeuge installieren:
+{{{bash
+apt install git cmake gcc g++ pkg-config pciutils
+}}}
+
+== Aufräumen ==
+* Unnötige X11/Wayland Pakete entfernen:
+{{{bash
+apt remove libwayland-client0 libx11-6 libx11-data libx11-xcb1 wayland-protocols x11-common
+apt autoremove
+}}}
+
+== System Information ==
+* Architektur: aarch64 (64-bit ARM)
+* Betriebssystem: Debian GNU/Linux 12 (bookworm)
+* Kernel: 6.6.51+rpt-rpi-v8
+* RAM: ~4GB verfügbar
+* Vorkonfiguriert für Headless-Betrieb (ohne GUI)
+* Zugriff nur via SSH
+* Netzwerk über Ethernet (eth0)
+
+== Hinweise ==
+* Kein Display-Server nötig/installiert
+* Root-Login nur mit SSH-Key möglich
+* System ist minimal installiert
+* Ideal für Server-Anwendungen im Heimnetz

@@ -1,0 +1,119 @@
+#!/bin/sh
+## 2025-01-09 SARBS
+# shellcheck disable=SC2155
+
+# Profil-Datei, wird beim Login ausgeführt. Umgebungsvariablen werden hier gesetzt.
+# sarbs orientert sich an der "XDG Base Dierctory-Spezifikationen" von freedesktop.org
+# https://specifications.freedesktop.org/basedir-spec/latest/#referencing
+
+# === USER skripte in ~/.local/bin können überall ausgeführt werden
+export PATH="$PATH:$(find ~/.local/bin -type d | paste -sd ':' -)"
+# Dynamische PATH-Erweiterung ist flexibel, aber kann auf großen Verzeichnissen langsam sein.
+# Alternativ: Direkte Erweiterung für Standardverwendung.
+# export PATH="$PATH:$HOME/.local/bin"
+
+# === ZSH USER Option um '%' zu entfernen
+# TODO: Gehört eher in die Zsh-Konfiguration, wie .zshrc oder $ZDOTDIR/zshrc.
+unsetopt PROMPT_SP 2>/dev/null
+
+# Priorität 1
+# === Standardprogramme: ===
+export EDITOR="nvim"			# ok
+export TERMINAL="st"			# ok
+export TERMINAL_PROG="st"		# ok
+export BROWSER="librewolf"		# ok
+export MANPAGER="sh -c 'col -bx | bat -l man -p'"	# neu
+export MANROFFOPT="-c"								# neu
+
+# === XDG Standard Verzeichnisse ===
+export XDG_DATA_HOME="$HOME/.local/share"		# ok Anwendungsdaten
+export XDG_CONFIG_HOME="$HOME/.config"			# ok Konfigurationsdateien
+# export XDG_STATE_HOME="$HOME/.local/state"	# Benutzerspezifische Statusdateien
+export XDG_CACHE_HOME="$HOME/.cache"			# ok
+
+# === XDG bevorzugte Datenverzeichnisse
+# export XDG_DATA_DIRS="$HOME/.local/share"
+# TODO: Nur ergänzen, wenn nötig. Standardmäßig verwenden Programme selbst Fallbacks.
+# export XDG_DATA_DIRS="/usr/local/share:/usr/share"
+# export XDG_CONFIG_DIRS="/etc/xdg"
+
+# === Nttzerverzeichnisse ===
+# export XDG_PICTURES_DIR="$HOME/Bilder"
+
+# === Programmspezifische Konfigurationen ===
+export XINITRC="$XDG_CONFIG_HOME/x11/xinitrc"		# X11-(Display)Server-Startdatei
+export MOZ_USE_XINPUT2=1							# ok Mozilla Smooth Scrolling für Touchpads
+export AWT_TOOLKIT="MToolkit wmname LG3D"			# ok wmname muss instaliert sein dwm-fix
+export _JAVA_AWT_WM_NONREPARENTING=1				# Weiterer Fix für Java-Anwendungen in dwm
+
+# === Shell und Tools ===
+export INPUTRC="$XDG_CONFIG_HOME/shell/inputrc"		# ok Shell-Konfigurationsdatei
+export ZDOTDIR="$XDG_CONFIG_HOME/zsh"				# ok Zsh-Konfigurationsverzeichnis
+export HISTFILE="$XDG_DATA_HOME/history"			# ok Historien-Datei
+export SUDO_ASKPASS="$HOME/.local/bin/dmenupass"	# ok Sudo Passwortabfrageprogramm
+
+## === GUI & Skalierung ===
+## TODO: Sollte alles über die .xprofile geregelt werden.
+export GTK2_RC_FILES="$XDG_CONFIG_HOME/gtk-2.0/gtkrc-2.0"	# ok GTK2-Konfigurationsdatei
+export QT_QPA_PLATFORMTHEME="gtk2"					# ok QT soll gtk2-Thema verwenden
+## export QT_QPA_PLATFORMTHEME="gtk3"				# QT soll gtk3-Thema verwenden
+## export QT_QPA_PLATFORMTHEME="qt5ct"				# qt5ct benötigt
+export QT_AUTO_SCREEN_SCALE_FACTOR=1				# Testeinstellungen von Arch-Wiki
+## export QT_SCALE_FACTOR=1.5						# Für Qt-Anwendungen
+## export GDK_SCALE=2								# Für GTK-Anwendungen
+## export GDK_DPI_SCALE=0.5							# Korrigiert die Schriftgrößen bei GDK_SCALE=2
+export QT_ENABLE_HIGHDPI_SCALING=1					# Testeinstellungen aus der Arch-Wiki
+
+# === Entwicklung (Optional) ===
+export CARGO_HOME="$XDG_DATA_HOME/cargo"				# ok Rust Cargo Verzeichnis
+export GOPATH="$XDG_DATA_HOME/go"						# ok Go Arbeitsverzeichnis
+export GOMODCACHE="$XDG_CACHE_HOME/go/mod"				# ok Go Modul-Cache
+export PYTHONSTARTUP="$XDG_CONFIG_HOME/python/pythonrc"	# ok Python Startdatei
+
+# === Data & Cache Directories ===
+export PASSWORD_STORE_DIR="$XDG_DATA_HOME/Passwörter"	# ok Passwortspeicher
+export TMUX_TMPDIR="$XDG_RUNTIME_DIR"					# ok Tmux temp. Verzeichnis
+export ANDROID_SDK_HOME="$XDG_CONFIG_HOME/Handy"		# ok Android SDK Verzeichnis
+export WINEPREFIX="$XDG_DATA_HOME/wineprefixes/default"	# ok Wine (Windows) Präfix-Verzeichnis
+export KODI_DATA="$XDG_DATA_HOME/Filme"					# ok Kodi Datenverzeichnis
+export ELECTRUMDIR="$XDG_DATA_HOME/electrum"			# ok Electrum Verzeichnis
+export SQLITE_HISTORY="$XDG_DATA_HOME/sqlite_history"	# ok SQLite Historie
+
+# === Config Files ===
+export NOTMUCH_CONFIG="$XDG_CONFIG_HOME/notmuch-config"	# ok Notmuch E-Mail-Konfigurationsdatei
+export WGETRC="$XDG_CONFIG_HOME/wget/wgetrc"			# ok Wget-Konfigurationsdatei
+export ANSIBLE_CONFIG="$XDG_CONFIG_HOME/ansible/ansible.cfg"	# ok Ansible Konfigurationsdatei
+export MBSYNCRC="$XDG_CONFIG_HOME/mbsync/config"		# ok Mbsync Konfigurationsdatei
+export UNISON="$XDG_DATA_HOME/unison"					# ok Unison Verzeichnis
+
+# === Programm Einstellungen ===
+export DICS="/usr/share/stardict/dic/"					# ok Verzeichnis für Stardict-Wörterbücher
+# export DICS="$XDG_DATA_HOME/stardict/dic/"		Neu erstellen
+# mkdir -p "$XDG_DATA_HOME/stardict/dic/"
+export FZF_DEFAULT_OPTS="--layout=reverse --height 40%"	# ok FZF Standardoptionen
+export CRYPTOURL="rate.sx"
+export WTTRURL="wttr.in"
+
+# Aufräumen im Home-Verzeichnis:
+#export XAUTHORITY="$XDG_RUNTIME_DIR/Xauthority"		# ok Diese Zeile kann einige Desktop-Manager stören.
+# export GNUPGHOME="$XDG_DATA_HOME/gnupg"				# ok GnuPG Home-Verzeichnis
+
+# === Less Viewer Programmeinstellungen ===
+export LESS="R"											# Less Pager Optionen
+export LESS_TERMCAP_mb="$(printf '%b' '[1;31m')"		# Less Farbanpassungen
+export LESS_TERMCAP_md="$(printf '%b' '[1;36m')"
+export LESS_TERMCAP_me="$(printf '%b' '[0m')"
+export LESS_TERMCAP_so="$(printf '%b' '[01;44;33m')"
+export LESS_TERMCAP_se="$(printf '%b' '[0m')"
+export LESS_TERMCAP_us="$(printf '%b' '[1;32m')"
+export LESS_TERMCAP_ue="$(printf '%b' '[0m')"
+export LESSOPEN="| /usr/bin/highlight -O ansi %s 2>/dev/null"	# Syntax-Hervorhebung für Less
+
+# === Prüfe, ob die Shortcut-Konfiguration ===
+[ ! -f "$XDG_CONFIG_HOME/shell/shortcutrc" ] && setsid -f shortcuts >/dev/null 2>&1
+
+# === Starte X11 auf tty1 des Benutzers ===
+[ "$(tty)" = "/dev/tty1" ] && ! pidof -s Xorg >/dev/null 2>&1 && exec startx "$XINITRC"
+
+# === Tastaturanpassungen ===
+sudo -n loadkeys "$XDG_DATA_HOME/sarbs/ttymaps.kmap" 2>/dev/null # Tausche Escape und Caps Lock

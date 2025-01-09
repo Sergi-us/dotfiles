@@ -1,0 +1,352 @@
+/* ## 2025-01-09 */
+/* Gruvbox Dark Farben */
+:root {
+  --bg0: #282828;         /* Hintergrund */
+  --bg1: #3c3836;         /* Hellerer Hintergrund */
+  --fg0: #ebdbb2;         /* Haupttext */
+  --fg1: #d5c4a1;         /* Abgeschwächter Text */
+  --orange: #fe8019;      /* Akzentfarbe 1 */
+  --blue: #83a598;        /* Links */
+  --green: #b8bb26;       /* Erfolg/Done */
+  --red: #fb4934;         /* Warnung/Todo */
+  --gray: #928374;        /* Dezente Elemente */
+}
+
+body {
+  /* Grundlegendes Layout und Schrift */
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif;
+  margin: 2em 4em;
+  font-size: 120%;
+  line-height: 130%;
+  background-color: var(--bg0);
+  color: var(--fg0);
+  /*
+  background-image: url('bilder/Hintergrund.jpg');
+  background-position: center center;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+  background-size: cover;
+  */
+<script src="script.js"></script>
+}
+
+
+/* Überschriften-Hierarchie in Gruvbox-Farben */
+h1, h2, h3, h4, h5, h6 {
+  font-weight: bold;
+  line-height: 100%;
+  margin-top: 1.5em;
+  margin-bottom: 0.5em;
+  color: var(--fg0);
+}
+
+h1 {font-size: 2em; color: var(--orange);}
+h2 {font-size: 1.8em; color: var(--fg0);}
+h3 {font-size: 1.6em; color: var(--fg1);}
+h4 {font-size: 1.4em; color: var(--gray);}
+h5 {font-size: 1.2em; color: var(--gray);}
+h6 {font-size: 1em; color: var(--gray);}
+
+/* Basis-Elementabstände */
+p, pre, blockquote, table, ul, ol, dl {
+  margin-top: 1em;
+  margin-bottom: 1em;
+}
+
+/* Listen-Styling */
+ul ul, ul ol, ol ol, ol ul {
+  margin-top: 0.5em;
+  margin-bottom: 0.5em;
+}
+
+li { margin: 0.3em auto; }
+
+ul {
+  margin-left: 2em;
+  padding-left: 0;
+}
+
+/* Neue Styles für verschachtelte nummerierte Listen */
+ol {
+  margin-left: 2em;
+  padding-left: 0;
+  list-style-type: decimal;  /* 1., 2., 3., etc. */
+}
+
+ol ol {
+  list-style-type: lower-alpha;  /* a., b., c., etc. */
+}
+
+ol ol ol {
+  list-style-type: lower-roman;  /* i., ii., iii., etc. */
+}
+
+/* Definition Lists */
+dl {
+  margin-left: 2em;
+}
+
+dt {
+  font-weight: bold;
+  margin-top: 0.5em;
+}
+
+dd {
+  margin-left: 2em;
+  margin-bottom: 0.5em;
+}
+
+/* Task Lists (Checkbox-Listen) */
+.todo {
+  list-style: none;
+}
+
+.todo li {
+  text-indent: -1.5em;
+}
+
+/* Unerledigte Aufgabe */
+.todo li:before {
+  margin-right: 0.5em;
+  font-family: monospace;
+}
+
+/* Teilweise erledigt */
+.todo li.partial:before {
+  margin-right: 0.5em;
+  font-family: monospace;
+}
+
+/* Wichtige Aufgabe */
+.todo li.important:before {
+  margin-right: 0.5em;
+  font-family: monospace;
+}
+
+/* Erledigte Aufgabe */
+.todo li.done:before {
+  margin-right: 0.5em;
+  font-family: monospace;
+}
+
+dt { font-weight: bold; }
+
+img { border: none; }
+
+/* Code-Blöcke */
+pre.brush\:\ python,
+pre.brush\:\ bash {
+  background-color: var(--bg1);
+  border-radius: 8px;
+  padding: 0.6rem;
+  margin: 0.9rem 0;
+  overflow-x: auto;
+  border: 1px solid var(--gray);
+  font-family: 'JetBrains Mono', Monaco, 'Courier New', monospace;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  color: var(--green);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
+}
+
+/* Spezielles Styling für bash code */
+pre.brush\:\ bash {
+  border-left: 3px solid var(--green);
+  border-top: 1px solid var(--gray);
+  border-right: 1px solid var(--gray);
+  border-bottom: 1px solid var(--gray);
+}
+
+/* Schöneres Highlighting beim Textauswählen */
+pre::selection, pre *::selection {
+  background-color: var(--orange);    /* Kontrastierende Farbe für bessere Sichtbarkeit */
+  color: var(--bg0);                 /* Dunkler Hintergrund für besseren Kontrast */
+}
+
+/* Optional: Style for command prompts */
+pre.brush\:\ bash ::selection {
+  background-color: #4ade80;
+  color: #1a1a1a;
+}
+
+/* Link-Styling */
+p > a {
+  color: var(--bg0);
+  text-decoration: none;
+  font-size: 0.7em;
+  padding: 3px 6px;
+  border-radius: 3px;
+  background-color: var(--blue);
+  text-transform: uppercase;
+  font-weight: bold;
+}
+
+p > a:hover {
+  color: var(--fg0);
+  background-color: var(--bg1);
+}
+
+li > a {
+  color: var(--blue);
+  font-weight: bold;
+  text-decoration: none;
+}
+
+li > a:hover { color: var(--orange); }
+
+/* Zitate - nach der Überschrift "Zitate" */
+div[id="Zentriert-Zitate"] + pre {
+  position: relative;
+  background-color: var(--bg1);
+  margin: 1.5em 0;
+  padding: 1.5em;
+  border-radius: 8px;
+  border-left: 5px solid var(--orange);
+  border-top: 1px solid var(--gray);
+  border-right: 1px solid var(--gray);
+  border-bottom: 1px solid var(--gray);
+  font-family: inherit;  /* Nutzt die normale Textschrift */
+  color: var(--fg0);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  line-height: 1.6;
+}
+
+/* "Zitat" Label */
+div[id="Zentriert-Zitate"] + pre::before {
+  content: "Zitat";
+  position: absolute;
+  top: 0.5em;
+  right: 1em;
+  color: var(--gray);
+  font-size: 0.8em;
+  font-style: italic;
+}
+
+/* Zeilenumbrüche im Zitat */
+div[id="Zentriert-Zitate"] + p br {
+  display: block;
+  margin-bottom: 0.5em;
+}
+
+/* Tabellen-Styling */
+th, td {
+  border: 1px solid var(--gray);
+  padding: 0.3em;
+}
+
+th { background-color: var(--bg1); }
+
+/* Trennlinien */
+hr {
+  border: none;
+  border-top: 1px solid var(--gray);
+  width: 100%;
+}
+
+/* Durchgestrichener Text */
+del {
+  text-decoration: line-through;
+  color: var(--gray);
+}
+
+/* Inhaltsverzeichnis */
+.toc li { list-style-type: none; }
+
+/* Todo-Markierungen */
+/* .todo {
+  font-weight: bold;
+  background-color: var(--red);
+  color: var(--bg0);
+  font-size: 0.8em;
+  padding: 3px 6px;
+  border-radius: 3px;
+} */
+
+/* Ausrichtungsklassen */
+.justleft { text-align: left; }
+.justright { text-align: right; }
+.justcenter { text-align: center; }
+
+.center {
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* Tags im Gruvbox-Style */
+.tag {
+  background-color: var(--bg1);
+  color: var(--fg1);
+  font-family: monospace;
+  padding: 2px;
+  border-radius: 3px;
+}
+
+.header a {
+  text-decoration: none;
+  color: inherit;
+}
+/* Todo-Listen Styling */
+.done0:before {
+    content: "☐"; /* Leeres Kästchen */
+    color: var(--gray);
+    margin-right: 0.5em;
+}
+
+.done1:before {
+    content: "◔"; /* Teilweise ausgefüllt */
+    color: var(--blue);
+    margin-right: 0.5em;
+}
+
+.done2:before {
+    content: "⚡"; /* Wichtig/Priorität */
+    color: var(--orange);
+    margin-right: 0.5em;
+}
+
+.done3:before {
+    content: "☑"; /* Erledigt */
+    color: var(--green);
+    margin-right: 0.5em;
+}
+
+.done4:before {
+    content: "✘"; /* Abgelehnt */
+    color: var(--red);
+    margin-right: 0.5em;
+}
+
+/* Basis-Styling für alle Todo-Einträge */
+.done0, .done1, .done2, .done3, .done4 {
+    list-style-type: none;
+    padding-left: 0;
+    margin-left: 0;
+}
+
+/* Optional: Durchgestrichener Text für erledigte Aufgaben */
+.done3 {
+    text-decoration: line-through;
+    color: var(--gray);
+}
+
+.rejected {
+    list-style-type: none;
+    color: var(--gray);  /* graue, gedimmte Textfarbe */
+}
+
+.rejected:before {
+    content: "✘";        /* oder alternatives Symbol wie "␡" oder "✗" */
+    color: var(--red);   /* rote Farbe für das Symbol */
+    margin-right: 0.5em;
+}
+
+/* Inline-Code */
+code {
+  font-family: Monaco, "Courier New", "DejaVu Sans Mono", "Bitstream Vera Sans Mono", monospace;
+  border-radius: 3px;
+  padding: 0px 3px;
+  display: inline-block;
+  color: var(--fg0);
+  border: 1px solid var(--gray);
+  background-color: var(--bg1);
+}

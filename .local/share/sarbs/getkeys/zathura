@@ -1,0 +1,32 @@
+## 2025-01-09
+          _   _
+ ______ _| |_| |__  _   _ _ __ __ _     zathura ist der pdf/djvu reader.
+|_  / _` | __| '_ \| | | | '__/ _` |
+ / / (_| | |_| | | | |_| | | | (_| |
+/___\__,_|\__|_| |_|\__,_|_|  \__,_|
+
+zathura ist der pdf/djvu reader.
+h/j/k/l Move ←/↓/↑/→                    /       Suchen
+d/u     Down/up halbe Seite             -/+     Zoom in/aus
+i       Inwertiere Farben               ...
+g       go hoch
+G       go runder
+f       Highlight URLS to follow
+J/K     Zoom out/in
+s       Zoom Seiten-BREITE
+a       Zoom Seiten-HÖHE
+r       neuladen (Reload)
+R       Rotiere Dokument
+D       Toggle dual-page mode
+p       Print (Drucken)
+q       Beenden
+
+
+
+
+
+
+
+
+
+end

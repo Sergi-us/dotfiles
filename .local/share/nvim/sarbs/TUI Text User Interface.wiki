@@ -1,0 +1,6 @@
+Eine textbasierte Schnittstelle, die fortschrittlicher als CLI ist. Sie bietet
+eine einfache grafische Darstellung mit Textzeichen, oft in Form von Menüs,
+Fenstern oder Dialogen. TUIs kombinieren die Effizienz von Texteingaben mit
+einer strukturierteren visuellen Darstellung.
+Beispiel: Der Midnight Commander, ein Dateimanager für Unix-Systeme, nutzt eine
+TUI mit zwei Fenstern zur Dateianzeige und Menüs am unteren Bildschirmrand.

@@ -1,0 +1,34 @@
+#!/bin/sh
+## 2025-01-09 SARBS
+
+clock=$(date '+%I')
+
+case "$clock" in
+	"00") icon="󱑖" ;;
+	"01") icon="󱑋" ;;
+	"02") icon="󱑌" ;;
+	"03") icon="󱑍" ;;
+	"04") icon="󱑎" ;;
+	"05") icon="󱑏" ;;
+	"06") icon="󱑐" ;;
+	"07") icon="󱑑" ;;
+	"08") icon="󱑒" ;;
+	"09") icon="󱑓" ;;
+	"10") icon="󱑔" ;;
+	"11") icon="󱑕" ;;
+	"12") icon="󱑖" ;;
+esac
+
+case $BLOCK_BUTTON in
+	1) notify-send "Dieser Monat" "$(cal | sed "s/\<$(date +'%e'|tr -d ' ')\>/<b><span color='red'>&<\/span><\/b>/")" && notify-send "Termine" "$(calcurse -d30)" ;;
+	2) setsid -f "$TERMINAL" -e calcurse ;;
+	3) notify-send "📅 Zeit-/Datumsmodul" "\- Linksklick, um bevorstehende Termine für die nächsten drei Tage mit \`calcurse -d3\` anzuzeigen und den Monat mit \`cal\` anzuzeigen
+- Mittelklick öffnet calcurse, falls installiert" ;;
+	6) setsid -f "$TERMINAL" -e "$EDITOR" "$0" ;;
+esac
+
+# Unterschiedliche Darstellung
+# date "+KW%V (%a) %d%b.%Y %H:%M"
+# date "+(%a) %d.%b.%Y [%V] $icon %H:%M"
+# date "+(%a) %d.%b [%V] %H:%M"
+date "+%d.%b $icon %H:%M"

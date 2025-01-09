@@ -1,0 +1,66 @@
+#!/bin/sh
+## 2025-01-09 SARBS
+# Obsolet, ich mache das im Player
+
+# Funktion zur Anzeige der Nutzungsanweisung und Beendigung des Skripts
+err() {
+    echo "Verwendung:
+    tag [OPTIONEN] Datei
+Optionen:
+    -a: Künstler/Autor
+    -t: Lied-/Kapiteltitel
+    -A: Album-/Buchtitel
+    -n: Track-/Kapitelnummer
+    -N: Gesamtzahl der Tracks/Kapitel
+    -d: Veröffentlichungsjahr
+    -g: Genre
+    -c: Kommentar
+Sie werden nach Titel, Künstler, Album und Track gefragt, wenn diese nicht angegeben wurden." && exit 1
+}
+
+# Verarbeitung der Kommandozeilenoptionen
+while getopts "a:t:A:n:N:d:g:c:" o; do
+    case "${o}" in
+        a) artist="${OPTARG}" ;;    # Künstler/Autor
+        t) title="${OPTARG}" ;;     # Titel
+        A) album="${OPTARG}" ;;     # Album/Buch
+        n) track="${OPTARG}" ;;     # Track-/Kapitelnummer
+        N) total="${OPTARG}" ;;     # Gesamtzahl der Tracks/Kapitel
+        d) date="${OPTARG}" ;;      # Veröffentlichungsdatum
+        g) genre="${OPTARG}" ;;     # Genre
+        c) comment="${OPTARG}" ;;   # Kommentar
+        *) printf "Ungültige Option: -%s\\n" "$OPTARG" && err ;;
+    esac
+done
+shift $((OPTIND - 1))
+
+# Die zu bearbeitende Datei ist das erste verbleibende Argument
+file="$1"
+
+# Erstelle eine temporäre Datei im gleichen Verzeichnis wie die Originaldatei
+temp="$(mktemp -p "$(dirname "$file")")"
+
+# Lösche die temporäre Datei bei Beendigung des Skripts
+trap 'rm -f $temp' HUP INT QUIT TERM PWR EXIT
+
+# Überprüfe, ob eine Datei angegeben wurde
+[ ! -f "$file" ] && echo 'Bitte geben Sie eine zu bearbeitende Datei an.' && err
+
+# Frage nach fehlenden Metadaten, falls nicht als Optionen angegeben
+[ -z "$title" ] && echo 'Geben Sie einen Titel ein.' && read -r title
+[ -z "$artist" ] && echo 'Geben Sie einen Künstler ein.' && read -r artist
+[ -z "$album" ] && echo 'Geben Sie ein Album ein.' && read -r album
+[ -z "$track" ] && echo 'Geben Sie eine Tracknummer ein.' && read -r track
+
+# Kopiere die Originaldatei in die temporäre Datei
+cp -f "$file" "$temp"
+
+# Verwende ffmpeg, um die Metadaten zu aktualisieren
+ffmpeg -i "$temp" -map 0 -y -codec copy \
+    -metadata title="$title" \
+    -metadata album="$album" \
+    -metadata artist="$artist" \
+    -metadata track="${track}${total:+/"$total"}" \
+    ${date:+-metadata date="$date"} \
+    ${genre:+-metadata genre="$genre"} \
+    ${comment:+-metadata comment="$comment"} "$file"

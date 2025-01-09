@@ -1,0 +1,24 @@
+# Formatierung einer Festplatte mit exFAT
+
+1. Installiere die notwendigen Pakete:
+	`sudo pacman -S exfat-utils exfatprogs`
+2. Festplatte mit `lsblk` identifizieren
+3. Starte das Partitionswerkzeug fdisk:
+	`sudo fdisk /dev/sdX`
+	(`p` Zeigt die Partitionstabelle)
+	(`m` hilfe menu)
+	`d` Lösche vorhandene Partitionen (falls vorhanden):
+	`o` um eine neue leere DOS-Partitionstabelle zu erstellen (für MBR)
+	oder `g`, um eine GPT-Partitionstabelle zu erstellen.
+	Drücke `n` und folge den Anweisungen, um eine neue Partition zu erstellen. Wähle die Partitionstypen und Größen nach Bedarf.
+	Drücke `t`, um den Partitionstyp zu ändern und wähle `7` (HPFS/NTFS/exFAT) für exFAT.
+	Drücke `w`, um die Änderungen zu schreiben und fdisk zu beenden.
+5. Festplatte mit `lsblk` identifizieren
+6. Formatiere die Festplatte:
+	`sudo mkfs.exfat /dev/sdX1`
+== Mounten von ExFat Laufwerken ==
+8. Mount die Festplatte und überprüfe die Funktionalität:
+```
+sudo mount -t exfat -o rw,uid=$(id -u),gid=$(id -g),umask=0000 /dev/sdX1 /mnt/usb
+```
+Mit diesen Schritten kannst du sicherstellen, dass deine Festplatte plattformübergreifend nutzbar ist.

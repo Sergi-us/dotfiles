@@ -1,0 +1,6 @@
+#!/bin/sh
+## 2025-01-09 SARBS
+# Dieses Skript ist die SUDO_ASKPASS-Variable, was bedeutet, dass es als
+# Passwortabfrage verwendet wird, wenn nötig.
+
+dmenu -fn Monospace-20 -P -p "$1" <&- && echo

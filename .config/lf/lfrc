@@ -1,0 +1,288 @@
+# SARBS lf-Einstellungen
+# 21.11.2024
+
+# Hinweis zu Bildvorschauen
+# Für diejenigen, die Bildvorschauen wünschen, wie dieses System, gibt es vier Schritte zur
+# Einrichtung. Diese werden für LARBS-Benutzer automatisch durchgeführt, aber ich werde sie
+# hier für andere erwähnen, die es manuell einrichten.
+#
+# 1. ueberzug muss installiert sein.
+# 2. Die Scope-Datei (~/.config/lf/scope für mich) muss einen Befehl ähnlich
+#    meinem enthalten, um ueberzug-Bilder zu generieren.
+# 3. Eine `set cleaner`-Zeile wie unten ist ein Cleaner-Skript.
+# 4. lf sollte über ein Wrapper-Skript (~/.local/bin/lfub für mich) gestartet werden,
+#    das die Umgebung für ueberzug erstellt. Dieser Befehl kann in Ihrer shellrc
+#    als Alias gesetzt werden (`alias lf="lfub") oder, wenn er an eine Taste gebunden ist,
+#    sollte er direkt anstelle des normalen lf aufgerufen werden.
+
+## 2025-01-08   funktion für Bildkomprimierung hinzugefügt (bild-80-komprimieren) benötigt 'imagemagick' Trigger 'Pk'
+
+# ==== Grundlegende Einstellungen ====
+	set shellopts '-eu'		# Shell-Optionen: e=exit on error, u=error on undefined variables
+	set ifs "\n"			# Internal Field Separator auf Newline setzen
+	set scrolloff 10		# 10 Zeilen Abstand beim Scrollen zum Rand beibehalten
+	set icons			# Aktiviert die Anzeige von Icons
+	set period 1			# Aktualisierungsintervall in Sekunden
+	set hiddenfiles ".*:*.aux:*.log:*.bbl:*.bcf:*.blg:*.run.xml"
+	set cleaner '~/.config/lf/cleaner'
+	set previewer '~/.config/lf/scope'
+	set autoquit true		# Beendet lf automatisch beim Öffnen einer Datei
+
+# ==== Hauptbefehle/Funktionen ====
+cmd convert_audio ${{
+    clear; tput cup $(($(tput lines)/3)); tput bold
+    set -f
+    notify-send "Audio wird konvertiert..."
+    for x in $fx; do
+        if ~/.local/bin/ffmpeg-davinci "$x"; then
+            lf -remote "send $id reload"
+            notify-send "🎵 Erfolgreich" "Datei $x wurde konvertiert."
+        else
+            notify-send "❌ Fehler" "Datei $x konnte nicht konvertiert werden."
+        fi
+    done
+    notify-send "✅ Verarbeitung abgeschlossen."
+}}
+
+##cmd convert_audio ${{
+##    clear; tput cup $(($(tput lines)/3)); tput bold
+##    set -f
+##    notify-send "Audio wird konvertiert..."
+##    for x in $fx; do
+##    ~/.local/bin/ffmpeg-davinci $fs
+##    lf -remote "send $id reload"
+##    done
+##    notify-send "✅ Verarbeitung abgeschlossen."
+##}}
+
+# Öffnungsbefehl für verschiedene Dateitypen:
+cmd open ${{
+    case $(file --mime-type "$(readlink -f $f)" -b) in
+	application/vnd.openxmlformats-officedocument.spreadsheetml.sheet) localc $fx ;;
+	image/vnd.djvu|application/pdf|application/postscript) setsid -f zathura $fx >/dev/null 2>&1 ;;
+        text/*|application/json|inode/x-empty|application/x-subrip) $EDITOR $fx;;
+	image/x-xcf) setsid -f gimp $f >/dev/null 2>&1 ;;
+	image/svg+xml) display -- $f ;;
+	image/*) rotdir $f | grep -i "\.\(png\|jpg\|jpeg\|gif\|webp\|avif\|tif\|ico\)\(_large\)*$" |
+		setsid -f nsxiv -aio 2>/dev/null | while read -r file; do
+			[ -z "$file" ] && continue
+			lf -remote "send select \"$file\""
+			lf -remote "send toggle"
+		done &
+		;;
+	audio/*|video/x-ms-asf) mpv --audio-display=no $f ;;
+	video/*) setsid -f mpv $f -quiet >/dev/null 2>&1 ;;
+	application/pdf|application/vnd.djvu|application/epub*) setsid -f zathura $fx >/dev/null 2>&1 ;;
+	application/pgp-encrypted) $EDITOR $fx ;;
+	application/vnd.openxmlformats-officedocument.wordprocessingml.document|application/vnd.oasis.opendocument.text|application/vnd.openxmlformats-officedocument.spreadsheetml.sheet|application/vnd.oasis.opendocument.spreadsheet|application/vnd.oasis.opendocument.spreadsheet-template|application/vnd.openxmlformats-officedocument.presentationml.presentation|application/vnd.oasis.opendocument.presentation-template|application/vnd.oasis.opendocument.presentation|application/vnd.ms-powerpoint|application/vnd.oasis.opendocument.graphics|application/vnd.oasis.opendocument.graphics-template|application/vnd.oasis.opendocument.formula|application/vnd.oasis.opendocument.database) setsid -f libreoffice $fx >/dev/null 2>&1 ;;
+        application/octet-stream) case ${f##*.} in
+			doc|docx|xls|xlsx|odt|ppt|pptx) setsid -f libreoffice $fx >/dev/null 2>&1 ;;
+			ghw) setsid -f gtkwave $f >/dev/null 2>&1 ;;
+			ts) setsid -f mpv $f -quiet >/dev/null 2>&1 ;;
+			*) setsid -f zathura $fx >/dev/null 2>&1 ;;
+	   	esac ;;
+	*) for f in $fx; do setsid -f $OPENER $f >/dev/null 2>&1; done;;
+    esac
+}}
+
+# Verzeichnisse erstellen (mit Unterverzeichnissen)
+cmd mkdir $mkdir -p "$@"
+
+# Archivdateien extrahieren (zip, tar, etc.) mit Bestätigungsdialog
+cmd extract ${{
+	clear; tput cup $(($(tput lines)/3)); tput bold
+	set -f
+	printf "%s\n\t" "$fx"
+	printf "Extrahieren?[y/N]"
+	read ans
+	[ $ans = "y" ] && {
+		case $fx in
+			*.tar.bz2)   tar xjf $fx     ;;
+			*.tar.gz)    tar xzf $fx     ;;
+			*.bz2)       bunzip2 $fx     ;;
+			*.rar)       unrar e $fx     ;;
+			*.gz)        gunzip $fx      ;;
+			*.tar)       tar xf $fx      ;;
+			*.tbz2)      tar xjf $fx     ;;
+			*.tgz)       tar xzf $fx     ;;
+			*.zip)       unzip $fx       ;;
+			*.Z)         uncompress $fx  ;;
+			*.7z)        7z x $fx        ;;
+			*.tar.xz)    tar xf $fx      ;;
+			*.img.xz)    xz -d $fx       ;;
+		esac
+	}
+}}
+
+# Dateien sicher löschen mit Bestätigungsdialog
+cmd delete ${{
+	clear; tput cup $(($(tput lines)/3)); tput bold
+	set -f
+	printf "%s\n\t" "$fx"
+	printf "Löschen?[y/N]"
+	read ans
+	[ $ans = "y" ] && rm -rf -- $fx
+}}
+
+# Dateien verschieben mit fzf-Zielauswahl
+cmd moveto ${{
+	clear; tput cup $(($(tput lines)/3)); tput bold
+	set -f
+	clear; echo "Wohin verschieben?"
+	dest="$(sed -e 's/\s*#.*//' -e '/^$/d' -e 's/^\S*\s*//' ${XDG_CONFIG_HOME:-$HOME/.config}/shell/bm-dirs | fzf | sed 's|~|$HOME|')" &&
+	for x in $fx; do
+		eval mv -iv \"$x\" \"$dest\"
+	done &&
+	notify-send "🚚 Datei(en) verschoben." "Datei(en) wurden nach $dest verschoben."
+}}
+
+# Bilder in der Größe reduzieren und mit Präfix speichern
+cmd bild-80-komprimieren ${{
+    clear; tput cup $(($(tput lines)/3)); tput bold
+    set -f
+    notify-send "Bilder werden komprimiert..."
+    files="${fx:-$f}"
+    for x in $fx; do
+        output="${x%.*}_komprimiert-80.${x##*.}"
+        if magick "$x" -quality 80 "$output"; then
+            notify-send "🖼️ Erfolgreich" "Bild $x wurde als $output gespeichert."
+        else
+            notify-send "❌ Fehler" "Bild $x konnte nicht verarbeitet werden."
+        fi
+    done
+    notify-send "✅ Verarbeitung abgeschlossen." "Alle ausgewählten Bilder wurden bearbeitet."
+}}
+
+# Dateien kopieren mit fzf-Zielauswahl
+cmd copyto ${{
+	clear; tput cup $(($(tput lines)/3)); tput bold
+	set -f
+	clear; echo "Wohin kopieren?"
+	dest="$(sed -e 's/\s*#.*//' -e '/^$/d' -e 's/^\S*\s*//' ${XDG_CONFIG_HOME:-$HOME/.config}/shell/bm-dirs | fzf | sed 's|~|$HOME|')" &&
+	for x in $fx; do
+		eval cp -ivr \"$x\" \"$dest\"
+	done &&
+	notify-send "📋 Datei(en) kopiert." "Datei(en) wurden nach $dest kopiert."
+}}
+
+cmd setbg "$1"
+
+# Mehrere Dateien gleichzeitig umbenennen
+cmd bulkrename ${{
+	tmpfile_old="$(mktemp)"
+	tmpfile_new="$(mktemp)"
+
+	[ -n "$fs" ] && fs=$(basename -a $fs) || fs=$(ls)
+
+	echo "$fs" > "$tmpfile_old"
+	echo "$fs" > "$tmpfile_new"
+	$EDITOR "$tmpfile_new"
+
+	[ "$(wc -l < "$tmpfile_old")" -eq "$(wc -l < "$tmpfile_new")" ] || { rm -f "$tmpfile_old" "$tmpfile_new"; exit 1; }
+
+	paste "$tmpfile_old" "$tmpfile_new" | while IFS="$(printf '\t')" read -r src dst
+	do
+		[ "$src" = "$dst" ] || [ -e "$dst" ] || mv -- "$src" "$dst"
+	done
+
+	rm -f "$tmpfile_old" "$tmpfile_new"
+	lf -remote "send $id unselect"
+}}
+
+# Musik auf das Android Handy kopieren
+cmd Handy-Musik ${{
+	clear; tput cup $(($(tput lines)/3)); tput bold
+	set -f
+	clear; echo "Wohin auf das Handy übertragen?"
+	dest="/sdcard/Music"  # Standardzielordner auf dem Handy
+	for x in $fx; do
+		adb push "$x" "$dest" &&
+		notify-send " Datei übertragen." "Datei/Verzeichniss $x wurde auf das Handy kopiert, ziel Musik."
+	done
+}}
+
+cmd Handy-Downloads ${{
+	clear; tput cup $(($(tput lines)/3)); tput bold
+	set -f
+	clear; echo "Wohin auf das Handy übertragen?"
+	dest="/sdcard/Download"  # Standardzielordner auf dem Handy
+	for x in $fx; do
+		adb push "$x" "$dest" &&
+		notify-send " Datei übertragen." "Datei/Verzeichniss $x wurde auf das Handy kopiert ziel Downloads."
+	done
+}}
+
+# TODO Funktion testen
+#cmd handy-pc ${{
+#	clear; tput cup $(($(tput lines)/3)); tput bold
+#	set -f
+#	clear; echo "Wohin auf das Handy übertragen?"
+#	dest="/sdcard/Download"  # Standardzielordner auf dem Handy
+#	for x in $fx; do
+#		adb pull "$dest" "$x" &&
+#		notify-send " Datei übertragen." "Verzeichniss wurde von $dest nach $x Kopiert."
+#	done
+#}}
+
+# ===TASTENBELEGUNGEN ===
+# === A Menu für Kopieraktionen mit ADB-Push auf ein Android Handy ===
+	map Ad Handy-Downloads
+	map Am Handy-Musik
+	map As handy-pc
+
+# === P Menu für Bildbearbeitung ===
+    map Pk bild-80-komprimieren
+
+# === Navigieren ===
+	map <c-f> $lf -remote "send $id select \"$(fzf --height=-10)\"" # <Strg+f> Dateisuche mit fzf
+	map J $lf -remote "send $id cd $(sed -e 's/\s*#.*//' -e '/^$/d' -e 's/^\S*\s*//' ${XDG_CONFIG_HOME:-$HOME/.config}/shell/bm-dirs | fzf)"	# <J> Wechselt zum Lesezeichen aus "bm-dirs"
+	map H cd ~			# <H> Wechselt zum Home-Verzeichniss
+	map g top
+
+# === Sichtbares menu-s (Selektion) ===
+	map sc clear
+	map sx convert_audio
+# 	map sx convert_audio_aac
+
+# === Dateioperationen ===
+	map D delete				# <D> Löschen                (delete)
+	map E extract				# <E> Archiv extrahieren     (extract)
+	map C copyto				# <C> Kopieren nach...       (copy)
+	map M moveto				# <M> Verschieben nach...    (move)
+	map <c-n> push :mkdir<space>""<left>	# <Strg+n> = Neues Verzeichniss erstellen
+	map <c-r> reload			# <Strg+r> = Reload (Ansicht neu laden)
+	map <c-s> set hidden!			# <Strg+s> = Versteckte Dateien An/Aus-blenden
+	map B bulkrename			# <B> = Startet die Massenumbenennung für mehrere ausgewählte Dateien.
+	map b $setbg $f				# <b> = Setzt die ausgewähltes Bild als Hintergrund.
+
+# === Dateibearbeitung ===
+	map <enter> shell			# <Enter> Shell im aktuellen Verzeichniss öffnen
+	map x $$f				# <x> Führt Datei als Befehl aus.
+	map X !$f				# <X> Führt Datei als Befehl aus und wartet auf Beendigung.
+	map T $nsxiv -t "$(pwd)"		# <T> öffnet den Thumbnailmodus für Bilder
+	map o &mimeopen "$f"			# <o> Öffnet die Datei mit dem Standard-Programm.
+	map O $mimeopen --ask "$f"		# <O> Fragt, mit welchem Programm die Datei geöffnet werden soll.
+	map V push :!nvim<space>		# <V> Öffnet vim im aktuellen Verzeichnis
+	map W $setsid -f $TERMINAL >/dev/null 2>&1	# W = Öffnet ein neues Terminal-Fenster im aktuellen Verzeichnis
+# <Strg+y> Ausführungsrechte für ausgewählte Dateien entziehen
+	map <c-y> $for f in $fx; do chmod -x "$f"; done && lf -remote "send $id reload" && lf -remote "send $id unselect"
+# <Strg+x> Ausführungsrechte für ausgewählte Dateien geben
+	map <c-x> $for f in $fx; do chmod +x "$f"; done && lf -remote "send $id reload" && lf -remote "send $id unselect"
+
+# === Umbenennen ===
+	map c push A<c-u>			# c = Startet eine neue Umbenennung, löscht den vorhandenen Namen.
+	map i :rename; cmd-home			# I = Startet die Umbenennung am Anfang des Dateinamens.
+	map I :rename				# i = Startet die Umbenennung vor der Dateierweiterung.
+	map a :rename; cmd-right		# a = Startet die Umbenennung nach der Dateierweiterung.
+
+# === Zwischenablage ===
+	map U $printf "%s" "$fx" | xclip -selection clipboard	# U: Vollständiger Pfad in Zwischenablage
+	map u $printf "%s" "$fx" | sed 's/.*\///' | xclip -selection clipboard	# u: Nur Dateiname in Zwischenablage
+# . (Punkt) 	Extrahiert eine YouTube-URL aus dem Dateinamen und kopiert sie in die Zwischenablage
+	map . $printf "%s" "$fx" | sed -E 's/^.+\[/https:\/\/www.youtube.com\/watch?v=/' | sed -E 's/\]\..+//' | xclip -selection clipboard
+# (Größer-als-Zeichen): Ähnlich wie der vorherige Befehl, aber für Piped (eine alternative YouTube-Frontend) URLs
+	map <gt> $printf "%s" "$fx" | sed -E 's/^.+\[/https:\/\/piped.video\/watch?v=/' | sed -E 's/\]\..+//' | xclip -selection clipboard
+	map <c-l> unselect			# <Ctrl+l> Hebt die Auswahl aller ausgewählten Dateien auf
+
+# Lesezeichen einbinden
+source "~/.config/lf/shortcutrc"

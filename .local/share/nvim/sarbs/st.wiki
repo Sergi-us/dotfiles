@@ -1,0 +1,50 @@
+ST ist der integrierte Terminal in SARBS
+
+%% TODO Scroll funktion integrieren
+
+
+== Tastenkombinationen mit MODKEY (Alt): ==
+
+`Alt+k` oder `Alt+Up`		Scroll eine Zeile hoch
+`Alt+j` oder `Alt+Down`:	Scroll eine Zeile runter
+`Alt+u`						Scroll eine Seite hoch
+`Alt+d`						Scroll eine Seite runter
+`Alt+s`						Transparenz verringern (-0.05)
+`Alt+a`						Transparenz erhöhen (+0.05)
+`Alt+c`						In Zwischenablage kopieren
+`Alt+v`						Aus Zwischenablage einfügen
+`Alt+l`						URLs öffnen (mit st-urlhandler)
+`Alt+y`						URLs kopieren
+`Alt+o`						Output kopieren
+
+== Tastenkombinationen mit TERMMOD (Alt+Shift) ==
+
+`Alt+Shift+Prior` (PageUp): Vergrößern (+1)
+`Alt+Shift+Next` (PageDown): Verkleinern (-1)
+`Alt+Shift+Pos1`: Zoom zurücksetzen
+`Alt+Shift+C`: In Zwischenablage kopieren
+`Alt+Shift+V`: Aus Zwischenablage einfügen
+`Alt+Shift+Num_Lock`: Numlock umschalten
+`Alt+Shift+Up`: Vergrößern (+1)
+`Alt+Shift+Down`: Verkleinern (-1)
+`Alt+Shift+K`: Vergrößern (+1)
+`Alt+Shift+J`: Verkleinern (-1)
+`Alt+Shift+U`: Vergrößern (+2)
+`Alt+Shift+D`: Verkleinern (-2)
+
+Andere Tastenkombinationen:
+
+`Shift+Page Up`: Scroll nach oben
+`Shift+Page Down`: Scroll nach unten
+`Shift+Insert`: Einfügen
+`Control+Print`: Drucker umschalten
+`Shift+Print`: Screenshot
+`Print`: Auswahl drucken
+
+Mouse Shortcuts:
+
+`Button4` (Mausrad hoch): Scroll hoch
+`Button5` (Mausrad runter): Scroll runter
+`Button2` (mittlere Maustaste): Einfügen
+`Shift+Button4`: Terminal-Sequenz senden
+`Shift+Button5`: Terminal-Sequenz senden

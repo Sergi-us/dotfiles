@@ -1,0 +1,4 @@
+#!/bin/sh
+## 2025-01-09 SARBS
+
+"$TERMINAL" -e "$@"

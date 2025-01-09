@@ -1,0 +1,395 @@
+#!/usr/bin/env bash
+## 2025-01-08 SARBS
+# Abhängigkeiten:
+# Arch-Repositories: dmenu, bluez-utils (enthält bluetoothctl)
+
+# Konstanten
+trennlinie="---------"
+zurueck="Zurück"
+beenden="Beenden"
+verbunden_symbol=""
+
+# Überprüft, ob der Bluetooth-Controller eingeschaltet ist
+strom_an() {
+    if bluetoothctl show | grep -F -q "Powered: yes"; then
+        return 0
+    else
+        return 1
+    fi
+}
+
+# Schaltet den Stromzustand um
+strom_umschalten() {
+    if strom_an; then
+        bluetoothctl power off
+        menue_anzeigen
+    else
+        if rfkill list bluetooth | grep -F -q 'blocked: yes'; then
+            rfkill unblock bluetooth && sleep 3
+        fi
+        bluetoothctl power on
+        menue_anzeigen
+    fi
+}
+
+# Überprüft, ob der Controller nach neuen Geräten sucht
+suche_an() {
+    if bluetoothctl show | grep -F -q "Discovering: yes"; then
+        echo "Scan: an"
+        return 0
+    else
+        echo "Scan: aus"
+        return 1
+    fi
+}
+
+# Schaltet den Suchzustand um
+suche_umschalten() {
+    if suche_an; then
+        kill "$(pgrep -f "bluetoothctl scan on")"
+        bluetoothctl scan off
+        menue_anzeigen
+    else
+        bluetoothctl scan on &
+        echo "Scan läuft..."
+        sleep 5
+        menue_anzeigen
+    fi
+}
+
+# Überprüft, ob der Controller mit Geräten koppeln kann
+koppelbar_an() {
+    if bluetoothctl show | grep -F -q "Pairable: yes"; then
+        echo "Koppelbar: an"
+        return 0
+    else
+        echo "Koppelbar: aus"
+        return 1
+    fi
+}
+
+# Schaltet den koppelbaren Zustand um
+koppelbar_umschalten() {
+    if koppelbar_an; then
+        bluetoothctl pairable off
+        menue_anzeigen
+    else
+        bluetoothctl pairable on
+        menue_anzeigen
+    fi
+}
+
+# Überprüft, ob der Controller für andere Geräte sichtbar ist
+sichtbar_an() {
+    if bluetoothctl show | grep -F -q "Discoverable: yes"; then
+        echo "Sichtbar: an"
+        return 0
+    else
+        echo "Sichtbar: aus"
+        return 1
+    fi
+}
+
+# Schaltet den sichtbaren Zustand um
+sichtbar_umschalten() {
+    if sichtbar_an; then
+        bluetoothctl discoverable off
+        menue_anzeigen
+    else
+        bluetoothctl discoverable on
+        menue_anzeigen
+    fi
+}
+
+# Überprüft, ob ein Gerät verbunden ist
+geraet_verbunden() {
+    if bluetoothctl info "$1" | grep -F -q "Connected: yes"; then
+        return 0
+    else
+        return 1
+    fi
+}
+
+# Schaltet die Geräteverbindung um
+verbindung_umschalten() {
+    if geraet_verbunden "$1"; then
+        bluetoothctl disconnect "$1"
+    else
+        bluetoothctl connect "$1"
+    fi
+}
+
+# Überprüft, ob ein Gerät gekoppelt ist
+geraet_gekoppelt() {
+    if bluetoothctl info "$1" | grep -F -q "Paired: yes"; then
+        echo "Gekoppelt: ja"
+        return 0
+    else
+        echo "Gekoppelt: nein"
+        return 1
+    fi
+}
+
+# Schaltet den gekoppelten Zustand des Geräts um
+kopplung_umschalten() {
+    if geraet_gekoppelt "$1"; then
+        bluetoothctl remove "$1"
+        geraet_menue "$geraet"
+    else
+        bluetoothctl pair "$1"
+        geraet_menue "$geraet"
+    fi
+}
+
+# Überprüft, ob ein Gerät vertrauenswürdig ist
+geraet_vertrauenswuerdig() {
+    if bluetoothctl info "$1" | grep -F -q "Trusted: yes"; then
+        echo "Vertrauenswürdig: ja"
+        return 0
+    else
+        echo "Vertrauenswürdig: nein"
+        return 1
+    fi
+}
+
+# Schaltet den Vertrauensstatus des Geräts um
+vertrauen_umschalten() {
+    if geraet_vertrauenswuerdig "$1"; then
+        bluetoothctl untrust "$1"
+        geraet_menue "$geraet"
+    else
+        bluetoothctl trust "$1"
+        geraet_menue "$geraet"
+    fi
+}
+
+# Gibt eine kurze Zeichenkette mit dem aktuellen Bluetooth-Status aus
+# Nützlich für Statusleisten wie polybar, etc.
+status_anzeigen() {
+    if strom_an; then
+        printf ''
+
+        mapfile -t gekoppelte_geraete < <(bluetoothctl paired-devices | grep -F Device | cut -d ' ' -f 2)
+        zaehler=0
+
+        for geraet in "${gekoppelte_geraete[@]}"; do
+            if geraet_verbunden "$geraet"; then
+                geraet_alias="$(bluetoothctl info "$geraet" | grep -F "Alias" | cut -d ' ' -f 2-)"
+
+                if [ $zaehler -gt 0 ]; then
+                    printf ", %s" "$geraet_alias"
+                else
+                    printf " %s" "$geraet_alias"
+                fi
+
+                ((zaehler++))
+            fi
+        done
+        printf "\n"
+    else
+        echo ""
+    fi
+}
+
+# Ein Untermenü für ein bestimmtes Gerät, das Verbinden, Koppeln und Vertrauen ermöglicht
+geraet_menue() {
+    geraet="$1"
+
+    # Gerätenamen und MAC-Adresse abrufen
+    geraet_name="$(echo "$geraet" | cut -d ' ' -f 3-)"
+    mac="$(echo "$geraet" | cut -d ' ' -f 2)"
+
+    # Optionen erstellen
+    if geraet_verbunden "$mac"; then
+        verbunden="Verbunden: ja"
+    else
+        verbunden="Verbunden: nein"
+    fi
+    gekoppelt="$(geraet_gekoppelt "$mac")"
+    vertrauenswuerdig="$(geraet_vertrauenswuerdig "$mac")"
+    optionen="$verbunden\n$gekoppelt\n$vertrauenswuerdig\n$trennlinie\n$zurueck\n$beenden"
+
+    # dmenu-Menü öffnen, gewählte Option lesen
+    auswahl="$(echo -e "$optionen" | dmenu_ausfuehren "$geraet_name")"
+
+    # Gewählte Option mit Befehl abgleichen
+    case $auswahl in
+        "" | "$trennlinie")
+            echo "Keine Option gewählt."
+            ;;
+        "$verbunden")
+            verbindung_umschalten "$mac"
+            ;;
+        "$gekoppelt")
+            kopplung_umschalten "$mac"
+            ;;
+        "$vertrauenswuerdig")
+            vertrauen_umschalten "$mac"
+            ;;
+        "$zurueck")
+            menue_anzeigen
+            ;;
+    esac
+}
+
+# Öffnet ein dmenu-Menü mit dem aktuellen Bluetooth-Status und Verbindungsoptionen
+menue_anzeigen() {
+    # Menüoptionen abrufen
+    if strom_an; then
+        strom="Strom: an"
+
+        # Menschenlesbare Namen der Geräte, einer pro Zeile
+        # Wenn die Suche aus ist, werden nur gekoppelte Geräte aufgelistet
+        if [[ -n "$verbunden_symbol" ]]; then
+            geraete="$(bluetoothctl devices | grep -F Device | while read -r geraet; do
+                geraet_name="$(echo "$geraet" | cut -d ' ' -f 3-)"
+                mac="$(echo "$geraet" | cut -d ' ' -f 2)"
+                symbol=""
+
+                if geraet_verbunden "$mac" && [[ -n $verbunden_symbol ]]; then
+                    symbol=" $verbunden_symbol"
+                fi
+
+                echo "$geraet_name${symbol}"
+            done)"
+        else
+            geraete="$(bluetoothctl devices | grep -F Device | cut -d ' ' -f 3-)"
+        fi
+
+        # Controller-Flags abrufen
+        suche="$(suche_an)"
+        koppelbar="$(koppelbar_an)"
+        sichtbar="$(sichtbar_an)"
+
+        # An dmenu übergebene Optionen
+        [[ -n $geraete ]] && geraete_teil="$geraete\n$trennlinie\n"
+        optionen="$geraete_teil$strom\n$suche\n$koppelbar\n$sichtbar\n$beenden"
+    else
+        strom="Strom: aus"
+        optionen="$strom\n$beenden"
+    fi
+
+    # dmenu-Menü öffnen, gewählte Option lesen
+    auswahl="$(echo -e "$optionen" | dmenu_ausfuehren "Bluetooth")"
+
+    # Gewählte Option mit Befehl abgleichen
+    case $auswahl in
+        "" | "$trennlinie")
+            echo "Keine Option gewählt."
+            ;;
+        "$strom")
+            strom_umschalten
+            ;;
+        "$suche")
+            suche_umschalten
+            ;;
+        "$sichtbar")
+            sichtbar_umschalten
+            ;;
+        "$koppelbar")
+            koppelbar_umschalten
+            ;;
+        *)
+            if [[ -n "$verbunden_symbol" ]]; then
+                auswahl="${auswahl%% ${verbunden_symbol}}"
+            fi
+            geraet="$(bluetoothctl devices | grep -F "$auswahl")"
+            # Ein Untermenü öffnen, wenn ein Gerät ausgewählt wurde
+            if [[ -n "$geraet" ]]; then geraet_menue "$geraet"; fi
+            ;;
+    esac
+}
+
+# dmenu-Befehl zum Weiterleiten. Zusätzliche Argumente für dmenu-bluetooth werden an dmenu weitergegeben.
+# Dies ermöglicht dem Benutzer, Schriftarten, Größen, Farben usw. festzulegen.
+DMENU_BLUETOOTH_LAUNCHER="${DMENU_BLUETOOTH_LAUNCHER:-dmenu}"
+dmenu_ausfuehren() {
+    case "$DMENU_BLUETOOTH_LAUNCHER" in
+        rofi)
+            DMENU_BLUETOOTH_LAUNCHER="rofi -dmenu"
+            ;;
+        fuzzel)
+            DMENU_BLUETOOTH_LAUNCHER="fuzzel --dmenu"
+            ;;
+    esac
+    $DMENU_BLUETOOTH_LAUNCHER -i -p "$DMENU_BLUETOOTH_PROMPT" "${dmenu_args[@]}"
+}
+
+hilfe_anzeigen() {
+    echo "Verwendung: $0 [--help] [--status] [--connected-icon [SYMBOL]] [PROMPT] DMENU_ARGS..."
+    echo ""
+    echo "Ein Skript, das ein dmenu-Menü generiert, das bluetoothctl verwendet, um Bluetooth-Geräte zu verbinden und Statusinformationen anzuzeigen."
+    echo ""
+    echo "Positionsargumente:"
+    echo "  PROMPT                    dmenu-Prompt"
+    echo "  DMENU_ARGS...             an dmenu übergebene Argumente"
+    echo ""
+    echo "Optionen:"
+    echo "--help                      Diese Hilfemeldung anzeigen und beenden"
+    echo "--status                    Eine kurze Zeichenkette über den aktuellen Bluetooth-Status ausgeben und beenden"
+    echo "--connected-icon [SYMBOL]   Symbol in der Geräteliste neben verbundenen Geräten hinzufügen"
+    echo ""
+    echo "Umgebungsvariablen:"
+    echo "  DMENU_BLUETOOTH_PROMPT    dmenu-Prompt"
+    echo "  DMENU_BLUETOOTH_LAUNCHER  Befehl, der anstelle von 'dmenu' verwendet werden soll"
+    echo ""
+    echo "Positionsargumente müssen nach allen anderen Argumenten platziert werden."
+    echo "Ein PROMPT-Positionsargument wird als Teil von DMENU_ARGS interpretiert, wenn es mit '-' beginnt. Es wird nicht geparst, wenn die Umgebungsvariable DMENU_BLUETOOTH_PROMPT gesetzt ist."
+    echo "Verwenden Sie die Umgebungsvariable DMENU_BLUETOOTH_LAUNCHER, um andere Launcher als dmenu zu verwenden. Rofi, fuzzel und alle dmenu-kompatiblen Launcher werden unterstützt."
+}
+
+befehl_vorhanden() {
+    command -v "$1" >/dev/null 2>&1
+}
+
+fehler() {
+    echo "$1. $2." >&2
+    befehl_vorhanden notify-send && notify-send "$1" "$2."
+}
+
+# Überprüfen, ob der Bluetooth-Daemon läuft. Starten, wenn möglich.
+if befehl_vorhanden systemctl; then
+    systemctl is-active --quiet bluetooth
+    case $? in
+        3)
+            fehler "Bluetooth-Daemon läuft nicht" "Starten Sie ihn, um dieses Skript zu verwenden"
+            systemctl start bluetooth || exit 3
+            ;;
+        4)
+            fehler "Bluetooth-Daemon ist nicht vorhanden" "Installieren Sie auf Arch Linux die Pakete bluez und bluez-utils"
+            exit 4
+            ;;
+    esac
+fi
+
+dmenu_args=("$@")
+case "$1" in
+    --help)
+        hilfe_anzeigen
+        exit
+        ;;
+    --status)
+        status_anzeigen
+        exit
+        ;;
+    --connected-icon)
+        if [[ "$2" == "--" ]]; then
+            verbunden_symbol=""
+        else
+            verbunden_symbol="$2"
+        fi
+        dmenu_args=("${dmenu_args[@]:2}")
+        ;;
+esac
+case "${dmenu_args[0]}" in
+    -*)
+        ;;
+    *)
+        if [[ -z "$DMENU_BLUETOOTH_PROMPT" ]]; then
+            DMENU_BLUETOOTH_PROMPT="${dmenu_args[0]}"
+            dmenu_args=("${dmenu_args[@]:1}")
+        fi
+        ;;
+esac
+
+menue_anzeigen

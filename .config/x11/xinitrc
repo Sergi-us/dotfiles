@@ -1,0 +1,27 @@
+#!/bin/sh
+
+# xinitrc wird automatisch ausgeführt, wenn Sie startx verwenden.
+# Es gibt einige kleine, aber wichtige Befehle, die ausgeführt werden müssen,
+# wenn wir die grafische Umgebung starten. Es gibt einen Link zu dieser Datei
+# in ~/.xprofile, weil diese Datei automatisch ausgeführt wird, wenn jemand
+# einen Display Manager (Anmeldebildschirm) verwendet, und daher werden sie
+# dort benötigt. Um zu verhindern, dass Befehle doppelt ausgeführt werden,
+# lade ich sie hier mit der folgenden Zeile.
+
+# Überprüft, ob eine xprofile-Datei im XDG_CONFIG_HOME oder im Standard-Verzeichnis existiert
+# und lädt sie, falls vorhanden
+
+if [ -f "${XDG_CONFIG_HOME:-$HOME/.config}/x11/xprofile" ]; then
+    . "${XDG_CONFIG_HOME:-$HOME/.config}/x11/xprofile"
+else
+    . "$HOME/.xprofile"
+fi
+
+# Aktiviert dbus-Variablen
+# Dies ist wichtig für die Inter-Prozess-Kommunikation in vielen Desktop-Umgebungen
+dbus-update-activation-environment --all
+
+# Startet den SSH-Agenten und dann den Window Manager DWM
+# Der SSH-Agent wird in der dbus-Umgebung gestartet, was nützlich ist für
+# Programme, die SSH-Authentifizierung benötigen
+dbus-launch ssh-agent dwm

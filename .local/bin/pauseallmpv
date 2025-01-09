@@ -1,0 +1,9 @@
+#!/bin/sh
+## 2025-01-09 SARBS
+
+# Du wirst bemerken, dass alle mpv-Befehle mit diesem input-ipc-server-Thing aliasiert sind. Das ist nur für diesen speziellen Befehl, der es uns erlaubt, jeden einzelnen von ihnen mit einem Befehl zu pausieren! Dies ist standardmäßig an super + shift + p (mit anderen Dingen) gebunden und wird an einigen anderen Stellen verwendet.
+# TODO Pause funktion für Librewolf hinzufügen (warscheinlich ein anderes Tool erforderlinch)
+
+for i in $(ls /tmp/mpvSockets/*); do
+	echo '{ "command": ["set_property", "pause", true] }' | socat - "$i";
+done

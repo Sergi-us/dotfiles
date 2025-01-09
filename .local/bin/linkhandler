@@ -1,0 +1,27 @@
+#!/bin/sh
+## 2025-01-09 SARBS
+
+# Skript übergibt eine URL oder Dateipfad.
+# Wenn es ein Bild ist, wird es in nsxiv angezeigt,
+# wenn es ein Video oder GIF ist, wird es in mpv angezeigt,
+# wenn es eine Musikdatei oder ein PDF ist, wird es heruntergeladen,
+# andernfalls wird der Link im Browser geöffnet.
+
+if [ -z "$1" ]; then
+	url="$(xclip -o)"
+else
+	url="$1"
+fi
+
+case "$url" in
+	*mkv|*webm|*mp4|*youtube.com/watch*|*youtube.com/playlist*|*youtube.com/shorts*|*youtu.be*|*hooktube.com*|*bitchute.com*|*odysee.com*)
+		setsid -f mpv -quiet "$url" >/dev/null 2>&1 ;;
+	*png|*jpg|*jpe|*jpeg|*gif|*webp)
+		curl -sL "$url" > "/tmp/$(echo "$url" | sed "s/.*\///;s/%20/ /g")" && nsxiv -a "/tmp/$(echo "$url" | sed "s/.*\///;s/%20/ /g")"  >/dev/null 2>&1 & ;;
+	*pdf|*cbz|*cbr)
+		curl -sL "$url" > "/tmp/$(echo "$url" | sed "s/.*\///;s/%20/ /g")" && zathura "/tmp/$(echo "$url" | sed "s/.*\///;s/%20/ /g")"  >/dev/null 2>&1 & ;;
+	*mp3|*flac|*opus|*mp3?source*)
+		qndl "$url" 'curl -LO'  >/dev/null 2>&1 ;;
+	*)
+		[ -f "$url" ] && setsid -f "$TERMINAL" -e "$EDITOR" "$url" >/dev/null 2>&1 || setsid -f "$BROWSER" "$url" >/dev/null 2>&1
+esac

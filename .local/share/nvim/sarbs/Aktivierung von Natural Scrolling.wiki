@@ -1,0 +1,84 @@
+Titel: Aktivierung von Natural Scrolling für Thinkpad T480 unter Arch Linux mit DWM
+
+Tools instalieren:
+sudo pacman -S xorg-xinput (wird nur zur identifikation benötigt)
+sudo pacman -S libinput
+
+1. Identifizierung des Touchpads:
+xinput list
+Ergebnis: Synaptics TM3276-022 mit ID 10 identifiziert
+
+2. Überprüfung der Touchpad-Eigenschaften:
+xinput list-props 10
+Relevante Eigenschaft: "libinput Natural Scrolling Enabled"
+
+3. Aktivierung von Natural Scrolling:
+Befehl zum sofortigen Aktivieren:
+xinput set-prop 10 "libinput Natural Scrolling Enabled" 1
+
+4. Dauerhafte Konfiguration:
+Datei ~/.xprofile bearbeiten:
+nvim ~/.xprofile
+
+Folgende Zeile hinzugefügt:
+xinput set-prop 10 "libinput Natural Scrolling Enabled" 1
+
+Ergebnis:
+Natural Scrolling wird nun bei jedem Systemstart automatisch aktiviert.
+
+
+## Optional
+
+Mit der libinput-Bibliothek können Sie viele nützliche Anpassungen an Ihren Eingabegeräten vornehmen. Hier sind einige Beispiele für weitere Möglichkeiten:
+
+1. Touchpad-Konfiguration:
+   - Tap-to-click aktivieren/deaktivieren
+   - Geschwindigkeit und Beschleunigung anpassen
+   - Zwei-Finger-Scrolling aktivieren/deaktivieren
+   - Kanten-Scrolling konfigurieren
+
+2. Maus-Einstellungen:
+   - Zeigergeschwindigkeit anpassen
+   - Beschleunigung einstellen
+   - Linkshandmodus aktivieren
+
+3. Tastatur-Anpassungen:
+   - Tastaturwiederholrate einstellen
+   - Verzögerung bis zur Wiederholung anpassen
+
+4. Gesten-Steuerung:
+   - Drei-Finger-Gesten für Arbeitsflächen-Wechsel
+   - Pinch-to-Zoom auf Touchpads aktivieren
+
+5. Eingabegerät-spezifische Anpassungen:
+   - Druckempfindlichkeit für Grafiktabletts einstellen
+   - Touchscreen-Kalibrierung
+
+6. Deaktivierung der Eingabe während des Tippens:
+   - Verhindern von versehentlichen Touchpad-Berührungen beim Tippen
+
+7. Scrolling-Verhalten:
+   - Horizontales Scrolling aktivieren/deaktivieren
+   - Scrolling-Geschwindigkeit anpassen
+
+8. Palm-Erkennung:
+   - Empfindlichkeit der Handballen-Erkennung einstellen
+
+9. Trackpoint-Konfiguration (für ThinkPads):
+   - Geschwindigkeit und Empfindlichkeit anpassen
+
+10. Gerätespezifische Regeln:
+    - Bestimmte Einstellungen nur für spezifische Geräte anwenden
+
+
+Um diese Einstellungen vorzunehmen, können Sie entweder die `xinput` Befehle für sofortige Änderungen verwenden oder dauerhafte Konfigurationen in Xorg-Konfigurationsdateien oder in Ihrer `.xprofile` vornehmen, ähnlich wie wir es für das Natural Scrolling gemacht haben.
+
+Hier ein Beispiel für die Anpassung der Touchpad-Geschwindigkeit:
+
+```
+xinput set-prop "Synaptics TM3276-022" "libinput Accel Speed" 0.5
+```
+
+Dies setzt die Beschleunigung auf einen Wert von 0.5 (der Bereich geht von -1 bis 1).
+
+Für Ihre spezifischen Bedürfnisse könnten Sie die Eigenschaften Ihres Geräts mit `xinput list-props` auflisten und dann die gewünschten Anpassungen vornehmen. Jede dieser Änderungen kann Ihre Benutzererfahrung auf Ihrem ThinkPad T480 weiter verbessern.

@@ -1,0 +1,15 @@
+
+- Stelle sicher, dass alle Schreibvorgänge abgeschlossen sind:
+#$	sync
+
+- Finde heraus, welche Prozesse noch auf die HDD zugreifen:
+#$	lsof | grep /home/sergi/backup
+
+- Versuche, die HDD auszuhängen (mit `-i` erzwingen)
+#$	sudo umount /dev/mapper/extern
+
+- Beende die Prozesse, die noch auf die HDD zugreifen
+#	mache ich mit btop
+
+- Sobald die HDD sicher ausgehängt ist, kannst du die Rotation der HDD anhalten (ungetestet `-Y`)
+#$	sudo hdparm -y /dev/sdX

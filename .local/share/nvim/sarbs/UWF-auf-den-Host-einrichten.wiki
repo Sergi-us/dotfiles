@@ -1,0 +1,91 @@
+= QEMU/KVM Netzwerk Troubleshooting =
+
+== Grundlegende Überprüfungen ==
+Folgende Befehle zeigen den Status der Netzwerkkonfiguration:
+# Netzwerkbrücken anzeigen
+{{{
+ip link show
+brctl show
+}}}
+# Status der virtuellen Netzwerke
+{{{
+sudo virsh net-list --all
+}}}
+# Bridge-IP prüfen
+{{{
+ip addr show virbr0
+}}}
+# DHCP-Service prüfen
+{{{
+ps aux | grep dnsmasq
+}}}
+
+== Firewall Konfiguration (UFW) ==
+=== Notwendige UFW-Regeln ===
+
+# IP-Forwarding aktivieren
+{{{
+echo 1 | sudo tee /proc/sys/net/ipv4/ip_forward
+}}}
+{{{
+sudo sh -c 'echo "net/ipv4/ip_forward=1" >> /etc/ufw/sysctl.conf'
+}}}
+# MASQUERADE für NAT
+{{{
+sudo iptables -t nat -A POSTROUTING -s 192.168.122.0/24 -j MASQUERADE
+}}}
+# UFW Regeln
+{{{
+sudo ufw default allow FORWARD
+sudo ufw allow in on virbr0
+sudo ufw allow out on virbr0
+}}}
+# UFW neu laden
+{{{
+sudo ufw disable
+sudo ufw enable
+}}}
+
+=== Überprüfen der Firewall ===
+# UFW Status
+{{{
+sudo ufw status verbose
+}}}
+# NAT Regeln
+{{{
+sudo iptables -t nat -L -v -n
+}}}
+
+== Libvirt Netzwerk neu erstellen ==
+Falls alle anderen Maßnahmen nicht helfen:
+{{{
+sudo virsh net-destroy default
+sudo virsh net-undefine default
+sudo virsh net-define /etc/libvirt/qemu/networks/default.xml
+sudo virsh net-start default
+sudo virsh net-autostart default
+}}}
+
+== Debugging in der VM ==
+Innerhalb der VM folgende Tests durchführen:
+{{{
+# Netzwerkkonfiguration prüfen
+ip addr show
+ip route
+
+# Konnektivität testen
+ping 192.168.122.1    # Bridge
+ping 8.8.8.8          # Internet
+ping google.com       # DNS
+}}}
+
+== Typische Probleme ==
+* Keine IP-Adresse in VM → DHCP-Problem
+* Keine Internet-Verbindung → Firewall/NAT-Problem
+* DNS funktioniert nicht → dnsmasq-Problem
+* Bridge nicht aktiv → libvirt-Netzwerk neu starten
+
+== Siehe auch ==
+* [[KVM]]
+* [[Virtualisierung]]
+* [[UFW]]

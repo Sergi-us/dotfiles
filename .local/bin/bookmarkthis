@@ -1,0 +1,19 @@
+#!/bin/sh
+## 2025-01-08 SARBS
+# Skript um ausgewählten Text zu snippets hinzuzufügen
+
+bookmark="$(xclip -o)"
+file="$HOME/.local/share/sarbs/snippets"
+
+if grep -q "^$bookmark$" "$file"; then
+    notify-send "Hoppla.." "Bereits vorhanden!"
+else
+    notify-send "Bookmark hinzugefügt" "$bookmark ist nun gespeichert in snippets"
+    # Erstellt eine temporäre Datei
+    temp_file=$(mktemp)
+    # Schreibt den neuen Bookmark und den Inhalt der alten Datei in die temporäre Datei
+    echo "$bookmark" > "$temp_file"
+    cat "$file" >> "$temp_file"
+    # Bewegt die temporäre Datei zurück an die Stelle der ursprünglichen Datei
+    mv "$temp_file" "$file"
+fi

@@ -1,0 +1,18 @@
+#!/bin/sh
+## 2025-01-09 SARBS
+
+# Synchronisiert Repositories und lädt Updates herunter, soll als Cronjob ausgeführt werden.
+
+notify-send "📦 Repository-Synchronisierung" "Überprüfen auf Paket-Updates..."
+
+sudo pacman -Syyuw --noconfirm || notify-send "Fehler beim Herunterladen der Updates.
+
+Überprüfen Sie Ihre Internetverbindung, ob pacman/YAY bereits läuft, oder führen Sie das Update manuell aus, um Fehler zu sehen."
+pkill -RTMIN+8 "${STATUSBAR:-dwmblocks}"
+
+if pacman -Qu | grep -v "\[ignored\]"
+then
+	notify-send "🎁 Repository-Synchronisierung" "Updates verfügbar. Klicken Sie auf das Statusleisten-Symbol (📦) für das Update."
+else
+	notify-send "📦 Repository-Synchronisierung" "Synchronisierung abgeschlossen. Keine neuen Pakete für das Update."
+fi

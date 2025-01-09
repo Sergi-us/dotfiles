@@ -1,0 +1,83 @@
+== Optimale Grafikeinstellung für Arch VM ==
+=== Benötigte Pakete in der VM ===
+Installiere folgende Pakete in der VM (nicht auf dem Host):
+{{{
+sudo pacman -S xf86-video-qxl         # QXL Grafiktreiber
+sudo pacman -S spice-vdagent         # SPICE Agent für Auflösung & Clipboard
+}}}
+
+=== Dienst aktivieren ===
+SPICE-Agent aktivieren:
+{{{
+sudo systemctl enable spice-vdagentd
+sudo systemctl start spice-vdagentd
+}}}
+
+=== VM-Einstellungen (Host) ===
+Im virt-manager:
+1. VM Details öffnen (Blauer "i" Button)
+2. Unter "Video":
+  * Typ: QXL
+  * 3D-Beschleunigung aktivieren
+3. Unter "Display Spice":
+  * Listen-Typ: Alle Schnittstellen
+  * OpenGL aktivieren
+
+=== Features ===
+Mit dieser Einrichtung funktionieren:
+  * Automatische Auflösungsanpassung
+  * Copy & Paste zwischen Host und VM
+  * Bessere Grafikperformance
+  * Mausintegration
+
+=== Troubleshooting ===
+Falls die Auflösung nicht automatisch angepasst wird:
+  * Prüfe ob spice-vdagentd läuft
+  * X-Server neu starten
+  * VM neu starten
+
+== SPICE Agent Setup in der VM ==
+=== 1. Installation prüfen ===
+In der VM ausführen:
+{{{
+pacman -Qs spice-vdagent
+}}}
+Falls nicht installiert:
+{{{
+sudo pacman -S spice-vdagent
+}}}
+
+=== 2. Service Status prüfen ===
+Status des Dienstes überprüfen:
+{{{
+systemctl status spice-vdagentd
+}}}
+
+=== 3. Service aktivieren ===
+Ja, diese Befehle sind nötig:
+{{{
+sudo systemctl enable spice-vdagentd
+sudo systemctl start spice-vdagentd
+}}}
+
+=== 4. Xorg-Treiber prüfen ===
+QXL-Treiber installieren falls noch nicht geschehen:
+{{{
+sudo pacman -S xf86-video-qxl
+}}}
+
+=== 5. Test der Funktionalität ===
+Nach der Einrichtung sollte:
+  * Die Auflösung sich automatisch anpassen
+  * Copy & Paste zwischen Host und VM funktionieren
+  * Die Maus sich nahtlos bewegen
+
+=== Troubleshooting ===
+Falls die Auflösung sich nicht anpasst:
+{{{
+# Log anzeigen
+journalctl -u spice-vdagentd
+
+# Service neustarten
+sudo systemctl restart spice-vdagentd
+}}}

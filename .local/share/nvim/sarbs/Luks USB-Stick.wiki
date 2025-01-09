@@ -1,0 +1,99 @@
+ = USB-Stick für SARBS mit LUKS verschlüsseln =
+
+== Vorbereitungen ==
+In den Superuser-Modus wechseln:
+{{{
+sudo su
+}}}
+
+Laufwerke identifizieren:
+{{{
+lsblk
+}}}
+_Hinweis: Stelle sicher, dass du das richtige Laufwerk (/dev/sdX) identifiziert hast!_
+
+== Partitionierung ==
+Partitionstabelle erstellen:
+{{{
+fdisk /dev/sdX
+}}}
+Folgende Befehle in fdisk ausführen:
+  * `d` - Alle bestehenden Partitionen löschen
+  * `n` - Neue Partition erstellen
+  * `p` - Als primäre Partition
+  * `1` - Als erste Partition
+  * Enter - Standardwert für ersten Sektor
+  * Enter - Standardwert für letzten Sektor
+  * `w` - Änderungen schreiben und beenden
+
+== Verschlüsselung einrichten ==
+LUKS-Container erstellen:
+{{{
+cryptsetup luksFormat /dev/sdX1
+}}}
+_Wichtig: Mit `YES` bestätigen und sicheres Passwort zweimal eingeben_
+
+LUKS-Container öffnen:
+{{{
+cryptsetup open /dev/sdX1 bezeichnung
+}}}
+_Tipp: Wähle einen aussagekräftigen Namen für "bezeichnung"_
+
+== Dateisystem erstellen ==
+=== Option 1: BTRFS ===
+{{{
+mkfs.btrfs /dev/mapper/bezeichnung
+}}}
+
+=== Option 2: EXT4 ===
+{{{
+mkfs.ext4 /dev/mapper/bezeichnung
+}}}
+
+== Mounten und Rechte setzen ==
+
+Mountpoint erstellen (falls nicht vorhanden):
+{{{
+mkdir -p /mnt/usb
+}}}
+
+Partition mounten:
+{{{
+mount /dev/mapper/bezeichnung /mnt/usb
+}}}
+
+Besitzerrechte setzen:
+{{{
+chown $USER:wheel /mnt/usb
+}}}
+
+
+== Unmounten und Container schließen ==
+
+Partition aushängen:
+{{{
+umount /mnt/usb
+}}}
+
+LUKS-Container schließen:
+{{{
+cryptsetup close bezeichnung
+}}}
+
+== Abschließend ==
+
+Superuser-Modus verlassen
+{{{
+exit
+}}}
+
+== Schnellzugriff ==
+Später können Sie den USB-Stick schnell ein- und aushängen:
+  * Einhängen: `mod`+`F9`
+  * Aushängen: `mod`+`F10`
+
+== Wichtige Hinweise ==
+  * Sichern Sie das LUKS-Passwort an einem sicheren Ort
+  * Erstellen Sie regelmäßig Backups wichtiger Daten
+  * Überprüfen Sie vor dem Formatieren immer zweimal die Laufwerksbezeichnung
+[[index]]

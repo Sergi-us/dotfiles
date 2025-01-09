@@ -1,0 +1,49 @@
+# Weitere Schritte zur Analyse der Festplatte
+
+1. Überprüfen der SMART-Werte
+	Installiere smartmontools:
+	`sudo pacman -S smartmontools`
+
+	SMART-Werte auslesen:
+	`sudo smartctl -a /dev/sdX`
+
+2. SMART-Selbsttest durchführen
+	- Kurzer Test (2 min):
+	`sudo smartctl -t short /dev/sdX`
+	- Langer Test (mehrere Stunden?):
+	`sudo smartctl -t long /dev/sdX`
+	- status prüfen:
+	`sudo smartctl -c /dev/sdX`
+
+3. Testergebnisse anzeigen:
+	`sudo smartctl -a /dev/sdX`
+
+4. SMART-Status prüfen:
+	`sudo smartctl -H /dev/sdX`
+
+5. SMART aktivieren (kann vorkommen dass Smart deaktiviert ist, warum auch immer. hier der Promt um es zu aktivieren)
+	`sudo smartctl -s on /dev/sdX`
+
+
+Überprüfen der Festplattengesundheit mit SMART
+SMART-Werte auslesen:
+
+bash
+Code kopieren
+sudo smartctl -a /dev/sdX
+Kurzer SMART-Selbsttest:
+
+bash
+Code kopieren
+sudo smartctl -t short /dev/sdX
+Langer SMART-Selbsttest:
+
+bash
+Code kopieren
+sudo smartctl -t long /dev/sdX
+Testergebnisse anzeigen:
+
+bash
+Code kopieren
+sudo smartctl -a /dev/sdX
+Mit diesen Schritten kannst du den Gesundheitszustand deiner HDD überprüfen und sicherstellen, dass keine schwerwiegenden Probleme vorliegen. Wenn du weitere Analysen benötigst oder Fragen hast, lass es mich wissen!

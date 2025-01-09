@@ -1,0 +1,10 @@
+#!/bin/sh
+## 2025-01-09 SARBS
+
+printf "Beginne mit Upgrade.\\n"
+
+yay -Syu
+pkill -RTMIN+8 "${STATUSBAR:-dwmblocks}"
+
+printf "\\nUpgrade komplett.\\ndrücke <Enter> um Fenster zu verlassen.\\n\\n"
+read -r _

@@ -1,0 +1,10 @@
+{{{bash
+sudo nvim /etc/systemd/resolved.conf
+}}}
+
+[Resolve]
+DNS=95.179.163.153
+
+{{{
+sudo systemctl restart systemd-resolved.service
+}}}

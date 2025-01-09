@@ -1,0 +1,49 @@
+#!/bin/bash
+## 2025-01-08 SARBS
+# nimmt ein Bild welches im Verzeichniss liegt und fürgt es an alle Musikdateien (als Metadata) ein. Das Skript war eins meiner ersten und ist voll von diesen nerfigen if-Schleifen...
+# TODO if-schleifen überarbeiten
+
+# Wechsel in das aktuelle Arbeitsverzeichnis
+cd "$(pwd)"
+
+# Konvertiere .webp Dateien zu .jpg und lösche die .webp Dateien
+for webpfile in *.webp; do
+    if [ -f "$webpfile" ]; then
+        # Konvertiere .webp zu .jpg
+        convert "$webpfile" "${webpfile%.webp}.jpg"
+        notify-send "Konvertiert" "$webpfile zu ${webpfile%.webp}.jpg"
+        # Lösche die .webp Datei
+        rm "$webpfile"
+        notify-send "Gelöscht" "$webpfile wurde gelöscht."
+    fi
+done
+
+# Suche nach Musikdateien (mp3 und flac)
+for file in *.mp3 *.flac; do
+    # Prüfe, ob eine Musikdatei vorhanden ist
+    if [ -f "$file" ]; then
+        # Finde das erste Bild im Verzeichnis (jpg oder png)
+        cover=$(ls *.jpg *.png 2>/dev/null | head -n 1)
+
+        if [ -n "$cover" ]; then
+            # Erstelle einen temporären Dateinamen
+            temp_file=$(mktemp --suffix=".${file##*.}")
+
+            # Entferne das bestehende Cover und füge das neue Cover hinzu
+            ffmpeg -y -i "$file" -i "$cover" -map 0:a -map 1 -c copy -id3v2_version 3 -metadata:s:v title="Album cover" -metadata:s:v comment="Cover (front)" "$temp_file"
+
+            # Falls ffmpeg erfolgreich war, ersetze die Originaldatei
+            if [ $? -eq 0 ]; then
+                mv "$temp_file" "$file"
+                notify-send "Cover ersetzt" "Das Cover für $file wurde ersetzt."
+            else
+                notify-send "Fehler" "Fehler beim Ersetzen des Covers für $file."
+                rm "$temp_file"
+            fi
+        else
+            notify-send "Kein Bild" "Kein passendes Bild gefunden für $file."
+        fi
+    fi
+done
+
+notify-send "Fertig" "Die Verarbeitung der Musikdateien ist abgeschlossen!"

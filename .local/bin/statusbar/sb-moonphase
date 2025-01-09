@@ -1,0 +1,80 @@
+#!/bin/sh
+## 2025-01-09 SARBS
+
+# Shows the current moon phase.
+
+moonfile="${XDG_DATA_HOME:-$HOME/.local/share}/moonphase"
+
+[ -s "$moonfile" ] && [ "$(stat -c %y "$moonfile" 2>/dev/null | cut -d' ' -f1)" = "$(date '+%Y-%m-%d')" ] ||
+	{ curl -sf "wttr.in/?format=%m" > "$moonfile" || exit 1 ;}
+
+icon="$(cat "$moonfile")"
+
+case "$icon" in
+    🌑) name="New" ;;
+    🌒) name="Waxing Crescent" ;;
+    🌓) name="First Quarter" ;;
+    🌔) name="Waxing Gibbous" ;;
+    🌕) name="Full" ;;
+    🌖) name="Waning Gibbous" ;;
+    🌗) name="Last Quarter" ;;
+    🌘) name="Waning Crescent" ;;
+    *) exit 1 ;;
+esac
+
+####case "$icon" in
+####    ) name="New" ;;
+####    󰽧) name="Waxing Crescent" ;;
+####    󰽡) name="First Quarter" ;;
+####    󰽨) name="Waxing Gibbous" ;;
+####    󰽢) name="Full" ;;
+####    󰽦) name="Waning Gibbous" ;;
+####    󰽣) name="Last Quarter" ;;
+####    󰽥) name="Waning Crescent" ;;
+####    *) exit 1 ;;
+####esac
+
+echo "${icon-?}"
+
+case $BLOCK_BUTTON in
+	3) notify-send "🌜 Moon phase module" "Displays current moon phase.
+- 🌑: New
+- 🌒: Waxing Crescent
+-  : First Quarter
+- 🌔: Waxing Gibbous
+- 🌕: Full
+- 🌖: Waning Gibbous
+- 󰽣 : Last Quarter
+- 🌘: Waning Crescent" ;;
+	6) setsid -f "$TERMINAL" -e "$EDITOR" "$0" ;;
+esac
+
+
+#   uniF0D0; E3C8
+#   uniF0D1; E3C9
+#   uniF0D2; E3CA
+#   uniF0D3; E3CB
+#   uniF0D4; E3CC
+#   uniF0D5; E3CD
+#   uniF0D6; E3CE
+#   uniF0D7; E3CF
+#   uniF0D8; E3D0
+#   uniF0D9; E3D1
+#   uniF0DA; E3D2
+#   uniF0DB; E3D3
+#   uniF0DC; E3D4
+#   uniF0DD; E3D5
+#   uniF0DE; E3D6
+#   uniF0DF; E3D7
+#   uniF0E0; E3D8
+#   uniF0E1; E3D9
+#   uniF0E2; E3DA
+#   uniF0E3; E3DB
+#   uniF0E4; E3DC
+#   uniF0E5; E3DD
+#   uniF0E6; E3DE
+#   uniF0E7; E3DF
+#   uniF0E8; E3E0
+#   uniF0E9; E3E1
+#   uniF0EA; E3E2
+#   uniF0EB; E3E3

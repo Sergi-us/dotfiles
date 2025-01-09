@@ -1,0 +1,130 @@
+#!/bin/sh
+## 2025-01-09 SARBS
+
+# Zeigt den Batteriestand mit Symbolen entsprechend dem Ladestand und dem Anschlussstatus an
+# TODO Größe verringern und informationen mit notify-send anzeigen
+# TODO nur eine Batterie anzeigen (logik überlegen)
+# TODO Symbol für Helligkeit hinzufügen
+# TODO Oder Helligkeitsanpassung von der BVatterie trennen
+
+adjust_brightness() {
+    tool=""
+    if command -v brightnessctl &> /dev/null; then
+        tool="brightnessctl"
+    elif command -v xbacklight &> /dev/null; then
+        tool="xbacklight"
+    else
+        notify-send " Kein Helligkeitstool gefunden"
+        exit 1
+    fi
+
+    case $1 in
+        inc)
+            if [ "$tool" = "brightnessctl" ]; then
+                brightnessctl set +5%
+            else
+                xbacklight -inc 10
+            fi
+            ;;
+        dec)
+            if [ "$tool" = "brightnessctl" ]; then
+                brightnessctl set 5%-
+            else
+                xbacklight -dec 10
+            fi
+            ;;
+        *)
+            notify-send "  Ungültige Operation"
+            exit 1
+            ;;
+    esac
+}
+
+case $BLOCK_BUTTON in
+    3) notify-send "Batteriemodul" "󰂏 Status:
+󰚥 Am Ladegerät
+󰂃 Akku schwach (<10 %)
+- Scrollen, um Helligkeit zu ändern." ;;
+    4)
+        # Erhöhung der Helligkeit um 10 %
+        adjust_brightness inc
+        ;;
+    5)
+        # Verringerung der Helligkeit um 10 %
+        adjust_brightness dec
+        ;;
+    6) setsid -f "$TERMINAL" -e "$EDITOR" "$0" ;;
+esac
+
+# Funktion zur Bestimmung des Batterie-Symbols basierend auf dem Ladestand
+get_battery_symbol() {
+    capacity=$1
+
+    if [ "$capacity" -le 10 ]; then
+        echo "󰂃"  # Batterie 10 %
+    elif [ "$capacity" -le 20 ]; then
+        echo "󰁺"  # Batterie 20 %
+    elif [ "$capacity" -le 30 ]; then
+        echo "󰁻"  # Batterie 30 %
+    elif [ "$capacity" -le 40 ]; then
+        echo "󰁼"  # Batterie 40 %
+    elif [ "$capacity" -le 50 ]; then
+        echo "󰁽"  # Batterie 50 %
+    elif [ "$capacity" -le 60 ]; then
+        echo "󰁾"  # Batterie 60 %
+    elif [ "$capacity" -le 70 ]; then
+        echo "󰁿"  # Batterie 70 %
+    elif [ "$capacity" -le 80 ]; then
+        echo "󰂀"  # Batterie 80 %
+    elif [ "$capacity" -le 90 ]; then
+        echo "󰂁"  # Batterie 90 %
+    else
+        echo "󰂂"  # Batterie voll
+    fi
+}
+
+# Funktion zur Bestimmung des Anschlussstatus (Ladegerät angeschlossen oder nicht)
+get_connection_status() {
+    # Prüfe, ob das System an AC-Strom angeschlossen ist
+    for ac in /sys/class/power_supply/AC* /sys/class/power_supply/Mains; do
+        [ -e "$ac/online" ] || continue
+        if [ "$(cat "$ac/online")" -eq 1 ]; then
+            echo "AC"  # Ladegerät angeschlossen
+            return
+        fi
+    done
+    echo "BAT"  # Batteriebetrieb
+}
+
+# Loop durch alle angeschlossenen Batterien und formatiere die Infos
+output=""
+for battery in /sys/class/power_supply/BAT?*; do
+    [ -d "$battery" ] || continue
+    capacity=$(cat "$battery/capacity" 2>/dev/null)
+
+    symbol=$(get_battery_symbol "$capacity")
+
+    # Warnung bei niedrigem Akkustand
+    if [ "$capacity" -le 20 ]; then
+        warn="❗"
+    else
+        warn=""
+    fi
+
+    # Anschlussstatus ermitteln
+    connection_status=$(get_connection_status)
+    if [ "$connection_status" = "AC" ]; then
+        # Verwende ein Symbol für angeschlossenes Ladegerät
+        # Vorschlag: "󰚥" (Steckersymbol) oder "" (Blitzsymbol)
+        connection_symbol="󰚥"
+    else
+        connection_symbol=""
+    fi
+
+    # Ausgabe zusammenstellen
+    # Um den Prozentwert auszublenden, kannst du "$capacity%" entfernen oder auskommentieren
+    output="$output $symbol $connection_symbol$warn $capacity%"
+done
+
+# Ausgabe drucken
+echo "$output"

@@ -1,0 +1,57 @@
+#!/bin/sh
+## 2025-01-09 SARBS
+# X11-spezifische Umgebungsvariablen und Konfigurationen.
+# Wirkt nur in grafischen X11-Sitzungen.
+# Spezifisch für grafische Programme unter X11.
+
+# === DPI Einstellungen ===
+xrandr --dpi 122    # 2560x1440
+# xrandr --dpi 96     # 1920x1080
+
+# === GDK Low Level Einstellungen ===
+# export GDK_SCALE=2							# Für GTK-Anwendungen
+# export GDK_DPI_SCALE=0.5					# Korrigiert die Schriftgrößen bei GDK_SCALE=2
+
+# === Themes und GUI ===
+export GTK_THEME=Arc-Dark
+export GTK2_RC_FILES="$XDG_CONFIG_HOME/gtk-2.0/gtkrc-3.0"	# ok GTK2-Konfigurationsdatei
+# export GTK2_RC_FILES="$XDG_CONFIG_HOME/gtk-2.0/gtkrc-2.0"	# ok GTK2-Konfigurationsdatei
+# export GTK_SCALE=2
+
+# export QT_QPA_PLATFORMTHEME="gtk2"		# ok QT soll gtk2-Thema verwenden
+export QT_QPA_PLATFORMTHEME="gtk3"		# QT soll gtk3-Thema verwenden
+# export QT_QPA_PLATFORMTHEME="qt5ct"		# qt5ct benötigt
+export QT_ENABLE_HIGHDPI_SCALING=1		# Testeinstellungen aus der Arch-Wiki
+export QT_AUTO_SCREEN_SCALE_FACTOR=1		# Testeinstellungen von Arch-Wiki
+# export QT_SCALE_FACTOR=1.25			# 1.5 Für Qt-Anwendungen
+# export QT_AUTO_SCREEN_SET_FACTOR=0
+# export QT_FONT_DPI=128#
+# export ELM_SCALE=1.5
+
+# === Bildschirm (kann mit Surep+Löschen beinflusst werden) ===
+xset s off							# Bildschirmschoner deaktivieren
+xset -dpms							# Energiesparmodus deaktivieren
+xset s noblank						# Kein automatisches Bildschirm-Blanking
+
+# === Verhalten von Eingabegeräten ===
+# Aktiviert Natural Scrolling (Mac-like)
+# xinput set-prop 10 "libinput Natural Scrolling Enabled" 1
+# xbanish &									# Hide mouse when typing
+
+# Setzt den Hintergrund mit dem `setbg` Skript
+setbg &
+
+# Lädt Xresources Farben/Einstellungen beim Start
+# TODO Trennen von Skalierung und Farben
+# wenn xrdb aktiviert, dann "~/.config/x11/xresources" beachten
+# xrdb ${XDG_CONFIG_HOME:-$HOME/.config}/x11/xresources & xrdbpid=$!
+
+# === Liste der automatisch zu startenden Programme ===
+autostart="mpd xcompmgr dunst unclutter pipewire remapd"
+
+for program in $autostart; do
+	pidof -sx "$program" || "$program" &
+done >/dev/null 2>&1
+
+# Stellt sicher, dass xrdb fertig ist, bevor der Window Manager / Desktop Environment gestartet wird
+[ -n "$xrdbpid" ] && wait "$xrdbpid"

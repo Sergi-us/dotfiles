@@ -1,0 +1,133 @@
+ NeoVim =
+
+https://www.nerdbude.com/m_vim.html
+
+== Vim mini Funktionen ==
+	- Ctrl+P/N	Autovervollständigung
+
+== Vim-Magic ==
+=== EX-Kommandos ===
+* `Substitude`
+* Wort-Ersetzung Tastenkonbi `Shift+S`
+{{{class="brush: bash"
+%s/\<altes-wort\>/neues-wort/g
+}}}
+
+* Jahreszahl nach vorne Kopieren
+{{{class="brush: bash"
+%s/\(.*\) (\(\d\d\d\d\))\(\..*\)$/\2 \1\3/
+}}}
+
+	`:sort u` Sortiert alphabetisch und entfernt doppelte Einträge
+== Installierte Plugin's in SARBS ==
+	Vim selbst hat 35,4K Sterbebewertung auf GitHub
+
+	- tpope/vim-surround		13,1K	Delete/change/add parentheses/quotes/XML-tags/much more with ease
+	- preservim/nerdtree		19,4K	A tree explorer plugin for vim.
+	- junegunn/goyo.vim			4,5K	Distraction-free writing in Vim
+	- jreybert/vimagit			1,3K	Ease your git workflow within Vim
+	- vimwiki/vimwiki			8,6K	Personal Wiki for Vim
+	- vim-airline/vim-airline	17,7K	Lean & mean status/tabline for vim that's light as air.
+	- tpope/vim-commentary		5,8K	commentary.vim: comment stuff out
+	- ap/vim-css-color			1,8K	Preview colors in source code while editing
+	- mechatroner/rainbow_csv			scv Dateien werden Farbig hervorgehoben
+
+== Plugins von Eric Murphy ==
+	- ghifarit53/tokyonight-vim 544     A clean, dark vim theme
+	- sheerun/vim-polyglot      5,5K    A collection of language packs for Vim.
+	- itchyny/lightline.vim     6,7K    A light and configurable statusline/tabline plugin for Vim
+	- neoclide/coc.nvim         24,1K   Make your Vim/NeoVim as smart as VS Code
+	- junegunn/fzf.vim          9,5K    Warp is a modern, Rust-based terminal with AI built in so you and your team can build great software, faster.
+	- mattn/emmet-vim           6,4K    support for expanding abbreviations similar to emmet
+	- alvan/vim-closetag        744     Auto close (X)HTML tags
+	- honza/vim-snippets        4,8K    snipMate & UltiSnip Snippets
+	- RRethy/vim-hexokinase     959     The fastest (Neo)Vim plugin for asynchronously displaying the colors in the file
+	- mhinz/vim-startify        5,3K    The fancy start screen for Vim.
+
+
+== Plugins von Browdy ==
+	- alvan/vim-closetag        744     Auto close (X)HTML tags
+	- neoclide/coc-pairs        293     Basic auto pairs extension of coc.nvim
+	- trope/vim-surround        13,1K   Delete/change/add parentheses/quotes/XML-tags/much more with ease
+
+== Plungins von "The Linux Cast" ==
+	- tpope/vim-surround                Surroundings like parentheses, brackets, quotes, etc.
+	- jiangmiao/auto-pairs              Automatically insert matching brackets and quotes
+	- alvan/vim-closetag        744     Auto close (X)HTML tags
+	- vim-airline/vim-airline           Lean & mean status/tabline for vim that's light as air
+	- iberianpig/ranger-explorer.vim    File manager integration with ranger
+	- vim-airline/vim-airline-themes    Themes for vim-airline
+	- farmergreg/vim-lastplace          Reopen files at your last edit position
+	- mhinz/vim-startify                Start screen for Vim with sessions and bookmarks
+	- NLKNguyen/papercolor-theme        A light and dark Farbschema for Vim
+
+== Tutor ==
+	:Tutor	ist ein Vim Tutorial!
+
+== Programm übersicht ==
+	- Verschiedene Modi (Normal, Insert, V-Block ...)
+	- terminal 'nvim dateiname.endung'
+	- LARBS 'v dateiname.endung'
+== Navigieren: ==
+	 	 k
+	  h		l
+	 	j 
+
+	- gg        go to the Top
+	- G         go to the Bottom
+	- L, M, H,  low, middle, high im der Fensteransicht
+	- zz		zentriert die aktuelle Zeile
+	- Ctrl+u	Up (halbe Seite)
+	- Ctrl+d	Down (halbe Seite)
+	- gj		 sichtbare Zeile
+	- gk		 sichtbare
+	- w		Wort vorran
+	- b		Wort zurück (back)
+	- $ | 0		gehen zum Linien Ende/Beginn (mit vorrangesetztem g 🤓)
+
+
+== Beenden: ==
+	- :q | :q! | ZQ | YQ | Beendet Vim ohne zu speichern
+	- :x | :wq | ZZ | YY | Beendet Vim mit Speichern
+
+== Insert Mode ==
+	- i	wechsel in den insert mode (mit 'ESC' in Normal mode)
+	- A	Append - Insert mode am Zeilenende
+	- I	Insert am Zeilenbeginn
+	- o	Insert neue Zeile unterhalb
+	- O	Insert neue Zeile überhalb
+
+== Manipulieren ==
+	- V
+	- x		Lösche einzelnes Zeichen (Charakter)
+	- d$ | D	löschen bis Zeilenende
+	- diw | dis	delete intier word/Satz
+	- daw | dis	delete arround word/Satz (ganzes Wort/Satz mit Leehrzeichen)
+	- dap		delete arround Paragraph
+	- c$ | C	löschen bis Zeilenende und wechseln zu Insert-Mode
+	- J		Merge mit der Linie darunder
+	- cw		change word (ab Cursor)
+	- ciw		change intier word (ganzes Wort)
+	- .	Wiederholen	Einer der krassesten Befehle (1+1 mehr als 2)
+		A \hline | Suche Ändere |
+	- gqq		bricht eine Zeile entsprechend der textwidth-Einstellung um
+	- gqap		bricht einen Absatz entsprechend der textwidth-Einstellung um
+
+== Rechtschreibprüfung spell-check ==
+     steht für <leader>
+     o     (Standard ist \) ist ein Trigger für die Rechtschreibprüfung
+    öj      nächstes falsches Wort
+    ök      vorheriges falsches Wort
+    z0      Wortvorschläge als Liste
+    zg      hinzufügen zum Wörterbuch
+    zw      wort ignorieren
+
+== Tabs ==
+	`nvim -p index.thml styles.css` Öffnet mehrere Dateien in Tabs
+
+	`:tabedit styles.css` weitere Datei öffnen
+	`gt`	geh Tab vor
+	`gT`	geh Tab zurück
+	`2gt`	geh zu Tab 2
+
+== Sitzungen speichern ==

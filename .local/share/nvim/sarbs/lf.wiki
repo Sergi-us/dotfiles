@@ -1,0 +1,111 @@
+ = LF File Manager =
+
+== Übersicht ==
+LF (als "leaf" ausgesprochen) ist ein Terminal-basierter Dateimanager, geschrieben in Go. Er ist von ranger inspiriert und bietet eine effiziente, tastaturgesteuerte Navigation durch das Dateisystem. Die aktuelle Konfiguration basiert auf Sergis Anpassungen, die wiederum von Luke Smiths Konfiguration abgeleitet wurden.
+
+== Konfiguration ==
+Die Hauptkonfigurationsdatei befindet sich unter:
+* [[file:~/.config/lf/lfrc|~.config/lf/lfrc]].
+Für die Bildvorschau werden zusätzlich folgende Dateien benötigt:
+* [[file:~/.config/lf/cleaner|~/.config/lf/cleaner]] - Räumt Vorschaubilder auf
+* [[file:~/.config/lf/scope|~/.config/lf/scope]] - Generiert Vorschaubilder
+* Optional: [[file:~/.local/bin/lfub|~/.local/bin/lfub]] - Wrapper-Skript für ueberzug
+
+== Besondere Funktionen ==
+=== Bildvorschau ===
+Die aktuelle Konfiguration unterstützt Bildvorschau mittels *ueberzug*. Dafür müssen vier Komponenten vorhanden sein:
+* ueberzug muss installiert sein
+* Die [[file:~/.config/lf/scope|scope]]-Datei muss konfiguriert sein
+* Der [[file:~/.config/lf/cleaner|cleaner]] muss eingerichtet sein
+* LF sollte über das lfub-Wrapper-Skript gestartet werden
+
+=== Intelligentes Öffnen von Dateien ===
+Die Konfiguration enthält eine umfangreiche `open`-Funktion, die Dateien automatisch mit dem passenden Programm öffnet:
+* PDF/DJVU → zathura
+* Bilder → nsxiv
+* Videos → mpv
+* Textdateien → $EDITOR
+* Office-Dokumente → libreoffice
+
+== Tastenkombinationen ==
+=== SARBS Tastenkombinationen ===
+| Taste      | Funktion                                           | Konzept |
+|------------|----------------------------------------------------|---------|
+| `h`        | Nach links/zurück                                  | VI      |
+| `j`        | Nach unten                                         | VI      |
+| `k`        | Nach oben                                          | VI      |
+| `l`        | Nach rechts/öffnen                                 | VI      |
+| `Ctrl`+`f` | Öffnet fuzzy-search für Dateisuche                 | fzf     |
+| `J`        | Öffnet fuzzy-search mit Lesezeichen-Verzeichnissen | fzf     |
+| `H`        | Spring zum Home-Verzeichnis                        |         |
+| `g`        | Zum Anfang der Liste                               |         |
+| `G`        | zum ende der Liste                                 | VI      |
+| `D`        | Löschen mit Bestätigung                            |         |
+| `E`        | (zip) Archiv extrahieren                           |         |
+| `C`        | Kopieren nach... (mit fzf)                         |         |
+| `M`        | Verschieben nach... (mit fzf)                      |         |
+| `Ctrl`+`n` | Neues Verzeichnis erstellen                        |         |
+| `Ctrl`+`r` | Ansicht neu laden                                  |         |
+| `Ctrl`+`s` | Versteckte Dateien ein/ausblenden                  |         |
+| `x`        | Datei ausführen                                    |         |
+| `X`        | Datei ausführen und warten                         |         |
+| `o`        | Mit Standardprogramm öffnen                        |         |
+| `O`        | Programm zur Öffnung auswählen                     |         |
+| `c`        | Datei umbenennen (kompletter Name)                 |         |
+| `I`        | Umbenennen am Dateianfang                          |         |
+| `i`        | Umbenennen vor Erweiterung                         |         |
+| `a`        | Umbenennen nach Erweiterung                        |         |
+| `A`        | ADB Push für Datei/Verzeichnis                     |         |
+| `B`        | Massenumbenennung                                  |         |
+| `b`        | Als Hintergrundbild setzen                         |         |
+| `Ctrl`+`y` | Ausführrechte entziehen                            |         |
+| `Ctrl`+`x` | Ausführrechte geben                                |         |
+| `W`        | Neues Terminalfenster                              |         |
+| `U`        | Vollständiger Pfad in Zwischenablage               |         |
+| `u`        | Nur Dateiname in Zwischenablage                    |         |
+| `T`        | Thumbnail-Modus in nsxiv                           |         |
+| `Ctrl`+`l` | Auswahl aufheben                                   |         |
+
+=== Standard LF Tastenkombinationen ===
+| '''Taste''' | '''Funktion'''                          |
+|-------------|-----------------------------------------|
+| Space       | Datei auswählen / oder auswahl aufheben |
+| v           | Alle Dateien auswählen/Auswahl aufheben |
+| y           | Kopieren                                |
+| d           | Ausschneiden                            |
+| p           | Einfügen                                |
+| /           | Suchen                                  |
+| n           | Zum nächsten Suchergebnis               |
+| N           | Zum vorherigen Suchergebnis             |
+| q           | Beenden                                 |
+
+== Tipps zur Benutzung ==
+=== Erste Schritte ===
+1. Starten Sie LF mit dem Befehl `lf` (es wird der Alias `lfub` ausgeführt)
+2. Navigieren Sie mit `h`,`j`,`k`,`l` wie in vim
+
+=== Effiziente Navigation ===
+* Nutzen Sie `Ctrl`+`f` für schnelle Dateisuche mit fzf
+* Verwenden Sie `J` um schnell zu Lesezeichen zu springen
+* Mit `g` springen Sie zum Anfang der Liste
+
+=== Dateioperationen ===
+1. Wählen Sie Dateien mit `Space` aus
+2. Nutzen Sie die Tasten `C`/`M` für Kopieren/Verschieben
+3. Verwenden Sie `E` zum Extrahieren von Archiven
+4. Nutzen Sie `B` für Massenumbenennungen
+
+=== Vorschau und Öffnen ===
+* Drücken Sie `o` um Dateien mit dem Standardprogramm zu öffnen
+* `O` erlaubt die Auswahl des Öffnungsprogramms
+* Mit `T` öffnen Sie den Thumbnail-Modus für Bilder
+
+== Siehe auch ==
+* Vim - Texteditor mit ähnlicher Tastatursteuerung
+* fzf - Fuzzy Finder für schnelle Dateisuche
+
+== Quellen ==
+* [https://github.com/gokcehan/lf Offizielle LF Repository]
+* [https://godoc.org/github.com/gokcehan/lf LF Dokumentation]
+* Luke Smith's Dotfiles
+* Sergi's Anpassungen

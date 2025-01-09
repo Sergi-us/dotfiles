@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+## 2025-01-09 SARBS
+# Erstellt Hardlinks der hinterlegten Dateien und pusht diese ins eigene Home
+# Verzeichniss
+# XXX Stelle sicher dass du im Arbeitsverzeichniss deiner Dotfiles bist
+# TODO irgenteine Sicherheitsmaßnahme einbauen, das Kript überschreibt Daten...
+
+# Variablen
+SOURCE_DIR="$(pwd)"    # Aktuelles Verzeichnis als Quelle
+TARGET_DIR="$HOME"     # Zielverzeichnis: Home-Verzeichnis
+
+# Synchronisation mit Hardlinks
+rsync -avh --link-dest="$SOURCE_DIR" --exclude='*.bac' --exclude='.git/' "$SOURCE_DIR/" "$TARGET_DIR/"
+
+# Benachrichtigung
+notify-send "Hardlinks vom ($SOURCE_DIR) zum ($TARGET_DIR) erstellt."

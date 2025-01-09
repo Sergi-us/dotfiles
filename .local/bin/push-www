@@ -1,0 +1,16 @@
+#!/bin/bash
+## 2025-01-09 SARBS
+# Basic Puch skript um HTML seiten auf den Server hoch zu laden
+
+# Lokales Verzeichnis, das hochgeladen werden soll
+local_dir="$HOME/www/html/"
+
+# Hostname des Servers
+# aus der ~/.ssh/config übernehmen
+hostname="london"
+
+# Zielverzeichnis auf dem Server
+remote_dir="/var/www/html/"
+
+# rsync-Befehl zum Hochladen des Verzeichnisses
+rsync -uvrP --delete-after --exclude=".git" --chmod=D755,F644 --chown=root:www-data -e ssh $local_dir $hostname:$remote_dir

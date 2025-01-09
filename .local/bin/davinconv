@@ -1,0 +1,131 @@
+#!/bin/bash
+## 2025-01-08 SARBS
+# Converter für DaVinci Resolv von https://github.com/gohny/davinconv
+# über AUR auch verfügbar yay -S davinconv
+# XXX brauche ich um nützliche ffmpeg promt's für Davinci zu entnehmen
+
+VERSION=0.1.0
+
+# Aktueller Benutzername
+USERNAME=$(whoami)
+
+# Verzeichnis für Videos
+VIDDIR=/home/"$USERNAME"/Videos/davinci
+
+# Aktuelles Arbeitsverzeichnis
+WHEREAMI=$(pwd)
+
+# Erstelle Verzeichnisse, falls sie nicht existieren
+if [ ! -d "$VIDDIR" ]; then
+    mkdir -p "$VIDDIR"
+    mkdir -p "$VIDDIR"/converted
+    mkdir -p "$VIDDIR"/exported
+fi
+
+# Funktion zur Anzeige der Hilfe
+Help() {
+    echo ""
+    echo "  ............................................................"
+    echo "  . Davinconv - Video-Konverter für Davinci Resolve unter Linux ."
+    echo "  . v0.1.0    von Gohny                                         ."
+    echo "  ............................................................"
+    echo ""
+    echo "Verwendung: davinconv [-c|C|e|E|h|R]"
+    echo ""
+    echo "Optionen:"
+    echo "   {-c} [Datei]   - Konvertiert Video in den MJPEG-Codec, der von Davinci Resolve gelesen werden kann."
+    echo "   {-C}           - Konvertiert alle Videos im aktuellen Verzeichnis in den MJPEG-Codec."
+    echo "   {-e} [Datei]   - Exportiert konvertiertes Video zurück in den H264-Codec."
+    echo "   {-E}           - Exportiert alle konvertierten Videos aus $VIDDIR/converted zurück in den H264-Codec."
+    echo "   {-h}           - Zeigt diese Nachricht an."
+    echo "   {-R}           - Entfernt alle konvertierten Videos aus $VIDDIR/converted."
+    echo ""
+    echo "Alle konvertierten und exportierten Videos werden in ~/Videos/davinconv gespeichert"
+    echo ""
+    echo "Es wird empfohlen, https://www.youtube.com/watch?v=WLcW4UWPC5Y vor der Verwendung des Skripts anzusehen."
+    echo ""
+    echo "LIZENZ: GNU GENERAL PUBLIC LICENSE Version 3, 29. Juni 2007"
+    echo "https://github.com/gohny/davinconv"
+}
+
+# Funktion zur Konvertierung eines einzelnen Videos
+Convert() {
+    ffmpeg -i "$i" -vcodec mjpeg -q:v 2 -acodec pcm_s16be -q:a 0 -f mov "$VIDDIR"/converted/${i%.*}.mov
+}
+
+# Funktion zur Konvertierung aller Videos im aktuellen Verzeichnis
+ConvertAll() {
+    for i in *.mp4 *.mkv; do
+        ffmpeg -i "$i" -vcodec mjpeg -q:v 2 -acodec pcm_s16be -q:a 0 -f mov "$VIDDIR"/converted/${i%.*}.mov
+    done
+}
+
+# Funktion zum Exportieren eines einzelnen Videos
+Export() {
+    ffmpeg -i "$VIDDIR"/converted/"$i" -c:v libx264 -preset ultrafast -crf 0 "$VIDDIR"/exported/${i%.*}.mp4
+}
+
+# Funktion zum Exportieren aller konvertierten Videos
+ExportAll() {
+    cd "$VIDDIR"/converted
+        for i in *.mov; do
+            ffmpeg -i "$i" -c:v libx264 -preset ultrafast -crf 0 "$VIDDIR"/exported/${i%.*}.mp4
+        done
+    cd "$WHEREAMI"
+}
+
+# Funktion zum Entfernen aller konvertierten Videos
+RemoveAll() {
+    while true; do
+        echo "Sie sind dabei, ALLE konvertierten Videos in $VIDDIR/converted zu entfernen."
+        read -p "Möchten Sie fortfahren? (j/n) " yn
+        case $yn in
+            [jJ] )
+                echo ""
+                echo "Bitte warten..."
+                echo ""
+                sleep 1
+                rm -rf "$VIDDIR"/converted/*
+                break;;
+            [nN] )
+                echo "Es wurden keine Änderungen vorgenommen."
+                exit;;
+            * )
+                echo "Fehler: Bitte geben Sie j oder n ein";;
+        esac
+    done
+}
+
+# Hauptprogrammschleife zur Verarbeitung der Kommandozeilenargumente
+while getopts ":c:Ce:EhR" OPTION; do
+    case $OPTION in
+        c)
+            i=${OPTARG}
+            Convert
+            exit;;
+        C)
+            ConvertAll
+            exit;;
+        e)
+            i=${OPTARG}
+            Export
+            exit;;
+        E)
+            ExportAll
+            exit;;
+        h)
+            Help
+            exit;;
+        R)
+            RemoveAll
+            exit;;
+        *)
+            echo "Fehler: Ungültige Option oder Argument nicht angegeben!"
+            echo "Für Hilfe verwenden Sie: davinconv -h"
+            exit;;
+    esac
+done
+
+# Wenn keine Argumente angegeben wurden, zeige die Hilfe an
+Help
+exit

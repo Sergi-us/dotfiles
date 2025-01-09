@@ -1,0 +1,11 @@
+#!/bin/bash
+## 2025-01-09 SARBS
+# Startskript für Telegram das Theme wird automatisch aktualisiert..
+
+BG_PATH=~/.local/share/bg
+THEME_PATH=~/.cache/walogram/wal.tdesktop-theme
+
+walogram -B -i "$BG_PATH" >/dev/null 2>&1
+
+# Startet Telegram
+telegram-desktop &

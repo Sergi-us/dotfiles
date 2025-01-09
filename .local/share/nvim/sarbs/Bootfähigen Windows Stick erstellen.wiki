@@ -1,0 +1,12 @@
+== Wie erstellt man einen Bootfähigen Windows Stick ==
+
+= Vorraussetzungen =
+
+Tool runderlden
+
+`sudo yay -S woeusb-ng`
+
+= TODO =
+Am besten in's Arbeitsverzeichniss wechseln und zieldevice mit *lsblk* rausfinden
+
+`sudo woeusb --device /windows.iso /dev/sdX`
