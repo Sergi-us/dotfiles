@@ -1,0 +1,9 @@
+#!/bin/sh
+## 2025-01-09 SARBS
+
+# Ein Hilfsskript für LaTeX/groff-Dateien, das von `compiler` und `opout` verwendet wird. Der Benutzer kann die Hauptdatei eines größeren Projekts als Kommentar hinzufügen:
+# % root = mainfile.tex
+# Und das Compiler-Skript wird anstelle der geöffneten Datei darauf ausgeführt.
+
+texroot="$(sed -n 's/^\s*%.*root\s*=\s*\(\S\+\).*/\1/p' "${1}")"
+[ -f "${texroot}" ] && readlink -f "${texroot}" || exit "1"

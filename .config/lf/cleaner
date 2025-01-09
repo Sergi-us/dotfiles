@@ -1,0 +1,5 @@
+#!/bin/sh
+## 2025-01-09 SARBS
+if [ -n "$FIFO_UEBERZUG" ]; then
+	printf '{"action": "remove", "identifier": "PREVIEW"}\n' > "$FIFO_UEBERZUG"
+fi

@@ -1,0 +1,50 @@
+== Bestehende VM einrichten ==
+=== Vorbereitung ===
+wenn nicht bereits aktiviert (bei mir war dieser Schritt unnötig)
+2. Starte virt-manager
+3. Verbindung einrichten:
+  * Klicke auf "Datei" -> "Verbindung hinzufügen"
+  * Wähle "QEMU/KVM"
+  * Aktiviere "Automatisch verbinden"
+  * Bestätige mit "Verbinden"
+
+=== Neue VM aus bestehendem Image ===
+1. Klicke auf das Icon "Neue virtuelle Maschine" oder "Datei" -> "Neue virtuelle Maschine"
+2. Wähle "Import vorhandenes Festplattenabbild"
+3. neuen Pool erstellen mit dem Verweis auf das bestehende Image
+4. Konfiguration:
+{{{
+# Pfad zum Image
+/home/$USER/vm/arch_test.qcow2
+
+# Empfohlene Einstellungen
+Betriebssystem: Linux
+Version: Arch Linux
+}}}
+
+=== Ressourcenzuweisung ===
+Empfohlene Grundeinstellungen:
+  * RAM: Mindestens 2048 MB
+  * CPU: Mindestens 2 Kerne
+  * Netzwerk: Default NAT Network
+
+=== Wichtige Optionen ===
+Nach der Erstellung, aber vor dem Start:
+  * Öffne VM-Details (Blauer "i" Button)
+  * Unter "CPU":
+    * Aktiviere "CPU-Host-Passthrough"
+    * Aktiviere "Host-CPU-Modell kopieren"
+  * Unter "Grafik":
+    * Wähle "Spice-Server"
+    * Aktiviere "OpenGL" falls gewünscht
+
+=== Start und Test ===
+1. Starte die VM mit dem Play-Button
+2. Prüfe Netzwerkverbindung in der VM
+3. Teste Performance
+
+=== Troubleshooting ===
+Bei Problemen:
+  * Prüfe die Zugriffsrechte auf die qcow2-Datei
+  * Stelle sicher, dass das default Network läuft
+  * Konsole-Logs prüfen mit F12

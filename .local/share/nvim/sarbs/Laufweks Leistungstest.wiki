@@ -1,0 +1,12 @@
+## Leistungstests mit hdparm:
+`sudo hdparm -Tt /dev/sdX`
+
+## Leistungstests mit fio:
+
+	`sudo pacman -S fio`
+	Schreibtest:
+	`fio --name=write_test --size=1G --filename=/dev/sdX --bs=4M --rw=write --direct=1 --numjobs=1 --time_based --runtime=60 --group_reporting`
+	Lesetest:
+	`fio --name=read_test --size=1G --filename=/dev/sdX --bs=4M --rw=read --direct=1 --numjobs=1 --time_based --runtime=60 --group_reporting`
+
+Mit diesen Tipps und Tools kannst du deine Übertragungsgeschwindigkeit weiter optimieren und detaillierte Benchmarks durchführen. Lass mich wissen, wenn du weitere Fragen hast!

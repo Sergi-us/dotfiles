@@ -1,0 +1,21 @@
+[[NeoVim]]
+
+[[VimWiki]]
+
+[[lf]]
+
+[[Mutt das Mailprogramm]]
+
+[[surf der Suckless Browser]]
+
+[[ffmpeg]]
+
+[[st]]
+
+[[Davinci Resolve]]
+
+[[Bootfähigen Windows Stick erstellen]]
+
+[[Newsboat]]
+
+[[Librewolf]]

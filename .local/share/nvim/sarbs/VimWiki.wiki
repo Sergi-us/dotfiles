@@ -1,0 +1,77 @@
+= VimWiki =
+[[https://www.nerdbude.com/vimwiki.html|Wimviki Artikel von Nerdbude]]
+
+== Grundlegendes ==
+  * <leader> ist definiert als `','` (Komma)
+  * Grundlegende Befehle:
+  ** `<leader>ww` - Wiki Index öffnen
+  ** `<leader>wd` - Seite löschen
+  ** `<leader>wr` - Seite umbenennen
+  ** `<leader>wi` - Tagebuch öffnen
+  ** `<leader>w,w` - Zum heutigen Eintrag
+  ** `<leader>w,i` - Erstellt Index aller Einträge
+
+== Tagebuch ==
+  * Link zum Tagebuch erstellen: [[diary/diary]]
+
+== Aufgabenlisten ==
+  * Aufgaben werden mit `Ctrl+Space` markiert/demarkiert
+  * [X] Beispiel für erledigte Aufgabe
+  * [ ] Offene Aufgabe 1
+  * [ ] Offene Aufgabe 2
+
+== Wiki zu HTML konvertieren ==
+  * `:Vimwiki2HTML` - Erstellt eine einzelne HTML-Seite
+  * `:VimwikiAll2HTML` - Konvertiert das gesamte Wiki
+
+== Cheatsheet ==
+`[nummer] bezieht sich auf die Wiki-Nummer in der vimrc (Standard ist 1)`
+
+=== Wiki-Verwaltung ===
+  * `[nummer]<leader>ww` - Wiki-Index öffnen
+  * `[nummer]<leader>wt` - Wiki-Index in neuem Tab öffnen
+  * `<leader>ws` - Verfügbare Wikis auflisten
+  * `<leader>wd` - Wiki-Seite löschen
+  * `<leader>wr` - Wiki-Seite umbenennen
+
+=== Tagebuch-Verwaltung ===
+  * `[nummer]<leader>wi` - Tagebuch-Index öffnen
+  * `<leader>w<leader>i` - Tagebuch-Index aktualisieren
+  * `[nummer]<leader>w<leader>w` - Heutige Tagebuch-Seite öffnen
+  * `[nummer]<leader>w<leader>t` - Heutige Tagebuch-Seite in neuem Tab
+  * `<C-Up>` - Vorheriger Tag
+  * `<C-Down>` - Nächster Tag
+
+=== Navigation ===
+  * `<CR>` - Link folgen/erstellen
+  * `<C-S-CR>` - Link in neuem Tab
+  * `<Backspace>` - Zurück zur vorherigen Seite
+  * `<Tab>` - Zum nächsten Link
+  * `<S-Tab>` - Zum vorherigen Link
+
+=== Bearbeiten ===
+  * `<C-Space>` - Listenelement umschalten
+  * `=` - Überschriftebene erhöhen
+  * `-` - Überschriftebene verringern
+  * `+` - Links erstellen
+  * `glm` - Listeneinzug erhöhen
+  * `gll` - Listeneinzug verringern
+  * `gl*` oder `gl8` - * Symbol umschalten
+  * `gl#` oder `gl3` - # Symbol umschalten
+  * `gl`- - - Symbol umschalten
+  * `gl1` - 1. Symbol umschalten
+
+=== Tabellen ===
+  * `<A-Left>` - Spalte nach links
+  * `<A-Right>` - Spalte nach rechts
+  * `<CR>` - Neue Zelle unten (im Insert-Mode)
+  * `<Tab>` - Neue Zelle rechts (im Insert-Mode)
+  * `gqq` oder `gww` - Tabelle neu formatieren
+
+=== Text-Objekte ===
+  * `ah` - Abschnitt mit Leerzeilen
+  * `ih` - Abschnitt ohne Leerzeilen
+  * `a\` - Tabellenzelle komplett
+  * `i\` - Tabellenzelle Inhalt
+  * `ac` - Tabellenspalte komplett
+  * `ic` - Tabellenspalte Inhalt

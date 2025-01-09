@@ -1,0 +1,29 @@
+## 2025-01-09
+                 _   _		NeoMutt ist in SARBS vollständig integriert und die Mailacount's (bis 9st.)
+ _ __ ___  _   _| |_| |_	werden mit dem Mutt-Wizzard ~mw automatisch eingerichtet. Vorher muss 'Pass' und 'gpg'
+| '_ ` _ \| | | | __| __|	eingerichtet sein. Ist im Handbuch beschrieben...
+| | | | | | |_| | |_| |_
+|_| |_| |_|\__,_|\__|\__|
+
+Mutt ist das E-Mailprogramm
+== Hauptseite ==
+j/k     ↓ ↑                             gi      Go to inbox
+d/u     ↓ ↑ halbe Seite                 gs      Go to sent mail
+gg      ganz hoch (go top)              gd      Go to drafts
+G       ganz runder                     gS      Go to spam
+v       View/download Anhänge           ctrl-j/kMove down/up on sidebar
+r       antworten                       ctrl-o  Open box selected in sidebar
+R       Allen antworten                 i#      Go to a different account (# is the number of the account)
+S       Sync/save Mailbox änderungen    a       Mailadresse zum Abook hizufügen
+D       Markieren (for deletion))
+U       Unmark message for deletion
+ctrl-u  Seek urls (funktioniert nicht)
+,,      Seek urls (ohne funktion)
+ctrl-f  Suche mit notmuch
+ctrl-r  als Gelesen markieren
+l       Limit mail
+o       Hole Mails
+O       Run full sync with offlineimap
+C       Copy a message to another mailbox
+M       Move a message to another mailbox
+B       Hide/reveal sidebar

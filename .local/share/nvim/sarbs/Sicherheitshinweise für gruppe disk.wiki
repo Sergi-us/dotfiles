@@ -1,0 +1,31 @@
+= Disk Gruppe - Sicherheitsrisiken =
+TODO Alternativen ausarbeiten
+Die `disk` Gruppe bietet direkten Zugriff auf Block-Devices (/dev/sdX) und ist daher sicherheitskritisch:
+
+==== Risiken ====
+* Vollzugriff auf *alle* Festplatten im System
+* Möglichkeit zum Überschreiben des Master Boot Records (MBR)
+* Umgehen von Dateisystemberechtigungen
+* Zugriff auf verschlüsselte Partitionen
+* Lesen und Schreiben von RAW-Daten
+
+==== Alternativen ====
+Für VM-Festplattenzugriff:
+ * Nutze Image-Dateien statt direkter Festplattenzugriffe
+ * Verwende ACLs für spezifische Devices
+ * Konfiguriere spezifische udev-Regeln
+{{{
+# Beispiel für eine sichere udev-Regel für ein spezifisches Device
+SUBSYSTEM=="block", KERNEL=="sdb", OWNER="username", GROUP="libvirt"
+}}}
+
+==== Wann ist disk-Gruppe nötig? ====
+Nur in speziellen Fällen:
+ * Direkte Festplatten-Durchreichung an VMs
+ * Raw Device Mapping (RDM)
+ * Performance-kritische Anwendungen
+
+==== Empfehlung ====
+* Nur hinzufügen wenn absolut notwendig
+* Bevorzuge weniger privilegierte Lösungen
+* Dokumentiere wenn genutzt wird

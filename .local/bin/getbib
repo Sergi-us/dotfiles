@@ -1,0 +1,16 @@
+#!/bin/sh
+## 2025-01-09 SARBS
+# ist von Luke übrig und hat irgentwas mit sienen Bibeltexten zu tun...
+[ -z "$1" ] && echo "Gib entweder eine PDF-Datei oder einen DOI als Argument an." && exit
+
+if [ -f "$1" ]; then
+	# Versuche, den DOI aus dem pdfinfo- oder pdftotext-Ausgang zu extrahieren.
+	doi=$(pdfinfo "$1" | grep -io "doi:.*") ||
+	doi=$(pdftotext "$1" 2>/dev/null - | sed -n '/[dD][oO][iI]:/{s/.*[dD][oO][iI]:\s*\(\S\+[[:alnum:]]\).*/\1/p;q}') ||
+	exit 1
+else
+	doi="$1"
+fi
+
+# Überprüfe crossref.org für die Bibtex-Zitation.
+curl -s "https://api.crossref.org/works/$doi/transform/application/x-bibtex" -w "\\n"

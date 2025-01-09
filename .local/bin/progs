@@ -1,0 +1,88 @@
+#!/bin/bash
+## 2025-01-09 SARBS
+# Das Skript prüft die 'progs.csv' von GitHub ob alle Pakete auf dem lokalen System installiert sind und gibt auch alle installierten Pakete aus.
+# Prüft keine aus Git instalierten tools
+
+# Farbdefinitionen
+GREEN='\033[0;32m'
+RED='\033[0;31m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
+
+# URL der progs.csv-Datei auf GitHub
+CSV_URL="https://raw.githubusercontent.com/Sergi-us/SARBS/master/progs.csv"
+
+# Temporäre Datei zum Speichern der heruntergeladenen CSV
+TMP_FILE="/tmp/progs.csv"
+
+# Funktion zum Aufräumen
+cleanup() {
+    rm -f "$TMP_FILE"
+}
+
+# Trap zum Aufrufen der cleanup-Funktion beim Beenden des Skripts
+trap cleanup EXIT
+
+# Funktion zum Überprüfen, ob ein Paket installiert ist und Version abrufen
+check_package() {
+    if pacman -Qi "$1" &> /dev/null; then
+        version=$(pacman -Qi "$1" | grep "Version" | cut -d: -f2 | tr -d '[:space:]')
+        echo "installed:$version"
+    else
+        echo "not_installed"
+    fi
+}
+
+# CSV-Datei herunterladen
+if ! curl -s "$CSV_URL" -o "$TMP_FILE"; then
+    echo -e "${RED}Fehler beim Herunterladen der CSV-Datei.${NC}"
+    exit 1
+fi
+
+# Arrays für installierte und fehlende Pakete
+declare -A package_status
+
+# CSV-Datei durchgehen und Pakete überprüfen
+while IFS= read -r line; do
+    # Erste Zeile überspringen
+    if [[ "$line" == "#TAG"* ]]; then
+        continue
+    fi
+    # Paketname extrahieren (zwischen erstem und zweitem Komma)
+    package=$(echo "$line" | cut -d',' -f2 | tr -d ' "')
+    # Leere Zeilen und GitHub-URLs überspringen
+    if [[ -z "$package" || "$package" == http* ]]; then
+        continue
+    fi
+    status=$(check_package "$package")
+    package_status["$package"]=$status
+done < "$TMP_FILE"
+
+# Zählen der installierten und fehlenden Pakete
+installed_count=0
+missing_count=0
+
+# Detaillierte Paketinformationen ausgeben
+echo -e "${BLUE}=== Detaillierte Paketinformationen ===${NC}"
+for package in "${!package_status[@]}"; do
+    status=${package_status[$package]}
+    if [[ $status == installed:* ]]; then
+        version=${status#installed:}
+        echo -e "${GREEN}[INSTALLIERT]${NC} $package ${BLUE}$version${NC}"
+        ((installed_count++))
+    else
+        echo -e "${RED}[FEHLT]${NC} $package"
+        ((missing_count++))
+    fi
+done
+
+total_packages=${#package_status[@]}
+
+# Paketstatusübersicht am Ende ausgeben
+echo
+echo -e "${BLUE}=== Paketstatusübersicht ===${NC}"
+echo -e "${GREEN}Installierte Pakete: $installed_count${NC}"
+echo -e "${RED}Fehlende Pakete: $missing_count${NC}"
+echo -e "${BLUE}Gesamtanzahl der Pakete: $total_packages${NC}"
+
+# Hinweis: Die temporäre Datei wird automatisch durch die cleanup-Funktion gelöscht

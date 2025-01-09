@@ -1,0 +1,24 @@
+ = Hilfe und weitere Quellen =
+
+== Lokal ==
+*Manpages* im Terminal `man` `anwendung` ausführen. Direkt vom Entwickler. Auf Sarbs hast du die Deutschen Man-Pages instaliert. Falls eine Deutsche anleitung verfügbar ist, wird sie die angezeigt
+{{{
+man man
+}}}
+
+*wikiman*
+{{{
+pacman -S wikiman
+}}}
+[[https://github.com/filiparag/wikiman|wikiman auf GitHub]]
+Optionale Arch Wiki:
+{{{
+pacman -S arch-wiki-docs
+}}}
+Optionale tldr datenbank
+
+== Online ==
+*tldr*
+[[index|diese Seite]]
+[[https://wiki.archlinux.org/title/Main_page|Arch-Wiki Englisch]]
+[[https://wiki.archlinux.de/title/Hauptseite|Arch-Wiki Deutsch]]

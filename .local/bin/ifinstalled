@@ -1,0 +1,10 @@
+#!/bin/sh
+## 2025-01-09 SARBS
+
+# Einige optionale Funktionen in SARBS erfordern Programme, die nicht standardmäßig installiert sind. Ich verwende dieses kleine Skript, um zu überprüfen, ob ein Befehl existiert, und wenn nicht, informiert es den Benutzer darüber, dass dieser Befehl benötigt wird, um fortzufahren. Dies wird in verschiedenen anderen Skripten zur Klarheit verwendet.
+
+for x in "$@"; do
+	if ! which "$x" >/dev/null 2>&1 && ! pacman -Qq "$x" >/dev/null 2>&1; then
+ 		notify-send "📦 $x" "muss für diese Funktion installiert sein." && exit 1 ;
+	fi
+done

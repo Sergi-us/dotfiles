@@ -1,0 +1,104 @@
+#!/bin/sh
+# SARBS 17.12.2024
+
+# === Standard-Programm Überschreibungen ===
+
+# Nutze neovim statt vim, falls vorhanden
+[ -x "$(command -v nvim)" ] && alias vim="nvim" vimdiff="nvim -d"
+
+# Nutze $XINITRC Variable falls Datei existiert
+[ -f "$XINITRC" ] && alias startx="startx $XINITRC"
+[ -f "$MBSYNCRC" ] && alias mbsync="mbsync -c $MBSYNCRC"
+
+# Systembefehle (mit sudo)
+for command in mount umount sv pacman updatedb su shutdown poweroff reboot ; do
+	alias $command="sudo $command"
+done; unset command
+
+# Benutzerdefinierte Funktionen
+se() {
+	choice="$(find ~/.local/bin -mindepth 1 -printf '%P\n' | fzf)"
+	[ -f "$HOME/.local/bin/$choice" ] && $EDITOR "$HOME/.local/bin/$choice"
+}
+
+# === Editor-Verknüpfungen ===
+alias \
+	e="$EDITOR" \
+	v="$EDITOR"
+
+# Verbosität und Einstellungen, die man so ziemlich immer will.
+alias \
+	cp="cp -iv" \
+	mv="mv -iv" \
+	rm="rm -vI" \
+	mkd="mkdir -pv"
+
+# === Git ===
+alias gc"git clone --depth 1"
+alias magit="nvim -c MagitOnly"
+
+# Systemwerkzeuge
+alias \
+	p="pacman" \
+	bc="bc -ql" \
+	df="df -h" \
+	lf="lfub" \
+	free="free -h" \
+	ka="killall" \
+	neofetch="fastfetch --load-config examples/2.jsonc" \
+    sys="systemctl" \
+	neo="neo-matrix -D -a -b 0 -m SARBS"
+#	rsync="rsync -vrPlu" \
+#	free="free -m" \
+
+# === Alpine Linux ===
+    alias xi="sudo xbps-install"
+    alias xr="sudo xbps-remove -R"
+    alias xq="xbps-query"
+
+# Medien und Dokumente
+alias \
+	yt="yt-dlp --embed-metadata -i" \
+	yta="yt -x -f bestaudio/best" \
+	ytt="yt --skip-download --write-thumbnail" \
+	ffmpeg="ffmpeg -hide_banner"
+
+# List Befehle
+#   alias ls='lsd'
+#    alias l='ls -l'
+#    alias la='ls -a'
+#    alias lla='ls -la'
+#    alias lt='ls --tree'
+   alias ls="ls -hN --color=auto --group-directories-first"
+#   alias lsd="lsd -a --color=auto --group-directories-first"
+
+
+# Befehle mit Farbausgabe (wenn möglich)
+
+    alias fzf='fzf --preview "bat --color=always --style=numbers --line-range=:500 {}"'
+    alias grep="grep --color=auto"
+#    alias diff="diff --color=auto"
+    alias ccat="highlight --out-format=ansi"
+    alias ip="ip -color=auto"
+
+#	fzf="fzf --height=-3" \
+#	ls="ls -hN --color=auto --group-directories-first" \
+
+# These common commands are just too long! Abbreviate them.
+alias \
+    dx="distrobox" \
+    gk="getkeys" \
+    g="git" \
+    trem="transmission-remote" \
+    YT="youtube-viewer" \
+    sdn="shutdown -h now" \
+    z="zathura" \
+    wm="wikiman"
+
+
+alias vm-sarbs="virsh -c qemu:///system start archlinux && virt-viewer --attach --connect qemu:///system archlinux"
+
+
+alias ref="shortcuts >/dev/null; source ${XDG_CONFIG_HOME:-$HOME/.config}/shell/shortcutrc ; source ${XDG_CONFIG_HOME:-$HOME/.config}/shell/zshnameddirrc"
+
+alias wetter="less -S ${XDG_CACHE_HOME:-$HOME/.cache}/weatherreport" \

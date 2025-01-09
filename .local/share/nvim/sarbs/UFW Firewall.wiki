@@ -1,0 +1,58 @@
+= Firewall Konfiguration =
+== Installation und Konfiguration von UFW ==
+UFW ist ein Terminal frontend für IP-Tabels
+
+TODO Diesen Punkt muss ich überarbeiten. IP-Tabels soll mit nftabels ersetzt werden und UFW weiter als Frotend genutzt werden
+
+UFW installieren (auf SARBS bereits instaliert):
+{{{
+sudo pacman -S ufw
+}}}
+
+{{{
+sudo nvim /etc/default/ufw
+IPT_BACKEND=nftables
+}}}
+
+Status prüfen:
+{{{
+sudo ufw status verbose
+}}}
+UFW Standardregeln setzen:
+{{{
+sudo ufw default deny incoming
+sudo ufw default allow outgoing
+}}}
+Erlaube SSH-Verbindungen *OPTIONAL für Server* (Port 22):
+{{{
+sudo ufw allow 22/tcp
+}}}
+Erlaube HTTP-Verbindungen *OPTIONAL für Server* (Port 80):
+{{{
+sudo ufw allow 80/tcp
+}}}
+Erlaube HTTPS-Verbindungen *OPTIONAL für Server* (Port 443):
+{{{
+sudo ufw allow 443/tcp
+}}}
+UFW Autostart:
+{{{
+sudo systemctl enable ufw
+}}}
+UFW aktivieren:
+{{{
+sudo ufw enable
+sudo ufw status
+}}}
+Fehlerbehebung für UFW
+UFW deaktivieren und reaktivieren:
+{{{
+sudo ufw disable
+sudo ufw enable
+sudo ufw status
+}}}
+== Weiterführende Infos ==
+[[https://help.ubuntu.com/community/UFW|UFW Ubuntu]]
+[[https://wiki.archlinux.org/title/Uncomplicated_Firewa|UFW Arch Wiki]]
+[[https://youtu.be/_vlni1kcDII|YouTube Firewall in Linux einrichten für Noob's]]
+[[index]]

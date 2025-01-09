@@ -1,0 +1,137 @@
+#!/bin/bash
+## 2025-01-09 SARBS
+# dmenurecord (vereinfacht)
+# Um die verfügbaren Encoder festzustellen:
+# ffmpeg -hide_banner -encoders > encoder.txt
+#
+notify() {
+    notify-send "$1"
+}
+
+updateicon() {
+    echo "$1" > /tmp/recordingicon
+    pkill -RTMIN+9 "${STATUSBAR:-dwmblocks}"
+}
+
+killrecording() {
+    kill -SIGTERM "$(cat /tmp/recordingpid)" 2>/dev/null
+    rm -f /tmp/recordingpid
+    notify "Aufnahme beendet"
+    updateicon ""
+}
+
+##### Version für Software Encoding
+####screencast() {
+####    local out="$HOME/Videos/scr/screencast-$(date '+%y%m%d-%H%M-%S').mp4"
+####    ffmpeg -y \
+####        -f x11grab -framerate 30 -video_size 2560x1440 -i "$DISPLAY" \
+####        -f pulse -channels 2 -i default \
+####        -c:v libx264 -crf 18 -preset medium \
+####        -c:a aac -b:a 128k \
+####        -pix_fmt yuv420p \
+####        "$out" &
+####    echo $! > /tmp/recordingpid
+####    notify "Creencast gestartet"
+####    updateicon "  "
+####}
+
+##### Version für Hardware Encoding mit h264_vaapi
+screencast() {
+    local out="$HOME/Videos/scr/screencast-$(date '+%y%m%d-%H%M-%S').mp4"
+    ffmpeg -y \
+        -vaapi_device /dev/dri/renderD128 \
+        -f x11grab -framerate 24 -video_size 2560x1440 -i "$DISPLAY" \
+        -f pulse -channels 2 -i default \
+        -vf 'format=nv12,hwupload' \
+        -c:v h264_vaapi -qp 25 \
+        -c:a aac -b:a 128k \
+        "$out" &
+    echo $! > /tmp/recordingpid
+    notify "Screencast gestartet"
+    updateicon "  "
+}
+
+##### Version für Hardware Encoding mit hevc_nvenc
+####screencast() {
+####    local out="$HOME/Videos/scr/screencast-$(date '+%y%m%d-%H%M-%S').mp4"
+####    ffmpeg -y \
+####        -f x11grab -framerate 30 -video_size 2560x1440 -i "$DISPLAY" \
+####        -f pulse -channels 2 -i default \
+####        -c:v hevc_nvenc -preset p5 -qp 18 \
+####        -c:a aac -b:a 128k \
+####        "$out" &
+####    echo $! > /tmp/recordingpid
+####    notify "Screencast gestartet"
+####    updateicon "  "
+####}
+
+screencast_monitor() {
+    # Monitor-Auswahl ohne Fehlermeldungen
+    local selected_monitor
+    selected_monitor="$(xrandr --listmonitors | tail -n +2 | awk '{print $4}' | dmenu -i -p "Monitor auswählen:")"
+
+    # Dummy-Auflösung, anpassbar nach Bedarf
+    local resolution="1920x1080"
+    local offset="+0+0"
+    local out="$HOME/Videos/scr/screencast-${selected_monitor}-$(date '+%y%m%d-%H%M-%S').mp4"
+
+    ffmpeg -y \
+        -f x11grab -framerate 30 -video_size "$resolution" -i "$DISPLAY$offset" \
+        -f pulse -channels 2 -i default \
+        -c:v libx264 -crf 18 -preset medium \
+        -c:a aac -b:a 128k \
+        -pix_fmt yuv420p \
+        "$out" &
+    echo $! > /tmp/recordingpid
+    notify "Monitoraufnahme gestartet"
+    updateicon "  "
+}
+
+audio() {
+    local out="$HOME/Podcast/audio-$(date '+%y%m%d-%H%M-%S').flac"
+    ffmpeg -f pulse -i default -c:a flac "$out" &
+    echo $! > /tmp/recordingpid
+    notify "Audioaufnahme gestartet"
+    updateicon "  "
+}
+
+webcam() {
+    local out="$HOME/Videos/webcam-$(date '+%y%m%d-%H%M-%S').mp4"
+    ffmpeg -y \
+        -f v4l2 -i "/dev/video0" \
+        -c:v libx264 -crf 18 -preset medium \
+        -pix_fmt yuv420p \
+        "$out" &
+    echo $! > /tmp/recordingpid
+    notify "Webcamaufnahme gestartet"
+    updateicon "  "
+}
+
+askrecording() {
+    local choice
+    choice="$(printf "Bildschirmaufnahme\nBildschirmaufnahme (Monitor)\nAudio\nWebcam" \
+        | dmenu -i -p "Aufnahmestil wählen:")"
+    case "$choice" in
+        Bildschirmaufnahme) screencast ;;
+        "Bildschirmaufnahme (Monitor)") screencast_monitor ;;
+        Audio) audio ;;
+        Webcam) webcam ;;
+    esac
+}
+
+asktoend() {
+    local response
+    response="$(printf "Ja\nNein" | dmenu -i -p "Aufnahme läuft, beenden?")"
+    [ "$response" = "Ja" ] && killrecording
+}
+
+case "$1" in
+    screencast) screencast ;;
+    screencast_monitor) screencast_monitor ;;
+    audio) audio ;;
+    webcam) webcam ;;
+    kill) killrecording ;;
+    *)
+        ([ -f /tmp/recordingpid ] && asktoend) || askrecording
+        ;;
+esac

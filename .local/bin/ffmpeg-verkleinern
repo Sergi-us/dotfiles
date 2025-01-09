@@ -1,0 +1,22 @@
+#!/bin/zsh
+## 2025-01-08 SARBS
+
+# Suffix für die komprimierten Dateien
+suffix="_kompr"
+
+for input in "$@"; do
+    # Ausgabedateinamen erstellen
+    output="${input%.*}${suffix}.mp4"
+
+    notify-send "Komprimiere $input zu $output"
+
+    # ffmpeg-Befehl ausführen
+    ffmpeg -i "$input" -c:v libx264 -crf 23 -preset medium -c:a aac -b:a 192k "$output"
+
+    # Prüfen, ob ffmpeg erfolgreich war
+    if [ $? -eq 0 ]; then
+        notify-send "Komprimierung von $input zu $output abgeschlossen"
+    else
+        notify-send "Fehler bei der Komprimierung von $input"
+    fi
+done

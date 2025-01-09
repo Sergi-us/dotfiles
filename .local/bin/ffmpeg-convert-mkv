@@ -1,0 +1,34 @@
+#!/bin/bash
+## 2025-01-08 SARBS
+
+# Pfad zum Verzeichnis mit den AVI-Dateien
+movie_dir=$(pwd)
+
+# Schleife über alle Film-Dateien
+for file in *.avi *.AVI *.mp4; do
+  if [ -f "$file" ]; then
+    # Bestimmt den neuen Dateinamen
+    new_file="${file%.*}.mkv"
+
+    echo "Processing file: $file"
+
+    # Entfernt vorhandene MKV-Dateien, falls sie existieren
+    if [ -f "$new_file" ]; then
+      rm "$new_file"
+      echo "Removed existing file: $new_file"
+    fi
+
+    # Konvertiert die Datei und überschreibt automatisch, falls die Zieldatei existiert
+    ffmpeg -y -fflags +genpts -i "$file" -c copy "$new_file"
+
+    # Überprüft, ob die Konvertierung erfolgreich war
+    if [ $? -eq 0 ]; then
+      echo "Converted: $file"
+      # Löscht die Originaldatei nach erfolgreicher Konvertierung
+      rm "$file"
+      echo "Removed original file: $file"
+    else
+      echo "Failed to convert: $file"
+    fi
+  fi
+done

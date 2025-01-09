@@ -1,0 +1,311 @@
+ = SARBS! Handbuch =
+
+*Autor: Luke Smith*
+*Übersetzung: Sergius*
+
+Verwende die Vim-Tasten (`←h`/`↑j`/`k→`/`l↓`), um zu navigieren. Durch Drücken von `s` wird es an die Fensterbreite angepasst (`a` zum Zurücksetzen). `K` und `J` zoomen hinein und heraus. mit `i` kannst du es invertieren. `Super+f` zum Umschalten in den Vollbildmodus. `q` zum Beenden. `/` um nach Text zu suchen. (Diese sind allgemeine _Key-binding's_ für *zathura*, den PDF-Reader.)
+
+* `Mod+F1` zeigt dieses Dokument jederzeit an.
+* Mit `Mod` meine ich die Super-Taste, die normalerweise als "Windows-Taste" bekannt ist.
+
+FAQs befinden sich am Ende dieses Dokuments.
+
+== Willkommen! ==
+
+=== Grundziele und Prinzipien dieses Systems: ===
+
+* *Naturalness*
+  * Entferne die Grenze zwischen wollen und bekommen: Alles Wichtige sollte mit so wenigen Tastenanschlägen wie möglich erreichbar sein, und du solltest nicht darüber nachdenken müssen, was du tust.
+
+* *Ökonomie*
+  * Programme sollten einfach und ressourcenschonend sein und hochgradig erweiterbar. Aus diesem Grund sind viele Terminal- oder kleine ncurses-Programme, die alle Magie in sich tragen.
+
+* *Tastatur-/Vim-Zentralität*
+  * Alle Terminalprogramme (und andere Programme) verwenden (wenn möglich) Vim-Tasten. Deine Hände müssen die Grundposition der Tastatur nicht verlassen.
+
+* *Dezentralisierung*
+  * Dieses System ist ein Netz aus kleinen, modifizierbaren und ersetzbaren Programmen, die Benutzer leicht anpassen können.
+
+=== Allgemeine Tastaturbedienung ===
+
+* Capslock ist eine nutzlose Taste in hochwertigem Raum.
+  Es ist jetzt neu zugeordnet. Wenn du sie alleine drückst, fungiert sie als Escape, was Vimcraft viel natürlicher macht, aber du kannst es auch gedrückt halten, und es wird als eine weitere Windows/Super/Mod-Taste fungieren.
+
+* Die Menütaste (normalerweise zwischen der rechten Alt- und Strg-Taste) ist eine alternative Super/Mod-Taste. Dies soll das Einhand-Bedienen auf Laptops erleichtern.
+
+* Alternativ: eine Compose Taste, die Funktion ist noch in der Testphase, es gibt so viele Tastaturlayots, beim X220 ist da die Menu-Taste, biem X230 wiederum die "Druck" Taste. Ich suche noch den Perfekten Platz für die Compose-Taste, diese Funktion ermöglicht das Schreiben von Umlauten und Sonderzeichen. Hier mal am beispiel "U" Ŭ ŭ Ů ů Ű ű Ų ų Ü ü Ù Ú Û Ü. Aber auch Sonderzeichen, Währungen und Verschiedene Symbole lassen sich so intuitiv eingeben.
+
+Wenn du eine dieser Tastaturänderungen ändern möchtest, musst du nur das `remaps`-Skript öffnen und ändern. Alle benutzerdefinierten Skripte in SARBS befinden sich in `~/.local/bin/`. Eigentlich sollte das ohne zu sagen sein, aber _alles_ hier kann leicht geändert werden. Außerdem, obwohl dies nicht Teil der Desktop-Umgebung ist, ist der Standardbearbeitungsmodus in der Shell das Verwenden von vi-Bindungen. Wenn du mehr darüber erfahren möchtest, führe `Mod+F2` aus, tippe und wähle die Option für "vi mode in shell". Die Videos von Luke sind sehr zu Empfehlen ;-) Diese Einstellung kann geändert werden, wenn sie dir nicht gefällt, indem du den Inhalt von `~/.config/shell/inputrc` löschst oder auskommentierst.
+
+=== Die Statusleiste ===
+
+Links siehst du die Nummern deiner aktuellen Arbeitsbereiche/Tags.
+Rechts siehst du verschiedene Systemstatusbenachrichtigungen, das Datum, die Lautstärke,
+sogar Musik und lokales Wetter, wenn möglich, usw.
+Jedes Modul rechts in der Statusleiste ist ein Skript, das sich in `~/.local/bin/statusbar/` befindet.
+Du kannst sehen, was sie tun, und sie von dort aus ändern.
+Ich bin sicher, du kannst es herausfinden.
+Du kannst auch mit der rechten Maustaste auf das Modul klicken, um zu sehen, was es tut.
+
+Das Programm dwmblocks wird ausgeführt, um die Statusleiste aus diesen Skripten zu erstellen.
+Du kannst seine Konfiguration/Quellcode in `~/.local/src/dwmblocks/` bearbeiten, um ihm mitzuteilen,
+welche Skripte/Befehle es anzeigen soll.
+
+==== HiDPI und 4K-Displays ====
+
+Wenn du einen Bildschirm mit sehr hoher Punktdichte hast, kann die Oberfläche, insbesondere die Statusleiste
+oben, sehr klein sein. Um dies zu ändern, kannst du `xrandr --dpi 96` ausführen und 96 durch eine höhere
+Zahl ersetzen, dann kannst du den Fenstermanager im Menü bei `super+backspace` aktualisieren. Um diese
+Änderung nach dem Neustart beizubehalten, bearbeite `~/.xprofile`, und du wirst denselben Befehl sehen,
+den du ändern kannst, um den gewünschten Punkt-pro-Zoll-Wert zu haben.
+
+=== Tiefere Tutorials ===
+
+Drücke jederzeit `mod+F2`, um ein Menü von Programmen anzuzeigen, um Videos direkt von YouTube zu streamen.
+Du kannst auch die Konfigurationsdateien für Programme überprüfen, die viele der spezifischen Bindungen
+detailliert beschreiben.
+
+== Tastenkombinationen ==
+
+Der Fenstermanager dwm ordnet alle deine Fenster abstrakt in einem Stapel von am wichtigsten bis am
+wenigsten wichtig, basierend darauf, wann du es zuletzt manipuliert hast. dwm ist ein einfach zu
+verwendender Fenstermanager, aber du solltest verstehen, dass er diese Stapel-Layout verwendet.
+Wenn du damit nicht vertraut bist, empfehle ich dir, `Mod+F2` zu drücken und die Option "dwm" auszuwählen,
+um mein kurzes Tutorial anzusehen (beachte, dass die Bindungen, die ich im Video bespreche, die
+Standard-dwm-Bindungen sind, die hier unterschiedlich (schlechter) sind).
+
+Beachte auch die Groß- und Kleinschreibung der Verknüpfungen[^1], Sei sicher, dass du mit diesen spielst.
+Sei flexibel mit den grundlegenden Befehlen, und das System wird dir schnell vertraut.
+
+`[^1]`: Um Großbuchstaben zu schreiben, halte die `Shift`-Taste gedrückt - das mag offensichtlich und
+herablassend klingen, aber es gab buchstäblich mehrere Menschen (Boomer), die mir gemailt haben und gefragt
+haben, wie man einen Großbuchstaben schreibt, da die Feststelltaste nicht aktiviert ist.
+
+* `Mod+Enter` — Terminal starten (das Standardterminal ist `st`; führe `man st` aus, um mehr zu erfahren)
+* `Mod+q` — Fenster schließen
+* `Mod+d` — dmenu (Zum Ausführen von Befehlen oder Programmen ohne Verknüpfungen)
+* `Mod+j/k` — Durch Fenster im Stapelreihenfolge blättern
+* `Mod+Space` — Ausgewähltes Fenster zum Master machen (oder Master mit 2. wechseln)
+* `Mod+h/l` — Breite des Master-Fensters ändern
+* `Mod+z/x` — Lücken vergrößern/verkleinern (kann auch `Mod` gedrückt halten und die Maus scrollen)
+* `Mod+a` — Lücken umschalten
+* `Mod+A` — Lücken auf Standardwerte zurücksetzen (kann auch `Mod` gedrückt halten und mittelklicken)
+* `Mod+Shift+Space` — Ein Fenster schweben lassen (mit `Mod+` linksklick/rechtsklick bewegen und größen ändern)
+* `Mod+s` — Ein Fenster "klebrig" machen/aufheben (folgt dir von Tag zu Tag)
+* `Mod+b` — Statusleiste umschalten (kann auch auf dem Desktop mittelklicken)
+* `Mod+v` — Zum Master-Fenster springen
+
+=== Fenster-Layouts ===
+
+* `Mod+t` — Kachelmodus (standardmäßig aktiv)
+* `Mod+T` — Unterer Stapelmodus (ähnlich wie Kachelmodus, aber der Master ist oben)
+* `Mod+f` — Vollbildmodus
+* `Mod+F` — Schwebemodus (auch bekannt als Normie-Modus)
+* `Mod+y` — Fibonacci-Spiralmodus
+* `Mod+Y` — Dwindle-Modus (ähnlich wie Fibonacci)
+* `Mod+u` — Master links, andere Fenster im Monokelmodus
+* `Mod+U` — Monokelmodus (alle Fenster im Vollbildmodus und zyklisch durchschalten)
+* `Mod+i` — Master-Fenster zentrieren
+* `Mod+I` — Master-Fenster zentrieren und schweben lassen
+* `Mod+o/O` — Anzahl der Master-Fenster erhöhen/verringern
+
+=== Basisprogramme ===
+
+* `Mod+r` — lf (Dateibrowser/Manager)
+* `Mod+R` — htop (Task-Manager, Systemmonitor, den R*dditors verwenden, um cool auszusehen)
+* `Mod+e` — neomutt (E-Mail) — Muss zuerst durch Ausführen von `mw add` konfiguriert werden
+* `Mod+E` — abook (Kontakte, Adressbuch, E-Mails)
+* `Mod+m` — ncmpcpp (Musik-Player)
+* `Mod+w` — Webbrowser (standardmäßig LibreWolf)
+* `Mod+W` — nmtui (zum Verbinden mit drahtlosem Internet)
+* `Mod+n` — vimwiki (für Notizen)
+* `Mod+N` — newsboat (RSS-Feed-Leser)
+* `Mod+F4` — pulsemixer (Audiosteuerung)
+* `Mod+Shift+Enter` — Dropdown-Terminal ein-/ausblenden
+* `Mod+Shift+druck` — Dropdown-Taschenrechner ein-/ausblenden
+* `Mod+D` — passmenu (Passwort-Manager)
+
+=== Tags/Arbeitsbereiche ===
+
+Es gibt neun Tags, aktive Tags sind oben links hervorgehoben.
+
+* `Mod+(Nummer)` — Zum Tag mit dieser Nummer wechseln
+* `Mod+Shift+(Nummer)` — Fenster zu diesem Tag senden
+* `Mod+Tab` — Zum vorherigen Tag wechseln
+* TODO `Mod+g` und `Mod+;` tasten neu belegen
+* `Mod+g` — Zum linken Tag wechseln (Shift gedrückt halten, um das Fenster dorthin zu senden)
+* `Mod+;` — Zum rechten Tag wechseln (Shift gedrückt halten, um das Fenster dorthin zu senden)
+* `Mod+Links/Rechts` — Zu einem anderen Display wechseln
+* `Mod+Shift+Links/Rechts` — Fenster zu einem anderen Display verschieben
+
+=== System ===
+
+* `Mod+BackSpace` — Wähle, ob der Bildschirm gesperrt, abgemeldet, heruntergefahren, neu gestartet usw. werden soll
+* `Mod+F1` — Dieses Dokument anzeigen
+* `Mod+F2` — Tutorialvideos zu einem Thema ansehen
+* `Mod+F3` — Bildschirm/Display auswählen
+* `Mod+F4` — pulsemixer (Audiosteuerung)
+* `Mod+F6` — Transmission-Torrent-Client (standardmäßig nicht installiert)
+* `Mod+F7` — Transmission-Client über dmenu ein-/ausschalten
+* `Mod+F8` — E-Mails überprüfen, wenn mutt-wizard konfiguriert ist (Führe `mw add` aus, um es einzurichten)
+* `Mod+F9` — USB-Laufwerk/Festplatte oder Android mounten
+* `Mod+F10` — Nicht notwendiges Laufwerk oder Android unmounten
+* `Mod+F11` — Webcam anzeigen
+* `Mod+F12` — Tastaturzuordnungsskripte erneut ausführen, wenn eine neue Tastatur angeschlossen ist
+* `Mod+`` — Ein Emoji auswählen, um es in die Zwischenablage zu kopieren
+* `Mod+Einfügen` — Fügt Text ein, den du in einer Datei unter ~/.local/share/larbs/snippets gespeichert hast
+
+=== Audio ===
+
+Ich verwende ncmpcpp als Musik-Player, der ein Frontend für mpd ist.
+
+* `Mod+m` — ncmpcpp, der Musik-Player
+* `Mod+.` — Nächster Titel
+* `Mod+,` — Vorheriger Titel
+* `Mod+<` — Titel neu starten
+* `Mod+>` — Playlist-Schleife umschalten
+* `Mod+p` — Pause umschalten
+* `Mod+p` — Musik-Player-Daemon und alle mpv-Videos zwangsweise pausieren
+* `Mod+M` — Gesamte Audio stummschalten
+* `Mod+-` — Lautstärke verringern (Shift gedrückt halten, um die Menge zu erhöhen)
+* `Mod++` — Lautstärke erhöhen (Shift gedrückt halten, um die Menge zu erhöhen)
+* `Mod+[` — 10 Sekunden zurück (Shift gedrückt halten, um um eine Minute zu verschieben)
+* `Mod+]` — 10 Sekunden vor (Shift gedrückt halten, um um eine Minute zu verschieben)
+* `Mod+F4` — pulsemixer (allgemeine Audio-/Lautstärke-Sink-/Quellensteuerung)
+
+=== Aufnahme ===
+
+Ich verwende maim und ffmpeg, um verschiedene Aufnahmen des Desktops und Audios zu machen.
+Alle diese Aufnahmeverknüpfungen werden in `~` ausgegeben und überschreiben keine
+vorherigen Aufnahmen, da ihre Namen auf ihren genauen Zeiten basieren.
+
+* `Druck` — Einen Screenshot machen
+* `Shift+Druck` — Bereich zum Screenshot auswählen
+* `Mod+Druck` — Öffnet das dmenu-Menü, um die Art der Audio-/Videoaufnahme auszuwählen
+* `Mod+Entf` — Beendet jede auf diese Weise gestartete Aufnahme
+* `Mod+Shift+c` — Schaltet eine Webcam unten rechts für Screencasting um
+* `Mod+Rollen` — Bildschirmtasten umschalten (wenn installiert), um Tastenanschläge anzuzeigen
+
+=== Andere Tasten ===
+
+Ich habe diese zusätzlichen Tasten, die einige Tastaturen haben (Play- und Pause-Tasten,
+Bildschirmhelligkeit, E-Mail-, Webbrowser-Tasten usw.), so zugeordnet, wie du es erwarten würdest.
+
+== Konfiguration ==
+
+Dotfiles/Einstellungsdateien befinden sich in `~/.config/`.
+
+Suckless-Programme, dwm (der Fenstermanager), st (das Terminal) und dmenu unter anderem haben keine
+traditionellen Konfigurationsdateien, sondern ihren Quellcode-Standort in `~/.local/src/`
+(drücke `rr`, um zu diesem Verzeichnis zu springen). Dort kannst du ihre `config.h`-Dateien oder
+anderen Quellcode ändern und dann `sudo make install` ausführen, um sie neu zu installieren.
+
+vim ist so eingestellt, dass es diese Programme automatisch neu kompiliert und installiert, wann immer
+du Änderungen an einer `config.h`-Datei speicherst (die Kompilierung wird nahezu sofort erfolgen).
+Du musst das Programm offensichtlich neu starten, um seine Effekte zu sehen.
+
+== Häufig gestellte Fragen (FAQs) ==
+
+=== Meine Tastatur funktioniert nicht wie erwartet! ===
+
+Wie oben erwähnt, nimmt SARBS einige Tastaturänderungen mit dem `remaps`-Skript vor.
+Diese Einstellungen können deine bevorzugten Einstellungen überschreiben, daher solltest du diese
+Datei öffnen und problematische Zeilen auskommentieren, wenn du Probleme hast.
+
+=== Mein Audio funktioniert nicht! ===
+
+Bei einer frischen Installation stummt das Linux-Audiosystem häufig die Ausgänge.
+Du musst möglicherweise auch dein bevorzugtes Standardausgabegerät einstellen, was du über die
+Befehlszeile tun kannst, oder indem du eines mit `pulsemixer` (`Mod+F4`) auswählst.
+
+=== Wie kopiere und füge ich ein? ===
+
+Kopieren und Einfügen ist auf jedem System immer programmspezifisch.
+In den meisten grafischen Programmen sind Kopieren und Einfügen wie in Windows: `ctrl-c` und `ctrl-v`.
+Im Linux-Terminal haben diese Bindungen jedoch andere, wichtigere Zwecke, daher kannst du `man st`
+ausführen, um zu sehen, wie du in meinem Terminal-Build kopieren und einfügen kannst.
+
+Zusätzlich habe ich vim so eingestellt, dass es die Zwischenablage als Standardpuffer verwendet,
+was bedeutet, dass, wenn du in vim etwas yankst oder löschst, es auch in deiner System-Zwischenablage ist,
+sodass du es in dein Browserfenster usw. einfügen kannst. Du kannst auch Material, das aus anderen
+Programmen kopiert wurde, mit den typischen vim-Bindungen in vim einfügen.
+
+=== Wie ändere ich den Hintergrund/das Wallpaper? ===
+
+Das System liest immer die Datei `~/.local/share/bg` als Wallpaper.
+Das Skript `setbg`, wenn es auf einem Bild ausgeführt wird, setzt es als permanenten Hintergrund.
+Wenn du den Dateimanager verwendest, kannst du einfach über einen Bildnamen schweben und `b` tippen,
+und dies wird `setbg` ausführen.
+
+=== Wie ändere ich das Farbschema? ===
+
+SARBS verwendet standardmäßig pywal und stellt die Farben automatisch aus dem aktuellen Hintergrundbild ein.
+Falls du deine Farben manuell einstellen möchtest, überprüfe `~/.config/x11/xresources` für eine Liste
+von Farbschemata, die du aktivieren oder zu denen du eigene hinzufügen kannst. Wenn du die Datei speicherst,
+aktualisiert vim automatisch das Farbschema. Wenn du möchtest, dass diese Farben standardmäßig beim Login
+aktiviert werden, gibt es eine Zeile in `~/.config/x11/xprofile`, die du auskommentieren kannst, um dies
+zu ermöglichen.
+
+=== Wie richte ich meine E-Mail ein? ===
+
+SARBS wird mit mutt-wizard geliefert, der die Möglichkeit bietet, alle deine E-Mails zu empfangen und zu
+senden und alles offline im Terminal zu speichern, ohne dass ein Browser erforderlich ist.
+Du kannst E-Mail-Konten hinzufügen, indem du `mw -a deine@email.com` ausführst.
+Siehe `man mw` für alle Informationen, die du über den mutt-wizard benötigst.
+
+Sobald du deine E-Mail-Adresse(n) erfolgreich hinzugefügt hast, kannst du deine E-Mails mit `neomutt`
+öffnen, das auch auf `Mod+e` gebunden ist. Du kannst deine E-Mails synchronisieren, indem du `Mod+F8`
+drückst, und du kannst einen Cronjob einrichten, um E-Mails alle 10 Minuten zu synchronisieren,
+indem du `mw -t 10` ausführst.
+
+Du möchtest möglicherweise auch `pam-gnupg-git` installieren, das so eingerichtet werden kann, dass dein
+GPG-Schlüssel beim Login automatisch entsperrt wird, wodurch du vermeiden kannst, ein Passwort zum
+Synchronisieren und Senden einzugeben, während dein Passwort sicher und verschlüsselt auf deinem
+Rechner bleibt.
+
+=== Wie richte ich meine Musik ein? ===
+
+Standardmäßig geht mpd, der Musik-Daemon, davon aus, dass `~/Music` dein Musikverzeichnis ist.
+Dies kann in `~/.config/mpd/mpd.conf` geändert werden.
+Wenn du Musik zu deinem Musikordner hinzufügst, musst du möglicherweise `mpc up` im Terminal ausführen,
+um die Datenbank zu aktualisieren. mpd wird von ncmpcpp gesteuert, das über `Mod+m` zugänglich ist.
+
+=== Wie aktualisiere ich SARBS? ===
+
+SARBS wird als Git-Repository in deinem Home-Verzeichnis bereitgestellt.
+Du kannst es als solches verwenden, um Änderungen vom Remote-Repository abzurufen, zu vergleichen und zu mergen.
+Wenn du das nicht tun möchtest oder nicht weißt, wie man Git verwendet, kannst du das Skript tatsächlich
+einfach erneut ausführen (als root) und SARBS neu installieren. Es wird automatisch eine bestehende
+Installation aktualisieren, wenn du denselben Benutzernamen auswählst.
+Dies überschreibt jedoch die ursprünglichen Konfigurationsdateien, einschließlich der von dir vorgenommenen
+Änderungen, aber dies ist ein einfacherer brutaler Ansatz, der auch alle neuen Abhängigkeiten installiert.
+
+== Tiefergehende Bedienung ==
+
+=== ST - der Terminal ===
+
+*st* ist eine einfache Terminalimplementierung für X von suckless.
+
+* `MOD+Enter` öffnet den Terminal und `MOD+q` beendet ihn
+* `Strg+e` — Zeile in nvim bearbeiten
+
+=== zsh - die Zoomer shell ===
+
+*st* Um zsh zu konfigurieren musst du die `~/.config/zsh/zshrc` editieren. Du kannst sie aus dem Terminal
+über das Alias `cfz` öffnen. Alle möglichkeiten sind in der config beschrieben und sollten untereinander
+Kompartibel sein.
+
+* `PS1=` regelt das aussehen des eingabe-Promt's. Falls du dein Persönliches Layout bevorzugst, reiche mir
+  ein Pull request über GitHub ein
+* `Strg+e` — Zeile in nvim bearbeiten
+
+== Wichtige Links ==
+
+Du kannst Links über die Tastatur in diesem PDF-Reader folgen, indem du `f` drückst, gefolgt von der Zahl,
+die auf dem gewünschten Link erscheint.
+
+* [[mailto:luke@lukesmith.xyz|luke@lukesmith.xyz]] — Für Fragen!
+* [[https://lukesmith.xyz|https://lukesmith.xyz]] — Zum Stalken!
+* [[https://lukesmith.xyz/donate|https://lukesmith.xyz/donate]] — Um die weitere Entwicklung von SARBS zu fördern!
+* [[https://github.com/LukeSmithxyz|GitHub Seite]] — Für den Code dahinter!
+* [[http://lukesmith.xyz/rss.xml|RSS]] — Für Updates!

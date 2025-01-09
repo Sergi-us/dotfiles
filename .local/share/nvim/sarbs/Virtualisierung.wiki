@@ -1,0 +1,9 @@
+https://christitus.com/vm-setup-in-linux/
+
+[[Qemu]]
+
+[[bestehende VM einbinden]]
+
+[[Arch VM einrichten]]
+
+[[Windows 10 installation]]

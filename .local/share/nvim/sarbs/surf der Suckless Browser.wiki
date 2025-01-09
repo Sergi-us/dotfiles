@@ -1,0 +1,15 @@
+= SURF =
+
+Surf ist über den AUR erhältlich
+
+`yay -S surf-git` und `yay -S surf`
+
+der Browser nutzt Webkit 2 GTK
+
+`p -S webkit2gtk`
+
+Da ich eine eigene Installation von surf bevorzuge und den Browser in SARBS intergrieren möchte, gehe ich folgendemaßen vor:
+
+1. webkit über SARBS instalieren
+2. surf sollte über sarbs instaliert werden wie DMW und weitere Suckless tools.
+3. die Konfiguration in die Dotfiles legen

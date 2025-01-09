@@ -1,0 +1,5 @@
+Visuelle Schnittstelle mit Fenstern, Symbolen und Menüs, die typischerweise mit
+Maus oder Touchscreen bedient wird. GUIs sind intuitiv und benutzerfreundlich,
+besonders für Einsteiger. Sie ermöglichen die gleichzeitige Darstellung
+mehrerer Informationen und die einfache Manipulation von Objekten durch
+Drag-and-Drop oder Klicken.

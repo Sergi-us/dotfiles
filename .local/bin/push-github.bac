@@ -1,0 +1,36 @@
+#!/bin/bash
+## 2025-01-09 SARBS
+# Das Skript ist obsolet, lerne lieber GIT 😉
+
+# Wechsle in das Projektverzeichnis (Passe den Pfad entsprechend an)
+cd "$(pwd)"
+
+# Überprüfe den aktuellen Branch
+current_branch=$(git branch --show-current)
+echo "Aktueller Branch: $current_branch"
+
+# Frage den Benutzer, ob er im richtigen Branch ist
+read -p "Bist du im richtigen Branch? (j/n): " answer
+if [[ $answer != "j" ]]; then
+  echo "Bitte wechsle in den richtigen Branch und versuche es erneut."
+  exit 1
+fi
+
+# Füge alle Änderungen zur Staging-Area hinzu
+git add .
+
+# Prüfe, ob es Änderungen gibt, die committet werden müssen
+if git diff-index --quiet HEAD --; then
+  echo "Keine Änderungen zum Committen."
+else
+  # Committe die Änderungen mit der angegebenen Nachricht
+  read -p "Gib eine Commit-Nachricht ein: " commit_message
+  git commit -m "$commit_message"
+
+  # Pushe den aktuellen Branch zu GitHub
+  git push origin $current_branch
+  echo "Änderungen wurden zu GitHub gepusht."
+fi
+
+# Zeige den Status der Branches an
+git branch -a

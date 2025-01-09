@@ -1,0 +1,41 @@
+#!/bin/zsh
+## 2025-01-08 SARBS
+# ist mit der lfrc in eine Funktion eingebaut
+# Suffix für die konvertierten Dateien
+suffix="_davinci"
+
+# Prüfen, ob Eingabedateien übergeben wurden
+if [ $# -eq 0 ]; then
+    echo "Keine Dateien ausgewählt."
+    notify-send "Fehler: Keine Dateien ausgewählt!"
+    exit 1
+fi
+
+# Loop durch alle übergebenen Dateien
+for input in "$@"; do
+    # Prüfen, ob die Datei existiert
+    if [ ! -f "$input" ]; then
+        notify-send "Datei nicht gefunden: $input"
+        continue
+    fi
+
+    # Ausgabedateinamen erstellen
+    output="${input%.*}${suffix}.mp4"
+
+    # Benachrichtigung starten
+    notify-send "Konvertiere $input für DaVinci Resolve"
+
+    # ffmpeg-Befehl: Nur Audio konvertieren, Video unverändert lassen
+    ffmpeg -i "$input" \
+           -c:v copy \
+           -c:a pcm_s16le \
+           -ar 48000 \
+           "$output" 2>>~/.config/lf/ffmpeg_errors.log
+
+    # Prüfen, ob ffmpeg erfolgreich war
+    if [ $? -eq 0 ]; then
+        notify-send "Konvertierung abgeschlossen: $output"
+    else
+        notify-send "Fehler bei der Konvertierung: $input"
+    fi
+done

@@ -1,0 +1,36 @@
+= Einrichtung und Nutzung von Mutt =
+
+=== Packete instalieren (in SARBS bereits instaliert) ===
+{{{class="brush: bash"
+sudo pacman -S neomutt isync msmtp
+yay -S mutt-wizard-git
+}}}
+GPG einrichten
+{{{class="brush: bash"
+gpg --full-generate-key
+}}}
+oder vorhandene Schlüssel importieren
+{{{class="brush: bash"
+gpg --import privat-key.asc
+gpg --import public-key.asc
+}}}
+
+Pass einrichten
+{{{class="brush: bash"
+pass init deine@e.mail
+}}}
+
+Mutt Wizzard
+{{{class="brush: bash"
+mw -a deine@e.mail
+}}}
+
+=== Bedienung Neomutt ===
+`i+1`   Postfach *1* auswählen
+`y`     Mailbox auswählen
+
+=== Verbindung zur Mailbox anpassen ===
+
+Notice: SSLType is deprecated. Use TLSType instead.
+nvim ~/.config/mbsync/config
+alle *SSLType* gegen *TLSType* austauschen

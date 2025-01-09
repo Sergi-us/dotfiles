@@ -1,0 +1,16 @@
+#!/bin/sh
+## 2025-01-09 SARBS
+
+# Als Cron-Job einrichten, um nach neuen RSS-Einträgen für Newsboat zu suchen.
+# Wenn Newsboat geöffnet ist, sendet es den "R"-Tastendruck zum Aktualisieren.
+
+/usr/bin/notify-send "📰 Aktualisiere RSS-Feeds..."
+
+pgrep -f newsboat$ && /usr/bin/xdotool key --window "$(/usr/bin/xdotool search --name "^newsboat$")" R && exit
+
+echo 🔃 > /tmp/newsupdate
+pkill -RTMIN+6 "${STATUSBAR:-dwmblocks}"
+/usr/bin/newsboat -x reload
+rm -f /tmp/newsupdate
+pkill -RTMIN+6 "${STATUSBAR:-dwmblocks}"
+/usr/bin/notify-send "📰 RSS-Feed-Aktualisierung abgeschlossen."

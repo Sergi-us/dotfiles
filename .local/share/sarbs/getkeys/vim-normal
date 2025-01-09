@@ -1,0 +1,33 @@
+## 2025-01-09
+######################################################################################################################
+ m    m mmmmm  m    m        mm   m  mmmm  mmmmm  m    m   mm   m
+ "m  m"   #    ##  ##        #"m  # m"  "m #   "# ##  ##   ##   #
+  #  #    #    # ## #        # #m # #    # #mmmm" # ## #  #  #  #
+  "mm"    #    # "" #  """   #  # # #    # #   "m # "" #  #mm#  #
+   ##   mm#mm  #    #        #   ##  #mm#  #    " #    # #    # #mmmmm
+
+                                        Bewegen in der Zeile                    Bewegen im Dokument
+h/j/k/l         ←/↓/↑/→                 0       Anfang                          gg      gehe Hoch
+d       cut                             $       Ende                            G       gehe Runder
+y       yank (kopiere)                  ^^      Anfang (ändern)                 5G      Zeile 5
+p       paste (einfügen)                g       GoTo (benötigt weitere angaben) :5      Zeile 5
+u       undo (ungeschehen)              f       find                            50%     gehe zu 50%
+ctrl+ r redo (undo wiederherstellen)    w/b/e   Wort-bewegungen
+r       replace (erseze)                ( / )   Satz-anfang/ende
+.       repead (wiederhole)             )       Satzende
+o       open new Line                   { / }   Paragraph-Anfang/Ende
+
+
+q       Macro aufnehmen
+
+m
+
+
+
+
+
+
+
+
+
+#######################################################################################################################

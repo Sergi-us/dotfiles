@@ -1,0 +1,10 @@
+#!/bin/sh
+## 2025-01-09 SARBS
+# Torrent Peertube Videos, erfordert das transadd Skript
+# Das erste Argument ist der Videolink, das zweite ist die Qualität (360, 480 oder 1080)
+# 13/07/20 - Arthur Bais
+
+instance=$(echo "$1" | sed "s|/w.\+||")
+vidid=$(echo "$1" | sed "s|.\+/||")
+link=$(curl -s "$instance/api/v1/videos/$vidid" | grep -o "$instance/download/torrents/.\{37\}$2.torrent")
+transadd "$link"

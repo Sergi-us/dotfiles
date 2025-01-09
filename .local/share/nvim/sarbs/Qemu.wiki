@@ -1,0 +1,223 @@
+ = Qemu =
+ == Prüfung ==
+{{{
+LC_ALL=C lscpu | grep Virtualization
+}}}
+Erwartete Ausgabe: `Virtualization: VT-x` für Intel oder `Virtualization: AMD-V` für AMD
+{{{
+lsmod | grep kvm
+}}}
+Erwartete Ausgabe: Bei Intel solltest du `kvm_intel` und `kvm` sehen. Bei AMD solltest du `kvm_amd` und `kvm` sehen
+{{{
+zgrep CONFIG_KVM /proc/config.gz
+}}}
+Meine Ausgabe:
+{{{
+CONFIG_KVM_GUEST=y							# Grundlegende KVM-Unterstützung für Gast-Systeme
+CONFIG_KVM_COMMON=y							# Gemeinsame KVM-Funktionen
+CONFIG_KVM_MMIO=y							# Memory-Mapped I/O Unterstützung
+CONFIG_KVM_ASYNC_PF=y						# Asynchrone Page Faults - verbessert die Performance
+CONFIG_KVM_VFIO=y							# VFIO Unterstützung für PCI-Passthrough
+CONFIG_KVM_GENERIC_DIRTYLOG_READ_PROTECT=y	# Schutz für Dirty-Log Lesezugriffe
+CONFIG_KVM_GENERIC_PRE_FAULT_MEMORY=y		# Vorab-Speicherreservierung für bessere Performance
+CONFIG_KVM_COMPAT=y							# Kompatibilitätsmodus für 32/64-bit
+CONFIG_KVM_XFER_TO_GUEST_WORK=y				# Unterstützung für Arbeitstransfer zum Gast
+CONFIG_KVM_GENERIC_HARDWARE_ENABLING=y		# Generische Hardware-Aktivierung
+CONFIG_KVM_GENERIC_MMU_NOTIFIER=y			# MMU (Memory Management Unit) Benachrichtigungen
+CONFIG_KVM_GENERIC_MEMORY_ATTRIBUTES=y		# Verwaltung von Speicherattributen
+CONFIG_KVM_PRIVATE_MEM=y					# Privater Speicher für VMs
+CONFIG_KVM_GENERIC_PRIVATE_MEM=y			# Privater Speicher für VMs
+CONFIG_KVM=m								# Haupt-KVM-Modul (als Modul kompiliert)
+CONFIG_KVM_INTEL=m							# CPU-spezifische Module
+CONFIG_KVM_AMD=m							# CPU-spezifische Module
+CONFIG_KVM_AMD_SEV=y						# AMD SEV (Secure Encrypted Virtualization)
+CONFIG_KVM_SMM=y							# System Management Mode Unterstützung
+CONFIG_KVM_HYPERV=y							# Hyper-V Kompatibilität
+CONFIG_KVM_XEN=y							# Xen Kompatibilität
+CONFIG_KVM_EXTERNAL_WRITE_TRACKING=y		# Externes Write-Tracking
+CONFIG_KVM_MAX_NR_VCPUS=1024				# Maximale Anzahl virtueller CPUs pro VM
+}}}
+
+ == Installation ==
+{{{
+sudo pacman -S qemu-full virt-manager virt-viewer dnsmasq bridge-utils openbsd-netcat ebtables dmidecode
+}}}
+
+| Packetname     | Kurzbeschreibung                                       | Quelle | größe |
+|----------------|--------------------------------------------------------|--------|-------|
+| qemu-full      | Komplettes QEMU/KVM Virtualisierungspaket              | pacman | 900M  |
+| virt-manager   | Grafische Benutzeroberfläche zur VM-Verwaltung         | pacman | 100M  |
+| virt-viewer    | Programm zum Anzeigen der VM-Bildschirme               | pacman | 2M    |
+| dnsmasq        | DHCP- und DNS-Server für das VM-Netzwerk               | pacman | 2M    |
+| vde2           | Virtual Distributed Ethernet - für virtuelle Netzwerke | sarbs  |       |
+| bridge-utils   | Tools für Netzwerk-Bridging                            | pacman | 0,1M  |
+| openbsd-netcat | Netzwerk-Utility für VM-Verbindungen                   | pacman | 0,1M  |
+| libvirt        | API und Daemon zur VM-Verwaltung                       | sarbs  | 50M   |
+| iptables       | Firewall-Tools für Netzwerkregeln der VMs              | sarbs  |       |
+| dmidecode      | Tool zum Auslesen von DMI/SMBIOS-Hardwareinformationen | pacman | 0,2M  |
+
+Wenn alles korrekt eingerichtet ist, sollte die Datei */dev/kvm* existieren und die richtigen Berechtigungen haben. Du kannst dies prüfen mit:
+{{{
+ls -l /dev/kvm
+}}}
+
+`crw-rw-rw- 1 root kvm 10, 232 12. Nov 13:00 /dev/kvm`
+
+Aktiviert den Service für den automatischen Start beim Booten
+{{{
+sudo systemctl enable libvirtd.service
+}}}
+Startet den Service sofort
+{{{
+sudo systemctl start libvirtd.service
+}}}
+{{{
+sudo systemctl status libvirtd.service
+}}}
+{{{
+● libvirtd.service - libvirt legacy monolithic daemon
+     Loaded: loaded (/usr/lib/systemd/system/libvirtd.service; enabled; preset: disabled)
+     Active: active (running) since Tue 2024-11-12 13:17:02 -03; 26s ago
+ Invocation: 550bd630a56448cab6f4b3f5a49ac4ff
+TriggeredBy: ● libvirtd.socket
+             ● libvirtd-admin.socket
+             ● libvirtd-ro.socket
+       Docs: man:libvirtd(8)
+             https://libvirt.org/
+   Main PID: 2233921 (libvirtd)
+      Tasks: 21 (limit: 32768)
+     Memory: 9.4M (peak: 9.8M)
+        CPU: 373ms
+     CGroup: /system.slice/libvirtd.service
+             └─2233921 /usr/bin/libvirtd --timeout 120
+}}}
+
+ == Benutzerrechte einrichten ==
+Folgende Gruppen müssen eingerichtet werden, damit VMs ohne root-Rechte verwaltet werden können.
+
+=== Notwendige Gruppen ===
+Basis-Gruppen für die VM-Verwaltung:
+{{{
+sudo usermod -aG libvirt $(whoami)  # Grundlegende libvirt-Verwaltung
+sudo usermod -aG kvm $(whoami)      # KVM-Virtualisierung
+}}}
+
+=== Optionale Gruppen ===
+Zusätzliche Gruppen für erweiterte Funktionen:
+{{{
+sudo usermod -aG input $(whoami)	# Für USB-Geräte und Input-Durchreichung
+sudo usermod -aG disk $(whoami)		# Für Festplatten-Durchreichung (mit Vorsicht!)
+}}}
+
+=== Wichtige Hinweise ===
+* Nach der Gruppenzuweisung ist ein Neustart der Shell erforderlich
+* Temporäre Aktivierung möglich mit:
+{{{
+newgrp libvirt
+newgrp kvm
+newgrp input
+}}}
+
+=== Überprüfung der Gruppenzugehörigkeit ===
+Aktuelle Gruppenmitgliedschaften anzeigen:
+{{{
+groups $(whoami)
+}}}
+
+=== [[Sicherheitshinweise für gruppe disk]]===
+[[Sicherheitshinweise für gruppe disk]]
+* Die Gruppe `disk` wird nicht empfohlen, außer sie wird explizit benötigt
+* USB-Durchreichung nur aktivieren, wenn tatsächlich benötigt
+* Benutzerrechte können jederzeit mit `gpasswd -d user gruppe` entfernt werden
+
+=== Troubleshooting ===
+Falls keine Berechtigung für VM-Verwaltung:
+ * Prüfe ob alle Gruppen korrekt gesetzt sind
+ * Stelle sicher, dass du dich neu eingeloggt hast
+ * Überprüfe den libvirtd-Service-Status
+
+Neustart
+
+ == Netzwerkkonfiguration ==
+Die Netzwerkkonfiguration ist essentiell für die Kommunikation der virtuellen Maschinen.
+
+=== Default Network starten ===
+Das "default" Netzwerk bietet:
+  * NAT (Network Address Translation)
+  * Kommunikation zwischen VMs
+  * Internetzugriff für VMs
+  * Automatische IP-Vergabe (DHCP)
+
+ == UFW auf dem Host konfigurieren ==
+[[UWF-auf-den-Host-einrichten]]
+
+==== Befehle ====
+Netzwerk starten:
+{{{
+sudo virsh net-start default
+}}}
+
+Autostart aktivieren:
+{{{
+sudo virsh net-autostart default
+}}}
+
+Status prüfen:
+{{{
+sudo virsh net-list --all
+}}}
+
+Erwartete Ausgabe:
+{{{
+ Name      Status   Automatischer Start   Bleibend
+----------------------------------------------------
+ default   Aktiv    ja                    ja
+}}}
+
+==== Zusätzliche Prüfungen ====
+Bridge-Interface prüfen:
+{{{
+ip addr show virbr0
+}}}
+Ausgabe:
+{{{
+5: virbr0: <NO-CARRIER,BROADCAST,MULTICAST,UP> mtu 1500 qdisc noqueue state DOWN group default qlen 1000
+    link/ether 52:54:00:fc:3f:63 brd ff:ff:ff:ff:ff:ff
+    inet 192.168.122.1/24 brd 192.168.122.255 scope global virbr0
+       valid_lft forever preferred_lft forever
+}}}
+Detaillierte Netzwerkkonfiguration:
+{{{
+sudo virsh net-dumpxml default
+}}}
+Ausgabe:
+{{{
+<network>
+  <name>default</name>
+  <uuid>ab9b0a05-3458-439a-9d71-d264d838cb78</uuid>
+  <forward mode='nat'>
+    <nat>
+      <port start='1024' end='65535'/>
+    </nat>
+  </forward>
+  <bridge name='virbr0' stp='on' delay='0'/>
+  <mac address='52:54:00:fc:3f:63'/>
+  <ip address='192.168.122.1' netmask='255.255.255.0'>
+    <dhcp>
+      <range start='192.168.122.2' end='192.168.122.254'/>
+    </dhcp>
+  </ip>
+</network>
+}}}
+
+=== Hinweise ===
+* Ohne das Default-Netzwerk haben VMs keinen Internetzugriff
+* Die Bridge (virbr0) wird automatisch erstellt
+* Der DHCP-Server wird automatisch konfiguriert
+* Änderungen am Netzwerk erfordern meist einen Neustart der VMs
+
+=== Troubleshooting ===
+Falls das Netzwerk nicht startet:
+  * Prüfe ob libvirtd läuft: `systemctl status libvirtd`
+  * Prüfe die Berechtigungen: `groups | grep libvirt`
+  * Logs prüfen: `journalctl -u libvirtd`

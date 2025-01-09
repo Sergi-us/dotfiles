@@ -1,0 +1,29 @@
+## 2025-01-09
+ _ __   ___ _ __ ___  _ __   ___ _ __  _ __     ┌───────────────────────────────────────┐
+| '_ \ / __| '_ ` _ \| '_ \ / __| '_ \| '_ \    │Mod+m Startet den Musikplayer.         │
+| | | | (__| | | | | | |_) | (__| |_) | |_) |   │                                       │
+|_| |_|\___|_| |_| |_| .__/ \___| .__/| .__/    │                                       │
+                     |_|        |_|   |_|       │                                       │
+                                                └───────────────────────────────────────┘
+
+j/k     Move ↓/↑                        d/u·····page ↓/↑                        /       Suche
+h/l     Move ←/→                        g       Go to top                       n       nächster Sucheitrag
+Enter   Play                            G       Go to bottom                    N       vorherige Sucheintrag
+
+a       Add song(s) to playlist
+c       Clear playlist
+p       Pause
+m       Media library
+f       Music sorted by directory structure
+t       Tag editor
+s       Search
+v       Visualizer
+P       Playlist
+Mod+<   Titel neu starten
+Mod+>   Playlist-Schleife umschalten
+Mod+F4  Pulsemixer
+
+
+
+
+end

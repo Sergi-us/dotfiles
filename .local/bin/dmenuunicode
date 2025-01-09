@@ -1,0 +1,19 @@
+#!/bin/sh
+## 2025-01-09 SARBS
+
+# Das berühmte Skript "Ein Menü von Emojis zum Kopieren anzeigen".
+
+# Benutzerwahl über dmenu aus einer Emoji-Datei treffen.
+chosen=$(cut -d ';' -f1 ~/.local/share/sarbs/chars/* | dmenu -i -l 25 | sed 's/^\([^ ]*\).*/\1/')
+
+# Beenden, wenn keine Auswahl getroffen wurde.
+[ -z "$chosen" ] && exit
+# Wenn dieses Skript mit einem Argument ausgeführt wird, wird das Zeichen
+# automatisch eingefügt. Andernfalls wird eine Nachricht angezeigt, dass das
+# Emoji in die Zwischenablage kopiert wurde.
+if [ -n "$1" ]; then
+	xdotool type "$chosen"
+else
+	printf "%s" "$chosen" | xclip -selection clipboard
+	notify-send "'$chosen' in die Zwischenablage kopiert." &
+fi

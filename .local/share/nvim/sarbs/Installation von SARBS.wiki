@@ -1,0 +1,18 @@
+ = Installation =
+
+== Archlinux iso auf USB Stick brennen ==
+Runderladen
+Prüfen
+Brennen
+== Livesystem Booten ==
+Bios/UEFI
+Arch Bootmenu
+== Im Livesystem ==
+Tastaturlayout ändern
+Packetquellen aktualisieren
+Arch-Linux Instalieren
+== Sarbs Installation ==
+
+== Sarbs Neustart ==
+
+== Erste Schritte in SARBS ==

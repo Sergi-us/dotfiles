@@ -1,0 +1,24 @@
+[[index]]
+ = Flash Laufwerke Trimmen =
+Trim informiert die SSD über ungenutzte Speicherblöcke.
+Verschlüsselte Festplatten werden standartmäßig nicht getrimmt.
+
+== Arch-Linux + LUKS + Systemd-boot ==
+Prüfen ob `allow_discards` gesetzt ist
+{{{class="brush: bash"
+sudo dmsetup table | grep crypt
+}}}
+andernfalls `:allow-discards` als Kernel-`opion` im Bootloader eintrag setzen:
+{{{class="brush: bash"
+sudo nvim /boot/loader/entries/*.conf
+}}}
+Beispielzeile:
+`options cryptdvice=PARTUUD=xxXxXXxxX-XxXX-XxxX-XXXxXXXXXxxX:root:allow-discards root=/dev/mapper/root rw rootfstype=xxxXx`
+
+Neustarten mit mit dem geänderten/hinzugefügten Booteintrag und den Trimmbefehl ausführen:
+
+{{{class="brush: bash"
+sudo fstrim -av
+}}}
+
+[[index]]

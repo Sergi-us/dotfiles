@@ -1,0 +1,63 @@
+= Geräte mit Bluetooth Verbinden =
+[[https://www.youtube.com/watch?v=y-jRFcNRr0M|YouTube: Geräte in Linux mit Bluetooth verbinden]]
+
+Notwendige Packete (in SARBS bereits instaliert)
+{{{
+pacman -S bluez bluez-utils pulseaudio-bluetooth
+}}}
+Prüfen ob `bluetooth.service` läuft, gegebenenfalls starten:
+{{{
+sudo systemctl start bluetooth.service
+}}}
+für Automatischen start beim booten den Dienst aktivieren:
+{{{
+systemctl enable bluetooth.service
+}}}
+
+`bluetoothctl` Agent Starten
+{{{
+bluetoothctl
+}}}
+Scan starten und Kopfhörer identifizieren die Mac-Adresse
+{{{
+scan on
+}}}
+_sieht ungefär so aus `Device XX:XX:XX:XX:XX:XX` warscheinlich mit namen der Kopfhörer_
+{{{
+scan off
+devices
+pair XX:XX:XX:XX:XX:XX
+trust XX:XX:XX:XX:XX:XX
+connect XX:XX:XX:XX:XX:XX
+}}}
+`bluetoothctl` Verlassen mit:
+{{{
+exit
+}}}
+
+
+weitere Befehle in `bluetoothctl`
+`devices`               alle bekannten geräte auflisten
+`disconnect XX:XX:...`  verbindung trennen
+`remove <Mac-Adresse>`  entkoppeln des Gerätes
+`agent <on|off|auto>`   Agent für das Automatische annehmen von Vertrauenswürdigen geräten
+`untrust <mac-adresse>` aufheben des Vertrauensstatus
+`show`                  informationen über den lokalen Bluetooth-Adapter erhalten
+`info <Mac-Adresse>`    zeigt infos über das Gerät
+`help`                  hilfe
+
+%% TODO blue neu Integrieren
+%% TODO blue in Kombination mit D-Menu
+%% TODO `dmenu-bluetooth` D-Menu Shell-promt auf GitHub oder vergleichbare tools
+
+# Fehlersuche und sonstiges
+neustarten des Dienstes
+{{{
+sudo systemctl restart bluetooth
+}}}
+im `bluetoothctl` utility
+- gibt informationen zum Devvice aus
+{{{
+info XX:XX:XX:XX:XX:XX
+}}}
+[[index|←index]]

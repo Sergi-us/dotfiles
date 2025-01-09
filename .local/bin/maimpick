@@ -1,0 +1,20 @@
+#!/bin/sh
+## 2025-01-09 SARBS
+
+# Dies ist standardmäßig auf Shift+Druck gebunden und erfordert maim. Es ermöglicht dir, die Art des Screenshots auszuwählen, einschließlich das Bild zu kopieren oder sogar einen Bereich zum Kopieren hervorzuheben. Scrot-Nutzer sind jetzt wohl deprimiert.
+
+# Variablen
+pic_dir="$HOME/Bilder/screenshots"
+output="$(date '+%y%m%d-%H%M-%S').png"
+xclip_cmd="xclip -sel clip -t image/png"
+ocr_cmd="xclip -sel clip"
+
+case "$(printf "einen ausgewählten Bereich\\naktuelles Fenster\\nVollbildschirm\\neinen ausgewählten Bereich (kopieren)\\naktuelles Fenster (kopieren)\\nVollbildschirm (kopieren)\\nOCR einen ausgewählten Bereich (kopieren)" | dmenu -l 7 -i -p "Screenshot welches Gebiet?")" in
+    "einen ausgewählten Bereich") maim -u -s "${pic_dir}/pic-ausgewählt-${output}" ;;
+    "aktuelles Fenster") maim -B -q -d 0.2 -i "$(xdotool getactivewindow)" "${pic_dir}/pic-fenster-${output}" ;;
+    "Vollbildschirm") maim -q -d 0.2 "${pic_dir}/pic-vollbild-${output}" ;;
+    "einen ausgewählten Bereich (kopieren)") maim -u -s | ${xclip_cmd} ;;
+    "aktuelles Fenster (kopieren)") maim -q -d 0.2 -i "$(xdotool getactivewindow)" | ${xclip_cmd} ;;
+    "Vollbildschirm (kopieren)") maim -q -d 0.2 | ${xclip_cmd} ;;
+    "OCR einen ausgewählten Bereich (kopieren)") tmpfile=$(mktemp /tmp/ocr-XXXXXX.png) && maim -u -s > "$tmpfile" && tesseract "$tmpfile" - -l eng | ${ocr_cmd} && rm "$tmpfile" ;;
+esac

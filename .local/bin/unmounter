@@ -1,0 +1,52 @@
+#!/bin/sh
+## 2025-01-09 SARBS
+# TODO Testversion des unmount Skript's welches enutzte Geräte erkennen und deaktivieren soll
+# Eingabeaufforderungen und entschlüsselt auch LUKS-Laufwerke, die ausgehängt werden.
+# TODO Sicherstellen dass alle Schreibvorgänge abgeschlossen sind bevor etwas ausgeworfen wird... Die Aktuelle Logig ist noch in der Testphase...
+
+set -e
+
+# Überprüfen und Beenden von Prozessen, die das Zielverzeichnis verwenden
+kill_processes_using_directory() {
+    directory=$1
+    process_list=$(lsof +D "$directory" | awk 'NR>1 {print $2}')
+
+    if [ -n "$process_list" ]; then
+        notify-send "Folgende Prozesse verwenden $directory und werden beendet:"
+        notify-send "$process_list"
+        notify-send "$process_list" | xargs sudo kill -9
+        notify-send "Prozesse beendet."
+    else
+        notify-send "Keine Prozesse verwenden $directory."
+    fi
+}
+
+mounteddroids="$(grep simple-mtpfs /etc/mtab | awk '{print "📱" $2}')"
+lsblkoutput="$(lsblk -nrpo "name,type,size,mountpoint")"
+mounteddrives="$(echo "$lsblkoutput" | awk '($2=="part"||$2="crypt")&&$4!~/\/boot|\/home$|SWAP/&&length($4)>1{printf "💾%s (%s)\n",$4,$3}')"
+
+allunmountable="$(echo "$mounteddroids
+$mounteddrives" | sed "/^$/d;s/ *$//")"
+test -n "$allunmountable"
+
+chosen="$(echo "$allunmountable" | dmenu -i -p "Welches Laufwerk aushängen?")"
+chosen="${chosen%% *}"
+test -n "$chosen"
+
+# Verzeichnispfad extrahieren
+mountpoint="/${chosen#*/}"
+
+# Prozesse beenden, die das Zielverzeichnis verwenden
+kill_processes_using_directory "$mountpoint"
+
+# Laufwerk aushängen
+sudo -A umount -l "$mountpoint"
+notify-send "Gerät ausgehängt." "$chosen wurde ausgehängt."
+
+# Schließt das ausgewählte Laufwerk, wenn es entschlüsselt ist.
+cryptid="$(echo "$lsblkoutput" | grep "/${chosen#*/}$")"
+cryptid="${cryptid%% *}"
+if [ -b /dev/mapper/"${cryptid##*/}" ]; then
+    sudo -A cryptsetup close "$cryptid"
+    notify-send "🔒Geräteverschlüsselung geschlossen." "Laufwerk ist jetzt wieder sicher verschlossen."
+fi

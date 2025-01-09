@@ -1,0 +1,38 @@
+ =Allgemeine Einstellungen=
+[[Geräte mit Bluetooth Verbinden]]
+
+[[UFW Firewall]]
+
+[[Laufwerke unter Linux]]
+
+- Compose Funktion für Umlaute Aktivieren
+	`setxkbmap -option compose:menu`
+
+[[GNU-Coreutils]]
+
+
+
+Uhrzeit einstellen
+	`sudo timedatectl set-timezone Europe/Berlin`
+
+😀 Emojis mit 'super+~' Taste.
+	Keybinding ändern: Deutsche Tastatur auf 'dead_circumflex'
+	verantwortliches Script: 	~/.local/bin/dmenuunicode
+	Emojis hinterlegt in:		~/.local/share/larbs/charts/*
+
+🖥️ screenkey für 'Super+ScrLk' instalieren.
+	Keybinding ändern: Für Tastaturen ohne 'ScrLk'-Taste in der 'config.h' im DWM Verzeichniss
+	z.B MODKEY|ShiftMask, XK_Delete
+	DWM muss neu Kompiliert werden.
+
+
+⌨️  Compose-Taste
+im 'remaps' Script werden Tasten neu zugeordnet. Die funktion der 'alt_win' taste kapier ich noch nicht. Aber die Compose Taste ist wichtig und wird eichfach dahintergesetzt 'compose:menu' Die Menu-Taste öffnet normalerweise das Kontextmenu in Windows. Mit dem Suchbegriff 'Compose Key cheat sheet' findest du ne menge beispiele zum Üben...
+	Einstellung für die Menu-Taste: compose:menu und für die rechte Ctrl-Taste 'compose:rctrl'
+
+
+  Datum und Zeiteinstellungen:
+	timedatectl	set-timezone	America/Asunktion
+			set-time	JJJJ-MM-TT HH:MM:SS
+
+[[Aktivierung von Natural Scrolling]]

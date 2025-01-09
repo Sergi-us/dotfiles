@@ -1,0 +1,43 @@
+#!/bin/sh
+## 2025-01-09 SARBS
+# Prints the current volume or 🔇 if muted.
+
+# Uncomment the mixer you prefer to use
+MIXER="pulsemixer"
+#MIXER="pamixer"
+
+case $BLOCK_BUTTON in
+    1) setsid -w -f "$TERMINAL" -e $MIXER ;;
+    2) wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle ;;
+    4) wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%+ ;;  # Scroll up
+    5) wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%- ;;  # Scroll down
+    3) notify-send "Lautstärke Modul" "\- Zeigt Lautsärke   ,
+- Stumm.
+- Mittleclick für Stumm.
+- Scroll zum ändern" ;;
+    6) setsid -f "$TERMINAL" -e "$EDITOR" "$0" ;;
+esac
+
+# Get the current volume and mute status
+vol_info=$(wpctl get-volume @DEFAULT_AUDIO_SINK@)
+vol=$(echo "$vol_info" | awk '{print $2}')
+muted=$(echo "$vol_info" | grep -q MUTED && echo "yes" || echo "no")
+
+# Convert volume to percentage
+vol=$(awk -v vol="$vol" 'BEGIN{printf "%.0f\n", vol * 100}')
+
+# Determine the icon
+if [ "$muted" = "yes" ]; then
+    icon="󰖁 "
+elif [ "$vol" -ge 70 ]; then
+    icon="󰕾"
+elif [ "$vol" -ge 30 ]; then
+    icon="󰖀"
+elif [ "$vol" -ge 1 ]; then
+    icon="󰕿"
+else
+    icon="󰝟"
+fi
+
+# Output the result
+echo "$icon $vol%"

@@ -1,0 +1,4 @@
+Wenn ein Device gerade genutzt wird und sich nicht aushängen lässt kannst du folgendens tun
+
+1. mit `lsof /mnt/device` kannst du prüfen welche Prozesse auf das Device zugreifen und diese Prozesse können in htop oder btop geschlossen werden. Danach wird das unmounter-Skript das Laufwerk automatisch aushängen und eine Mitteilung erscheint _getrstet und funktioniert (ohne sudo)_
+2. es können alle Prozesse die auf das Device zugreifen per CLI eingabe beendet werden. Der Promt siet wie folgt aus `fuser -km /mnt/device` _noch nicht getestet, könnte ich aber in das unmounting-Skript einbauen_

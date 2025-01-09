@@ -1,0 +1,18 @@
+#!/bin/sh
+## 2025-01-09 SARBS
+
+# The clickable help menu. Middle click to restart wm.
+
+# If dwm is running, use dwm's readme and restart.
+pidof dwm >/dev/null &&
+    READMEFILE=/usr/local/share/dwm/larbs.mom
+    restartwm() { pkill -HUP dwm ;} ||
+        restartwm() { i3 restart ;}
+
+case $BLOCK_BUTTON in
+    1) surf "https://sarbs.xyz/handbuch/" ;;
+    2) restartwm ;;
+    3) notify-send " Hilfe Modul" "\- Links-click für SARBS Online-Hilfe.
+- Mittel-click um DWM zu aktualisieren" ;;
+    6) setsid -f "$TERMINAL" -e "$EDITOR" "$0" ;;
+esac; echo " 󰺴 "

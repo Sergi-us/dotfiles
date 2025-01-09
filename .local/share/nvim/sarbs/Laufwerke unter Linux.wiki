@@ -1,0 +1,47 @@
+ =Laufwerke unter Linux=
+
+== Einführung ==
+  * Was sind Laufwerke?
+  * Verschiedene Arten von Laufwerken (HDD, SSD, NVMe, USB, etc.)
+  * Laufwerke unter Linux erkennen und verwalten
+
+== Vorbereiten von Laufwerken ==
+  * [[Erkennen von Laufwerken]] mit lsblk, fdisk -l, blkid
+  * [[Laufwerk sicher Löschen]]
+  * [[SMART Festplattengesundheit]]
+  * [[Laufweks Leistungstest]](Laufweks-Leistungstest)
+  * Laufwerk mit [[EXFAT Formatieren]]
+  * Laufwerke mit `dd` Clonen
+		`sudo dd if=/dev/sdA of=/dev/sdB bs=64K conv=noerror,sync status=progress`
+  * [[Luks USB-Stick]]
+  * Partitionstabelle erstellen mit fdisk, parted
+  * Erstellen von Partitionen: MBR vs. GPT
+  * UUIDs und Labels zuweisen
+
+== Formatieren von Laufwerken ==
+	Dateisysteme und ihre Vor- und Nachteile (ext4, xfs, btrfs, ntfs, vfat, etc.)
+	Formatieren mit mkfs (z.B., mkfs.ext4, mkfs.xfs)
+	Überprüfung des Dateisystems mit fsck
+	[[Einhängen von Dateisystemen: mount und umount]]
+	LUKS [[Gerät wird gerade benutzt]]
+	Einträge in /etc/fstab hinzufügen
+
+== Testen von Laufwerken ==
+	Überprüfen der Laufwerksgesundheit mit smartctl (SMART-Werte)
+	Badblocks-Überprüfung mit badblocks
+	Dateien- und Verzeichnisintegrität mit md5sum, sha256sum
+
+== Benchmarken von Laufwerken ==
+	Einführung in Benchmarking
+	Tools: hdparm, dd, fio
+	Interpretieren von Benchmark-Ergebnissen
+	Beispiel-Skripte für Benchmark-Tests
+
+== Troubleshooting und häufige Probleme ==
+	Häufige Fehler und ihre Behebung
+	Logfiles und Fehlermeldungen lesen (dmesg, /var/log/syslog)
+
+== Nützliche Ressourcen und weiterführende Links ==
+	Offizielle Dokumentationen
+	Community-Foren und Tutorials
+	Man-Pages und Hilfetexte (man lsblk, man fdisk, etc.)

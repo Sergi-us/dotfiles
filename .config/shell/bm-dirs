@@ -1,0 +1,19 @@
+# You can add comments to these files with #
+D		$$HOME/Downloads
+Fi		$HOME/Filme
+Se		$HOME/Serien
+Bü		$HOME/Bücher
+Ma		$HOME/Magazine
+pp		${XDG_PICTURES_DIR:-$HOME/Bilder}
+d		${XDG_DOCUMENTS_DIR:-$HOME/Dokumente}
+m		${XDG_MUSIC_DIR:-$HOME/Musik}
+vv		${XDG_VIDEOS_DIR:-$HOME/Videos}
+cac		${XDG_CACHE_HOME:-$HOME/.cache}
+cf		${XDG_CONFIG_HOME:-$HOME/.config}
+dt		${XDG_DATA_HOME:-$HOME/.local/share}
+rr		$HOME/.local/src
+h		$HOME
+mn		/mnt
+St		/mnt/stick
+sc		$HOME/.local/bin
+src		$HOME/.local/src

@@ -1,0 +1,8 @@
+1. Mit `lsblk -f` überprüfen
+2. Mit `sudo blkid` überprüfen
+	Zeigt detaillierte Informationen über die UUID und das Dateisystem der Laufwerke.
+3. Mounten und Dateisystem überprüfen
+	`sudo mkdir -p /mnt/verzeichniss`
+	`sudo mount /dev/sdX1 /mnt/verzeichniss`
+	`df -T /mnt/external`
+	Durch diese Schritte lässt sich das Dateisystem der externen Festplatte sicher bestimmen.

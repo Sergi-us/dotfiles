@@ -1,0 +1,9 @@
+Textbasierte Schnittstelle, bei der Benutzer Befehle über die Tastatur
+eingeben, um mit dem Computer zu interagieren. Charakteristisch ist die Nutzung
+des Terminals, wo Eingaben zeilenweise verarbeitet werden. Eine besondere
+Stärke liegt in der Möglichkeit, Befehle zu kombinieren und die Ausgabe eines
+Befehls als Eingabe für den nächsten zu verwenden (oft als "Piping"
+bezeichnet). Dies ermöglicht komplexe Operationen durch die Verkettung
+einfacher Befehle.
+Beispiel: In einem Unix-Terminal könnte man `ls -l | grep ".txt"` eingeben, um
+alle Textdateien im aktuellen Verzeichnis aufzulisten.

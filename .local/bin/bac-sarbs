@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+## 2025-01-08 SARBS
+# SARBS Backup Script
+# TODO Zielüberprüfung hinzufügen
+
+# --ignore-times    zwingt rsync die alle Dateien zu prüfen
+# --inplace         zwingt rsync den Cache zu ignorieren
+# pkexec mit sudo ersetzen
+
+# hier den rsync promt eintragen
+
+# Sicherstellen, dass alle Daten auf die Festplatte geschrieben wurden
+sync
+
+read -r -p "Drücke Enter, um das Terminal zu schließen..."

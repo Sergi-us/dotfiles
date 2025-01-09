@@ -1,0 +1,14 @@
+#!/bin/sh
+## 2025-01-09 SARBS
+
+case $BLOCK_BUTTON in
+	1) notify-send "  RAM tops" "$(ps axch -o cmd:15,%mem --sort=-%mem | head)" ;;
+	2) setsid -f "$TERMINAL" -e btop ;;
+	3) notify-send "  RAM Modul" "\- zeigt RAM-verbrauch.
+- Click to show memory hogs.
+- Middle click to open htop." ;;
+	6) setsid -f "$TERMINAL" -e "$EDITOR" "$0" ;;
+esac
+
+free --mebi | sed -n '2{p;q}' | awk '{printf (" %2.2fGB/%2.0fGB\n", ( $3 / 1024), ($2 / 1024))}'
+# free --mebi | sed -n '2{p;q}' | awk '{printf ("🧠%2.2fGiB/%2.2fGiB\n", ( $3 / 1024), ($2 / 1024))}'
