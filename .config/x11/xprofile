@@ -47,7 +47,7 @@ setbg &
 # xrdb ${XDG_CONFIG_HOME:-$HOME/.config}/x11/xresources & xrdbpid=$!
 
 # === Liste der automatisch zu startenden Programme ===
-autostart="mpd xcompmgr dunst unclutter pipewire remapd"
+autostart="mpd dunst unclutter pipewire remapd picom -d"
 
 for program in $autostart; do
 	pidof -sx "$program" || "$program" &
