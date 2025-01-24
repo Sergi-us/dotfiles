@@ -1,5 +1,10 @@
  = ffmpeg Promt's =
 
+Informationen abfragen
+{{{class="brush: bash"
+ffmpeg -i input.mp4
+}}}
+
 Audio für Davinci
 {{{class="brush: bash"
 ffmpeg -i input.mp4 -c:v copy -c:a pcm_s16le -ar 48000 output.mp4
@@ -8,4 +13,14 @@ ffmpeg -i input.mp4 -c:v copy -c:a pcm_s16le -ar 48000 output.mp4
 2 Videos verbinden
 {{{class="brush: bash"
 ffmpeg -i "concat:1.avi|2.avi" -c copy 1und2.avi
+}}}
+
+Untertitel zu Film hinzufügen
+{{{class="brush: bash"
+ffmpeg -i video.mp4 -i untertitel.srt -c:v copy -c:a copy -c:s mov_text -metadata:s:s:0 language=ger output.mp4
+}}}
+
+Film umwandeln h265 video (für Hardware Encoder Intel Vaapi)
+{{{class="brush: bash"
+ffmpeg -vaapi_device /dev/dri/renderD128 -i input_file.mp4 -vf 'format=nv12,hwupload' -c:v hevc_vaapi -qp 28 -c:a copy -c:s mov_text output_file.mp4
 }}}

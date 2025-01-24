@@ -1,6 +1,10 @@
 #!/bin/bash
 ## 2025-01-09 SARBS
 # Startskript für Telegram das Theme wird automatisch aktualisiert..
+# Einrichtung:
+# walogram-git instalieren
+# in Telegramm das Theme ausgewählen:
+# ~/.cache/walogram/wal.tdesktop-theme
 
 BG_PATH=~/.local/share/bg
 THEME_PATH=~/.cache/walogram/wal.tdesktop-theme

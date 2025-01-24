@@ -35,30 +35,35 @@ killrecording() {
 ####    updateicon "  "
 ####}
 
-##### Version für Hardware Encoding mit h264_vaapi
+##### Version für Hardware Encoding mit h265_vaapi
+## 2025-01-18 libra unterstützung einrichten (Thinkpad T480 Intel UHD Graphics 620)
+## sudo pacman -S libva-intel-driver libva-utils (für Intel CPU's)
 screencast() {
     local out="$HOME/Videos/scr/screencast-$(date '+%y%m%d-%H%M-%S').mp4"
     ffmpeg -y \
         -vaapi_device /dev/dri/renderD128 \
-        -f x11grab -framerate 24 -video_size 2560x1440 -i "$DISPLAY" \
+        -f x11grab -framerate 30 -video_size 2560x1440 -i "$DISPLAY" \
         -f pulse -channels 2 -i default \
         -vf 'format=nv12,hwupload' \
-        -c:v h264_vaapi -qp 25 \
-        -c:a aac -b:a 128k \
+        -c:v hevc_vaapi -qp 20 -profile:v main \
+        -c:a aac -b:a 256k \
         "$out" &
     echo $! > /tmp/recordingpid
     notify "Screencast gestartet"
     updateicon "  "
 }
 
-##### Version für Hardware Encoding mit hevc_nvenc
+##### 4K Version für Hardware Encoding mit h265_vaapi und 60frames
+## 2025-01-18 Vaapi unterstützung einrichten (Thinkpad T480)
+## sudo pacman -S libva-intel-driver libva-utils (für Intel CPU's)
 ####screencast() {
 ####    local out="$HOME/Videos/scr/screencast-$(date '+%y%m%d-%H%M-%S').mp4"
 ####    ffmpeg -y \
-####        -f x11grab -framerate 30 -video_size 2560x1440 -i "$DISPLAY" \
-####        -f pulse -channels 2 -i default \
-####        -c:v hevc_nvenc -preset p5 -qp 18 \
-####        -c:a aac -b:a 128k \
+####        -vaapi_device /dev/dri/renderD128 \
+####        -f x11grab -framerate 60 -video_size 2560x1440 -i "$DISPLAY" \
+####        -vf 'scale=3840:2160:flags=lanczos,format=nv12,hwupload' \
+####        -c:v hevc_vaapi -qp 20 -profile:v main \
+####        -c:a aac -b:a 256k \
 ####        "$out" &
 ####    echo $! > /tmp/recordingpid
 ####    notify "Screencast gestartet"
@@ -71,7 +76,7 @@ screencast_monitor() {
     selected_monitor="$(xrandr --listmonitors | tail -n +2 | awk '{print $4}' | dmenu -i -p "Monitor auswählen:")"
 
     # Dummy-Auflösung, anpassbar nach Bedarf
-    local resolution="1920x1080"
+    local resolution="2560x1440"
     local offset="+0+0"
     local out="$HOME/Videos/scr/screencast-${selected_monitor}-$(date '+%y%m%d-%H%M-%S').mp4"
 
@@ -86,6 +91,28 @@ screencast_monitor() {
     notify "Monitoraufnahme gestartet"
     updateicon "  "
 }
+
+####screencast_monitor() {
+####    # Monitor-Auswahl ohne Fehlermeldungen
+####    local selected_monitor
+####    selected_monitor="$(xrandr --listmonitors | tail -n +2 | awk '{print $4}' | dmenu -i -p "Monitor auswählen:")"
+####
+####    # Dummy-Auflösung, anpassbar nach Bedarf
+####    local resolution="1920x1080"
+####    local offset="+0+0"
+####    local out="$HOME/Videos/scr/screencast-${selected_monitor}-$(date '+%y%m%d-%H%M-%S').mp4"
+####
+####    ffmpeg -y \
+####        -f x11grab -framerate 30 -video_size "$resolution" -i "$DISPLAY$offset" \
+####        -f pulse -channels 2 -i default \
+####        -c:v libx264 -crf 18 -preset medium \
+####        -c:a aac -b:a 128k \
+####        -pix_fmt yuv420p \
+####        "$out" &
+####    echo $! > /tmp/recordingpid
+####    notify "Monitoraufnahme gestartet"
+####    updateicon "  "
+####}
 
 audio() {
     local out="$HOME/Podcast/audio-$(date '+%y%m%d-%H%M-%S').flac"

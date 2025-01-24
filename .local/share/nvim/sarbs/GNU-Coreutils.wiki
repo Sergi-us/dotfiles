@@ -1,3 +1,23 @@
-GNU-Coreutils
+ = find und chmod =
 
-nohup	einen Befehl immun gegen Aufhängen laufen lassen
+{{{
+find /pfad/zu/deinem/verzeichnis -type d -exec chmod 750 {} \;
+find /pfad/zu/deinem/verzeichnis -type f -exec chmod -x {} \;
+find /pfad/zu/deinem/verzeichnis -type f -exec chmod 640 {} \;
+}}}
+
+find -type d: Sucht nur nach Verzeichnissen.
+chmod: Wendet die angegebenen Rechte an.
+-exec ... \;: Führt den Befehl für jedes gefundene Verzeichnis aus.
+
+
+| Recht                 | Sym  | Oktal |
+| ----                  | ---- | ---   |
+| Keine Rechte          | ---  | 0     |
+| Nur Ausführen         | --x  | 1     |
+| Nur Schreiben         | -w-  | 2     |
+| Schreiben + Ausführen | -wx  | 3     |
+| Nur Lesen             | r--  | 4     |
+| Lesen + Ausführen     | r-x  | 5     |
+| Lesen + Schreiben     | rw-  | 6     |
+| Alle Rechte           | rwx  | 7     |
