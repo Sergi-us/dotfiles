@@ -1,4 +1,5 @@
 ## 2025-01-09
+########################################################################################################################
                  _   _		NeoMutt ist in SARBS vollständig integriert und die Mailacount's (bis 9st.)
  _ __ ___  _   _| |_| |_	werden mit dem Mutt-Wizzard ~mw automatisch eingerichtet. Vorher muss 'Pass' und 'gpg'
 | '_ ` _ \| | | | __| __|	eingerichtet sein. Ist im Handbuch beschrieben...
@@ -27,3 +28,6 @@ O       Run full sync with offlineimap
 C       Copy a message to another mailbox
 M       Move a message to another mailbox
 B       Hide/reveal sidebar
+
+
+########################################################################################################################

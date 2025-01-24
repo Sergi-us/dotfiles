@@ -1,4 +1,9 @@
 [[index]]
+
+== [[reflector]] ==
+
+== [[find-chmod]] ==
+
  = Flash Laufwerke Trimmen =
 Trim informiert die SSD über ungenutzte Speicherblöcke.
 Verschlüsselte Festplatten werden standartmäßig nicht getrimmt.

@@ -1,5 +1,5 @@
 #!/bin/sh
-## 2025-01-09 SARBS
+## 2025-01-14 SARBS
 
 clock=$(date '+%I')
 
@@ -28,7 +28,13 @@ case $BLOCK_BUTTON in
 esac
 
 # Unterschiedliche Darstellung
-# date "+KW%V (%a) %d%b.%Y %H:%M"
+## KW03 (Di) 14.Jan.2025 14:20
+# date "+KW%V (%a) %d.%b.%Y %H:%M"
+## (Di) 14.Jan.2025 [03] 🕛14:20
 # date "+(%a) %d.%b.%Y [%V] $icon %H:%M"
+## (Di) 14.Jan [03] 14:20
 # date "+(%a) %d.%b [%V] %H:%M"
-date "+%d.%b $icon %H:%M"
+## 14.Jan 🕛 14:20
+# date "+%d.%b $icon %H:%M"
+## 14.Jan.2025 🕛 14:20
+date "+%d.%b.%Y $icon %H:%M"
