@@ -49,7 +49,7 @@ screencast() {
         -c:a aac -b:a 256k \
         "$out" &
     echo $! > /tmp/recordingpid
-    notify "Screencast gestartet"
+    # notify "Screencast gestartet"
     updateicon "  "
 }
 

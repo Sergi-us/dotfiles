@@ -22,6 +22,7 @@ function container_status() {
 # Farben einschalten und Eingabeaufforderung ändern
 autoload -U colors && colors
 autoload -Uz vcs_info
+autoload -Uz tetriscurses
 
 # Funktion zum Hinzufügen eines Symbols für ungetrackte Dateien
 vi-git-untracked() {
