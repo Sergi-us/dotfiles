@@ -1,5 +1,5 @@
 # vim:ft=conf
-## 2025-01-16 SARBS
+## 2025-01-28 SARBS
 # Farbcodes einführen für die Komplexität der Configurationen
 
 # These examples require Nerd Fonts or a compatible font to be used.
@@ -345,6 +345,7 @@ Vagrantfile                 00;38;2;21;99;255
 *.opus  󰸪
 *.spx   
 *.xspf  
+*.wma          00;38;2;1;152;51    # Grün
 
 # === Andere Formate ===
 *.pdf   

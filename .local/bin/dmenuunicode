@@ -1,10 +1,18 @@
 #!/bin/sh
-## 2025-01-09 SARBS
-
+## 2025-02-10 SARBS
+# TODO Die Emoji-Größe lässt sich nicht beinflussen
 # Das berühmte Skript "Ein Menü von Emojis zum Kopieren anzeigen".
 
 # Benutzerwahl über dmenu aus einer Emoji-Datei treffen.
-chosen=$(cut -d ';' -f1 ~/.local/share/sarbs/chars/* | dmenu -i -l 25 | sed 's/^\([^ ]*\).*/\1/')
+chosen=$(cut -d ';' -f1 ~/.local/share/sarbs/chars/* | \
+         dmenu -b -l 20 -fn "JetBrainsMono NF ExtraLight-18","OpenMoji-24" -p "Emoji:" | \
+         sed 's/^\([^ ]*\).*/\1/')
+
+
+# chosen=$(cut -d ';' -f1 ~/.local/share/sarbs/chars/* | dmenu -b -l 20 -fn "JetBrainsMono NF ExtraLight-18" -p "Emoji:" | sed 's/^\([^ ]*\).*/\1/')
+
+# chosen=$(cut -d ';' -f1 ~/.local/share/sarbs/chars/* | dmenu -b -l 20 -fn Monospace-20 -p "Emoji:"
+# chosen=$(cut -d ';' -f1 ~/.local/share/sarbs/chars/* | dmenu -i -l 25 | sed 's/^\([^ ]*\).*/\1/')
 
 # Beenden, wenn keine Auswahl getroffen wurde.
 [ -z "$chosen" ] && exit
