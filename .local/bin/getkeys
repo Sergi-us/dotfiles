@@ -1,7 +1,55 @@
-#!/bin/sh
-## 2025-01-09 SARBS
-# ist dafür verantwortlich die eigenen Hilfdokumente anzuzeigen
+#!/bin/bash
+## 2025-02-26 SARBS
+# Dieses Skript zeigt per Argument eine Datei an oder
+# listet interaktiv alle Dateien im Verzeichnis auf.
+# Wird die Auswahl abgebrochen (STRG+C), so wechselt es in das Verzeichnis.
 
-cat "${XDG_DATA_HOME:-$HOME/.local/share}"/sarbs/getkeys/"$1" 2>/dev/null && exit
-echo "Führe den Befehl mit einem der folgenden Argumente aus, um Informationen über dieses Programm zu erhalten:"
-ls "${XDG_DATA_HOME:-$HOME/.local/share}"/sarbs/getkeys
+KEYS_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/sarbs/getkeys"
+
+# Funktion, die beim Abbruch (STRG+C) ausgelöst wird
+abort_handler() {
+    echo -e "\nAbgebrochen. Wechsle in das Verzeichnis: $KEYS_DIR"
+    cd "$KEYS_DIR" && exec $SHELL
+    exit 0
+}
+
+trap abort_handler SIGINT
+
+# Mit Argument: Datei anzeigen
+if [ -n "$1" ]; then
+    if [ -f "$KEYS_DIR/$1" ]; then
+        cat "$KEYS_DIR/$1"
+        exit 0
+    else
+        echo "Datei '$1' nicht gefunden."
+        exit 1
+    fi
+fi
+
+# Interaktive Auswahl: Nur Dateinamen anzeigen
+echo "Verfügbare Dateien im Verzeichnis '$KEYS_DIR':"
+shopt -s nullglob
+files=( "$KEYS_DIR"/* )
+if [ ${#files[@]} -eq 0 ]; then
+    echo "Keine Dateien im Verzeichnis gefunden."
+    exit 1
+fi
+
+# Array mit reinen Dateinamen erstellen
+file_names=()
+for file in "${files[@]}"; do
+    file_names+=( "$(basename "$file")" )
+done
+
+PS3="Keybindings von ?? anzeigen (mit STRG+C ins Verzeichniss wechseln): "
+select fname in "${file_names[@]}"; do
+    if [ -n "$fname" ]; then
+        echo "Zeige Inhalt von: $fname"
+        cat "$KEYS_DIR/$fname"
+        break
+    else
+        echo "gibt's nicht, nochmal..."
+    fi
+done
+
+exit 0

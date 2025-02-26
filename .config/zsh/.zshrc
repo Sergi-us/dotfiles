@@ -65,6 +65,7 @@ setopt interactive_comments
 HISTSIZE=10000000
 SAVEHIST=10000000
 HISTFILE="${XDG_CONFIG_HOME:-$HOME/}/zsh/history"
+setopt HIST_IGNORE_SPACE
 setopt inc_append_history
 
 # Alias und Verknüpfungen laden, falls vorhanden
@@ -195,5 +196,5 @@ function zsh_add_plugin() {
 
 # Laden von Plugins aus verschiedenen Repositories
 zsh_add_plugin "zsh-users/zsh-syntax-highlighting"
-zsh_add_plugin "zsh-users/zsh-autosuggestions"
+# zsh_add_plugin "zsh-users/zsh-autosuggestions"
 zsh_add_plugin "zdharma-continuum/zinit"

@@ -1,5 +1,6 @@
 #!/bin/sh
-## 2025-01-09 SARBS
+## 2025-02-25 SARBS
+# TODO Vorschau für alben ergänzen... So wie für bilder und videos
 
 # File preview handler for lf.
 
