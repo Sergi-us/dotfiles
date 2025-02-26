@@ -1,22 +1,46 @@
 [Default Applications]
+## 2025-02-26 SARBS
+# MIME-Typen und URL-Schemata werden hier jeweils einer .desktop-Datei zugeordnet.
+# cd /usr/share/applications/
+# cd ~/.local/share/applications/
+# file --mime-type <datei>
 
-# xdg-open will use these settings to determine how to open filetypes.
-# These .desktop entries can also be seen and changed in ~/.local/share/applications/
+# PDFs und PostScript werden mit der in pdf.desktop definierten Anwendung geöffnet.
+application/pdf=pdf.desktop
+application/postscript=pdf.desktop
 
-text/x-shellscript=text.desktop;
-x-scheme-handler/magnet=torrent.desktop;
-application/x-bittorrent=torrent.desktop;
-x-scheme-handler/mailto=mail.desktop;
-text/plain=text.desktop;
-application/postscript=pdf.desktop;
-application/pdf=pdf.desktop;
-image/png=img.desktop;
-image/jpeg=img.desktop;
-image/gif=img.desktop;
+# RSS-Feeds werden mit der in rss.desktop definierten Anwendung geöffnet.
 application/rss+xml=rss.desktop
-video/x-matroska=video.desktop
-video/mp4=video.desktop
-x-scheme-handler/lbry=lbry.desktop
+
+# Bilder zum betrachten
+image/gif=img.desktop
+image/jpeg=img.desktop
+image/png=img.desktop
+
+# Verzeichnisse (Ordner) werden mit file.desktop geöffnet – oft ein Dateimanager.
 inode/directory=file.desktop
-x-scheme-handler/http=surf.desktop
-x-scheme-handler/https=surf.desktop
+
+# NeoVim
+text/plain=text.desktop
+text/x-shellscript=text.desktop
+application/x-shellscript=text.desktop
+
+# Videos werden mit video.desktop geöffnet.
+video/mp4=mpv.desktop
+video/x-matroska=mpv.desktop
+
+# HTTP/HTTPS-Links
+x-scheme-handler/http=browser.desktop
+x-scheme-handler/https=browser.desktop
+
+# Spezielle Links (lbry://) werden mit lbry.desktop geöffnet, was auf die LBRY-Plattform hindeutet.
+x-scheme-handler/lbry=lbry.desktop
+
+# E-Mail-Links (mailto:) werden mit der in mail.desktop definierten Anwendung geöffnet.
+x-scheme-handler/mailto=mail.desktop
+
+# Magnet-Links (häufig für Torrents genutzt) werden mit torrent.desktop geöffnet.
+x-scheme-handler/magnet=torrent.desktop
+
+# BitTorrent-Dateien werden mit torrent.desktop geöffnet, also vermutlich mit einem Torrent-Client.
+application/x-bittorrent=torrent.desktop

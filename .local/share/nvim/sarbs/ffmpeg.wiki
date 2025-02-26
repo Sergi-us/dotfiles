@@ -24,3 +24,8 @@ Film umwandeln h265 video (für Hardware Encoder Intel Vaapi)
 {{{class="brush: bash"
 ffmpeg -vaapi_device /dev/dri/renderD128 -i input_file.mp4 -vf 'format=nv12,hwupload' -c:v hevc_vaapi -qp 28 -c:a copy -c:s mov_text output_file.mp4
 }}}
+
+Davinci MOV ausgabe komprimieren...
+{{{class="brush: bash"
+ffmpeg -vaapi_device /dev/dri/renderD128 -i input.mov -vf 'format=nv12,hwupload' -c:v hevc_vaapi -qp 24 -c:a aac -b:a 192k output.mp4
+}}}

@@ -1,0 +1,12 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Librewolf Browser
+GenericName=Webbrowser
+Comment=Datenschutzorientierter Webbrowser basierend auf Firefox
+Exec=librewolf %u
+Terminal=false
+Icon=librewolf
+Categories=Network;WebBrowser;
+MimeType=text/html;text/xml;application/xhtml+xml;application/xml;x-scheme-handler/http;x-scheme-handler/https;
+StartupNotify=true

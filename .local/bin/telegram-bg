@@ -9,7 +9,8 @@
 BG_PATH=~/.local/share/bg
 THEME_PATH=~/.cache/walogram/wal.tdesktop-theme
 
-walogram -B -i "$BG_PATH" >/dev/null 2>&1
+walogram -i "$BG_PATH" >/dev/null 2>&1
+# walogram -B -i "$BG_PATH" >/dev/null 2>&1
 
 # Startet Telegram
 telegram-desktop &

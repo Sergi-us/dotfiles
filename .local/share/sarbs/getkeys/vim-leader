@@ -1,0 +1,32 @@
+######################################################################################################################
+## 2025-02-02 SARBS
+ m    m mmmmm  m    m        m      mmmmmm   mm   mmmm   mmmmmm mmmmm
+ "m  m"   #    ##  ##        #      #        ##   #   "m #      #   "#
+  #  #    #    # ## #        #      #mmmmm  #  #  #    # #mmmmm #mmmm"
+  "mm"    #    # "" #  """   #      #       #mm#  #    # #      #   "m
+   ##   mm#mm  #    #        #mmmmm #mmmmm #    # #mmm"  #mmmmm #    "
+
+=== Allgemein ===                       === Zeile ===                           === Dokument ===
+Leader = Leehrtaste = 
+ s     Spellcheck
+ o     Spellcheck für skripte
+ n     Nerdtree
+ dt    Datum als Kommentar
+ tn    neuer Tab (tab new)
+ g     GoJo
+ v     VimWiki
+ b
+ r
+ c
+ p
+ h     hide bar
+
+
+
+
+
+
+
+
+
+######################################################################################################################

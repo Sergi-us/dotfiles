@@ -320,7 +320,8 @@ Vagrantfile                 00;38;2;21;99;255
 *.flv   
 *.gl    
 *.dl    
-*.xcf      # Gimp
+*.xcf                          # Gimp
+*.ora      00;38;2;1;152;51  # grün MyPaint
 *.xwd   
 *.yuv   
 *.cgm   

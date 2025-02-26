@@ -1,6 +1,8 @@
 #!/bin/bash
 ## 2025-01-09 SARBS
-# Dieses Skript mountet Android-Telefone und USB-Laufwerke (verschlüsselt oder nicht). Dieses Skript ersetzt das ältere `dmenumount`, das zusätzliche Schritte erforderte und keine verschlüsselten Laufwerke handhaben konnte.
+# Dieses Skript mountet Android-Telefone und USB-Laufwerke (verschlüsselt oder
+# nicht). Dieses Skript ersetzt das ältere `dmenumount`, das zusätzliche
+# Schritte erforderte und keine verschlüsselten Laufwerke handhaben konnte.
 # TODO: Versuche, Laufwerke in crypttab zu entschlüsseln
 
 IFS='
