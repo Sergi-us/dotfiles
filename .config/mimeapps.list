@@ -16,6 +16,7 @@ application/rss+xml=rss.desktop
 image/gif=img.desktop
 image/jpeg=img.desktop
 image/png=img.desktop
+image/webp=img.desktop
 
 # Verzeichnisse (Ordner) werden mit file.desktop geöffnet – oft ein Dateimanager.
 inode/directory=file.desktop
@@ -23,6 +24,7 @@ inode/directory=file.desktop
 # NeoVim
 text/plain=text.desktop
 text/x-shellscript=text.desktop
+text/x-c=text.desktop
 application/x-shellscript=text.desktop
 
 # Videos werden mit video.desktop geöffnet.

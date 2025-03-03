@@ -3,7 +3,7 @@
 {{{
 find /pfad/zu/deinem/verzeichnis -type d -exec chmod 750 {} \;
 find /pfad/zu/deinem/verzeichnis -type f -exec chmod -x {} \;
-find /pfad/zu/deinem/verzeichnis -type f -exec chmod 640 {} \;
+find . -type f -exec chmod 640 {} \;
 }}}
 
 find -type d: Sucht nur nach Verzeichnissen.
@@ -21,3 +21,22 @@ chmod: Wendet die angegebenen Rechte an.
 | Lesen + Ausführen     | r-x  | 5     |
 | Lesen + Schreiben     | rw-  | 6     |
 | Alle Rechte           | rwx  | 7     |
+
+ = find und chown =
+
+{{{
+find /pfad/zum/verzeichnis -exec chown sergi:wheel {} \;
+find /pfad/zum/verzeichnis -exec chown sergi:wheel {} +
+}}}
+
+Unterschied von + und \; Das + bewirkt, dass find mehrere Dateinamen gesammelt
+an chown oder chmod übergibt, sodass der Befehl nur einmal (oder in weniger
+Gruppen) ausgeführt wird. Mit \; wird chown für jede Datei einzeln aufgerufen,
+
+= find und Dateioperationen =
+
+{{{
+find . -mindepth 2 -type f -name '*.mkv' -exec mv {} . \;
+find . -mindepth 2 -type f -name '*.nfo' -exec rm {} \;
+find . -mindepth 1 -type d -empty -delete
+}}}
