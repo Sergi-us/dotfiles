@@ -1,6 +1,7 @@
 [[https://sarbs.xyz|←SARBS]]
 == Handbuch ==
 [[Einstellungen]] Linux, Laufwerke, Bluetooth
+[[Tasten]]
 [[Wartung]]
 [[Benutzeroberflächen und deren anpassungen]]
 [[Programme in SARBS]]

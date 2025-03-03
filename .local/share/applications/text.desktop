@@ -3,4 +3,4 @@ Type=Application
 Name=Text editor
 Exec=/usr/local/bin/st -e nvim %u
 Terminal=true
-MimeType=text/plain;text/x-shellscript;application/x-shellscript;
+MimeType=text/plain;text/x-shellscript;application/x-shellscript;text/x-c;
