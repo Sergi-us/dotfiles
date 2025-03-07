@@ -1,18 +1,20 @@
 #!/bin/sh
-## 2025-01-09 SARBS
+## 2025-03-07 SARBS
 
 # Zeigt die Anzahl ungelesener Nachrichten an und ein Lade-Symbol, falls ein Update durchgeführt wird.
 # Beim Klicken wird `newsboat` geöffnet.
 
 case $BLOCK_BUTTON in
-        1) setsid "$TERMINAL" -e newsboat ;; # Linksklick öffnet newsboat
-        2) setsid -f newsup >/dev/null && exit ;; # Mittelklick synchronisiert RSS-Feeds
-        3) notify-send " News-Modul" "\- Zeigt ungelesene Nachrichten an
+    1) setsid -f newsup >/dev/null && exit ;;
+    2) setsid "$TERMINAL" -e newsboat ;;
+    3) notify-send " News-Modul" "\- Zeigt ungelesene Nachrichten an
 - Zeigt 🔃, wenn mit \`newsup\` aktualisiert wird
-- Linksklick öffnet newsboat
-- Mittelklick synchronisiert RSS-Feeds
+- L-󰍽 synchronisiert RSS-Feeds
+- M-󰍽 öffnet newsboat
 <b>Hinweis:</b> Es darf jeweils nur eine Instanz von newsboat (einschließlich Updates) laufen." ;;
-        6) setsid -f "$TERMINAL" -e "$EDITOR" "$0" ;; # Öffne das Skript im Editor
+    4) ;;
+    5) ;;
+    6) setsid -f "$TERMINAL" -e "$EDITOR" "$0" ;; # Öffne das Skript im Editor
 esac
 
 cat /tmp/newsupdate 2>/dev/null || echo "$(newsboat -x print-unread | awk '{ if($1>0) print $1}')$(cat "${XDG_CONFIG_HOME:-$HOME/.config}"/newsboat/.update 2>/dev/null)"

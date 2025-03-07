@@ -1,9 +1,6 @@
 #!/bin/sh
 ## 2025-01-09 SARBS
-
-# Originally by Andr3as07 <https://github.com/Andr3as07>
-# Some changes by Luke
-# Rebuild by Tenyun
+# TODO Funktioniert nicht...
 
 # This block displays the number running background tasks.
 # Requires tsp.

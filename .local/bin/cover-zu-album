@@ -2,6 +2,7 @@
 ## 2025-01-08 SARBS
 # nimmt ein Bild welches im Verzeichniss liegt und fürgt es an alle Musikdateien (als Metadata) ein. Das Skript war eins meiner ersten und ist voll von diesen nerfigen if-Schleifen...
 # TODO if-schleifen überarbeiten
+# TODO .webp konnvertierung zu lf verschieben und hier entfernen
 
 # Wechsel in das aktuelle Arbeitsverzeichnis
 cd "$(pwd)"

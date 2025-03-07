@@ -1,14 +1,9 @@
 #!/bin/sh
-## 2025-01-09 SARBS
+## 2025-03-06 SARBS
 
-# Zeigt den Batteriestand mit Symbolen entsprechend dem Ladestand und dem Anschlussstatus an
-# TODO Größe verringern und informationen mit notify-send anzeigen
-# TODO nur eine Batterie anzeigen (logik überlegen)
-# TODO Symbol für Helligkeit hinzufügen
-# TODO Oder Helligkeitsanpassung von der BVatterie trennen
+# Zeigt den aggregierten Batteriestand mit Symbolen entsprechend dem Ladestand an
 
 adjust_brightness() {
-    tool=""
     if command -v brightnessctl &> /dev/null; then
         tool="brightnessctl"
     elif command -v xbacklight &> /dev/null; then
@@ -34,97 +29,84 @@ adjust_brightness() {
             fi
             ;;
         *)
-            notify-send "  Ungültige Operation"
+            notify-send " Ungültige Operation"
             exit 1
             ;;
     esac
 }
 
 case $BLOCK_BUTTON in
-    3) notify-send "Batteriemodul" "󰂏 Status:
-󰚥 Am Ladegerät
-󰂃 Akku schwach (<10 %)
-- Scrollen, um Helligkeit zu ändern." ;;
-    4)
-        # Erhöhung der Helligkeit um 10 %
-        adjust_brightness inc
-        ;;
-    5)
-        # Verringerung der Helligkeit um 10 %
-        adjust_brightness dec
-        ;;
+    1) ;;
+    2) ;;
+    3) notify-send "Batteriemodul" "
+- 󱕒 Scrollen, um Helligkeit zu ändern." ;;
+    4) adjust_brightness inc ;;
+    5) adjust_brightness dec ;;
     6) setsid -f "$TERMINAL" -e "$EDITOR" "$0" ;;
 esac
 
-# Funktion zur Bestimmung des Batterie-Symbols basierend auf dem Ladestand
 get_battery_symbol() {
     capacity=$1
-
-    if [ "$capacity" -le 10 ]; then
-        echo "󰂃"  # Batterie 10 %
-    elif [ "$capacity" -le 20 ]; then
-        echo "󰁺"  # Batterie 20 %
-    elif [ "$capacity" -le 30 ]; then
-        echo "󰁻"  # Batterie 30 %
-    elif [ "$capacity" -le 40 ]; then
-        echo "󰁼"  # Batterie 40 %
-    elif [ "$capacity" -le 50 ]; then
-        echo "󰁽"  # Batterie 50 %
-    elif [ "$capacity" -le 60 ]; then
-        echo "󰁾"  # Batterie 60 %
-    elif [ "$capacity" -le 70 ]; then
-        echo "󰁿"  # Batterie 70 %
-    elif [ "$capacity" -le 80 ]; then
-        echo "󰂀"  # Batterie 80 %
-    elif [ "$capacity" -le 90 ]; then
-        echo "󰂁"  # Batterie 90 %
-    else
-        echo "󰂂"  # Batterie voll
-    fi
+    [ "$capacity" -le 10 ] && { echo "󰂃"; return; }
+    [ "$capacity" -le 20 ] && { echo "󰁺"; return; }
+    [ "$capacity" -le 30 ] && { echo "󰁻"; return; }
+    [ "$capacity" -le 40 ] && { echo "󰁼"; return; }
+    [ "$capacity" -le 50 ] && { echo "󰁽"; return; }
+    [ "$capacity" -le 60 ] && { echo "󰁾"; return; }
+    [ "$capacity" -le 70 ] && { echo "󰁿"; return; }
+    [ "$capacity" -le 80 ] && { echo "󰂀"; return; }
+    [ "$capacity" -le 90 ] && { echo "󰂁"; return; }
+    echo "󰁹"
 }
 
-# Funktion zur Bestimmung des Anschlussstatus (Ladegerät angeschlossen oder nicht)
+get_battery_symbol_charger() {
+    capacity=$1
+    [ "$capacity" -le 10 ] && { echo "󰢜 "; return; }
+    [ "$capacity" -le 20 ] && { echo "󰂆 "; return; }
+    [ "$capacity" -le 30 ] && { echo "󰂇 "; return; }
+    [ "$capacity" -le 40 ] && { echo "󰂈 "; return; }
+    [ "$capacity" -le 50 ] && { echo "󰢝 "; return; }
+    [ "$capacity" -le 60 ] && { echo "󰂉 "; return; }
+    [ "$capacity" -le 70 ] && { echo "󰢞 "; return; }
+    [ "$capacity" -le 80 ] && { echo "󰂊 "; return; }
+    [ "$capacity" -le 90 ] && { echo "󰂋 "; return; }
+    echo "󰂅 "
+}
+
 get_connection_status() {
-    # Prüfe, ob das System an AC-Strom angeschlossen ist
     for ac in /sys/class/power_supply/AC* /sys/class/power_supply/Mains; do
         [ -e "$ac/online" ] || continue
-        if [ "$(cat "$ac/online")" -eq 1 ]; then
-            echo "AC"  # Ladegerät angeschlossen
-            return
-        fi
+        [ "$(cat "$ac/online")" -eq 1 ] && { echo "AC"; return; }
     done
-    echo "BAT"  # Batteriebetrieb
+    echo "BAT"
 }
 
-# Loop durch alle angeschlossenen Batterien und formatiere die Infos
-output=""
+# Aggregiere alle Batterien
+total_capacity=0
+battery_count=0
 for battery in /sys/class/power_supply/BAT?*; do
     [ -d "$battery" ] || continue
     capacity=$(cat "$battery/capacity" 2>/dev/null)
-
-    symbol=$(get_battery_symbol "$capacity")
-
-    # Warnung bei niedrigem Akkustand
-    if [ "$capacity" -le 20 ]; then
-        warn="❗"
-    else
-        warn=""
-    fi
-
-    # Anschlussstatus ermitteln
-    connection_status=$(get_connection_status)
-    if [ "$connection_status" = "AC" ]; then
-        # Verwende ein Symbol für angeschlossenes Ladegerät
-        # Vorschlag: "󰚥" (Steckersymbol) oder "" (Blitzsymbol)
-        connection_symbol="󰚥"
-    else
-        connection_symbol=""
-    fi
-
-    # Ausgabe zusammenstellen
-    # Um den Prozentwert auszublenden, kannst du "$capacity%" entfernen oder auskommentieren
-    output="$output $symbol $connection_symbol$warn $capacity%"
+    total_capacity=$((total_capacity + capacity))
+    battery_count=$((battery_count + 1))
 done
 
-# Ausgabe drucken
+[ "$battery_count" -gt 0 ] && overall_capacity=$((total_capacity / battery_count)) || overall_capacity=0
+
+# Wähle das entsprechende Symbol basierend auf dem AC-/BAT-Status
+if [ "$(get_connection_status)" = "AC" ]; then
+    symbol=$(get_battery_symbol_charger "$overall_capacity")
+else
+    symbol=$(get_battery_symbol "$overall_capacity")
+fi
+
+# Warnsymbol und kritische Benachrichtigung, wenn Akkuladung <= 10%
+if [ "$overall_capacity" -le 5 ]; then
+    warn=" "
+    notify-send -u critical "Kritischer Batterieladung" "Akkuladung bei ${overall_capacity}%!"
+else
+    warn=""
+fi
+
+output="$symbol$warn$overall_capacity%"
 echo "$output"
