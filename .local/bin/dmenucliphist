@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-## 2025-01-08 SARBS
+## 2025-03-05 SARBS
 
 histfile="$HOME/.local/share/sarbs/cliphist"
 placeholder="<NEWLINE>"
@@ -18,7 +18,7 @@ write() {
   notification=$(echo \"$multiline\") ;}
 
 sel() {
-  selection=$(tac "$histfile" | dmenu -b -l 5 -i -p "Zwischenablage:")
+  selection=$(tac "$histfile" | dmenu  -b -l 15 -i -fn "JetBrainsMono NF ExtraLight-18" -p "Zwischenablage:")
   [ -n "$selection" ] && echo "$selection" | sed "s/$placeholder/\n/g" | xclip -i -selection clipboard && notification="Copied to clipboard!" ;}
 
 case "$1" in

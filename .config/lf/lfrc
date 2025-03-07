@@ -21,15 +21,15 @@
 ## 2025-01-08   funktion für Bildkomprimierung hinzugefügt (bild-80-komprimieren) benötigt 'imagemagick' Trigger 'Pk'
 
 # ==== Grundlegende Einstellungen ====
-	set shellopts '-eu'		# Shell-Optionen: e=exit on error, u=error on undefined variables
-	set ifs "\n"			# Internal Field Separator auf Newline setzen
-	set scrolloff 10		# 10 Zeilen Abstand beim Scrollen zum Rand beibehalten
-	set icons			# Aktiviert die Anzeige von Icons
-	set period 1			# Aktualisierungsintervall in Sekunden
+	set shellopts '-eu'     # Shell-Optionen: e=exit on error, u=error on undefined variables
+	set ifs "\n"            # Internal Field Separator auf Newline setzen
+	set scrolloff 10        # 10 Zeilen Abstand beim Scrollen zum Rand beibehalten
+	set icons               # Aktiviert die Anzeige von Icons
+	set period 1            # Aktualisierungsintervall in Sekunden
 	set hiddenfiles ".*:*.aux:*.log:*.bbl:*.bcf:*.blg:*.run.xml"
 	set cleaner '~/.config/lf/cleaner'
 	set previewer '~/.config/lf/scope'
-	set autoquit true		# Beendet lf automatisch beim Öffnen einer Datei
+	set autoquit true       # Beendet lf automatisch beim Öffnen einer Datei
 
 # === Hauptbefehle/Funktionen ===
 cmd convert_audio ${{
@@ -48,32 +48,80 @@ cmd convert_audio ${{
 }}
 
 # Öffnungsbefehl für verschiedene Dateitypen:
+# setsid -f     # sorgt dafür dass es in einem neuen Terminal geöffnet wird!!
 cmd open ${{
-    case $(file --mime-type "$(readlink -f $f)" -b) in
-    application/vnd.openxmlformats-officedocument.spreadsheetml.sheet) localc $fx ;;
-    image/vnd.djvu|application/pdf|application/postscript) setsid -f zathura $fx >/dev/null 2>&1 ;;
-        text/*|application/json|inode/x-empty|application/x-subrip) $EDITOR $fx;;
-    image/x-xcf) setsid -f gimp $f >/dev/null 2>&1 ;;
-    image/svg+xml) display -- $f ;;
-    image/*) rotdir $f | grep -i "\.\(png\|jpg\|jpeg\|gif\|webp\|avif\|tif\|ico\)\(_large\)*$" |
-        setsid -f nsxiv -aio 2>/dev/null | while read -r file; do
-            [ -z "$file" ] && continue
-            lf -remote "send select \"$file\""
-            lf -remote "send toggle"
-        done &
-        ;;
-    audio/*|video/x-ms-asf) mpv --audio-display=no $f ;;
-    video/*) setsid -f mpv $f -quiet >/dev/null 2>&1 ;;
-    application/pdf|application/vnd.djvu|application/epub*) setsid -f zathura $fx >/dev/null 2>&1 ;;
-    application/pgp-encrypted) $EDITOR $fx ;;
-    application/vnd.openxmlformats-officedocument.wordprocessingml.document|application/vnd.oasis.opendocument.text|application/vnd.openxmlformats-officedocument.spreadsheetml.sheet|application/vnd.oasis.opendocument.spreadsheet|application/vnd.oasis.opendocument.spreadsheet-template|application/vnd.openxmlformats-officedocument.presentationml.presentation|application/vnd.oasis.opendocument.presentation-template|application/vnd.oasis.opendocument.presentation|application/vnd.ms-powerpoint|application/vnd.oasis.opendocument.graphics|application/vnd.oasis.opendocument.graphics-template|application/vnd.oasis.opendocument.formula|application/vnd.oasis.opendocument.database) setsid -f libreoffice $fx >/dev/null 2>&1 ;;
-        application/octet-stream) case ${f##*.} in
-            doc|docx|xls|xlsx|odt|ppt|pptx) setsid -f libreoffice $fx >/dev/null 2>&1 ;;
-            ghw) setsid -f gtkwave $f >/dev/null 2>&1 ;;
-            ts) setsid -f mpv $f -quiet >/dev/null 2>&1 ;;
-            *) setsid -f zathura $fx >/dev/null 2>&1 ;;
-        esac ;;
-    *) for f in $fx; do setsid -f $OPENER $f >/dev/null 2>&1; done;;
+    # Ermittlung des MIME-Typs
+    mime=$(file --mime-type "$(readlink -f $f)" -b)
+    # Verschiedene Case öffnungsszenarien
+    case $mime in
+        # Office Open XML Tabellen
+        application/vnd.openxmlformats-officedocument.spreadsheetml.sheet)
+            localc $fx ;;
+        # Dokumente: PDF, DjVu, PostScript
+        image/vnd.djvu|application/pdf|application/postscript)
+            setsid -f zathura $fx >/dev/null 2>&1 ;;
+        # Textdateien, JSON, leere Dateien, Untertitel
+        text/*|application/json|inode/x-empty|application/x-subrip)
+            $EDITOR $fx ;;
+        # GIMP-Dateien
+        image/x-xcf)
+            setsid -f gimp $f >/dev/null 2>&1 ;;
+        # SVG-Bilder
+        image/svg+xml)
+            display -- $f ;;
+        # Andere Bilder: Filter und Auswahl über lf
+        image/*)
+            rotdir $f | grep -i "\.\(png\|jpg\|jpeg\|gif\|webp\|avif\|tif\|ico\)\(_large\)*$" |
+            setsid -f nsxiv -aio 2>/dev/null | while read -r file; do
+                [ -z "$file" ] && continue
+                lf -remote "send select \"$file\""
+                lf -remote "send toggle"
+            done &
+            ;;
+        # Audio und ASF-Videos
+        audio/*|video/x-ms-asf)
+            mpv --audio-display=no $f ;;
+        # Andere Videos
+        video/*)
+            mpv $f -quiet >/dev/null 2>&1 ;;
+        # PDF, DjVu, EPUB nochmal
+        application/pdf|application/vnd.djvu|application/epub*)
+            setsid -f zathura $fx >/dev/null 2>&1 ;;
+        # PGP-verschlüsselte Dateien
+        application/pgp-encrypted)
+            $EDITOR $fx ;;
+        # Office-Dokumente (mehrere Formate)
+            application/vnd.openxmlformats-officedocument.wordprocessingml.document|\
+            application/vnd.oasis.opendocument.text|\
+            application/vnd.openxmlformats-officedocument.spreadsheetml.sheet|\
+            application/vnd.oasis.opendocument.spreadsheet|\
+            application/vnd.oasis.opendocument.spreadsheet-template|\
+            application/vnd.openxmlformats-officedocument.presentationml.presentation|\
+            application/vnd.oasis.opendocument.presentation-template|\
+            application/vnd.oasis.opendocument.presentation|\
+            application/vnd.ms-powerpoint|\
+            application/vnd.oasis.opendocument.graphics|\
+            application/vnd.oasis.opendocument.graphics-template|\
+            application/vnd.oasis.opendocument.formula|\
+            application/vnd.oasis.opendocument.database)
+                setsid -f libreoffice $fx >/dev/null 2>&1 ;;
+        # Generische Binärdateien anhand der Endung
+        application/octet-stream)
+            case ${f##*.} in
+                doc|docx|xls|xlsx|odt|ppt|pptx)
+                    setsid -f libreoffice $fx >/dev/null 2>&1 ;;
+                ghw)
+                    setsid -f gtkwave $f >/dev/null 2>&1 ;;
+                ts)
+                    setsid -f mpv $f -quiet >/dev/null 2>&1 ;;
+                *)
+                    setsid -f zathura $fx >/dev/null 2>&1 ;;
+            esac ;;
+        # Standardfall: Öffnen mit dem Standardprogramm
+        *)
+            for f in $fx; do
+                setsid -f $OPENER $f >/dev/null 2>&1
+            done ;;
     esac
 }}
 
@@ -193,6 +241,7 @@ cmd Handy-Musik ${{
 	done
 }}
 
+# Dateien oder Verzeichnisse auf's Android Handy übertragen (in Downloads)
 cmd Handy-Downloads ${{
 	clear; tput cup $(($(tput lines)/3)); tput bold
 	set -f
@@ -209,15 +258,12 @@ cmd Handy-Downloads ${{
 # === A Menu für Kopieraktionen mit ADB-Push auf ein Android Handy ===
 map Ad Handy-Downloads
 map Am Handy-Musik
-map As handy-pc
 
 # === P Menu für Bildbearbeitung ===
 map Pk bild-80-komprimieren
 
 # === R Menu für Bildbearbeitung ===
-map Rr
 map Rx convert_audio
-# 	map sx convert_audio_aac
 
 # === Navigieren ===
 map <c-f> $lf -remote "send $id select \"$(fzf --height=-10)\"" # <Strg+f> Dateisuche mit fzf
@@ -249,9 +295,9 @@ map o &mimeopen "$f"        # <o> Öffnet die Datei mit dem Standard-Programm.
 map O $mimeopen --ask "$f"  # <O> Fragt, mit welchem Programm die Datei geöffnet werden soll.
 map V push :!nvim<space>    # <V> Öffnet vim im aktuellen Verzeichnis
 map W $setsid -f $TERMINAL >/dev/null 2>&1	# W = Öffnet ein neues Terminal-Fenster im aktuellen Verzeichnis
-# <Strg+y> Ausführungsrechte für ausgewählte Dateien entziehen
+    # <Strg+y> Ausführungsrechte für ausgewählte Dateien entziehen
 map <c-y> $for f in $fx; do chmod -x "$f"; done && lf -remote "send $id reload" && lf -remote "send $id unselect"
-# <Strg+x> Ausführungsrechte für ausgewählte Dateien geben
+    # <Strg+x> Ausführungsrechte für ausgewählte Dateien geben
 map <c-x> $for f in $fx; do chmod +x "$f"; done && lf -remote "send $id reload" && lf -remote "send $id unselect"
 
 # === Umbenennen ===
@@ -264,7 +310,7 @@ map a :rename; cmd-right    # a = Startet die Umbenennung nach der Dateierweiter
 map U $printf "%s" "$fx" | xclip -selection clipboard	# U: Vollständiger Pfad in Zwischenablage
 map u $printf "%s" "$fx" | sed 's/.*\///' | xclip -selection clipboard	# u: Nur Dateiname in Zwischenablage
 # . (Punkt) 	Extrahiert eine YouTube-URL aus dem Dateinamen und kopiert sie in die Zwischenablage
-map . $printf "%s" "$fx" | sed -E 's/^.+\[/https:\/\/www.youtube.com\/watch?v=/' | sed -E 's/\]\..+//' | xclip -selection clipboard
+# map . $printf "%s" "$fx" | sed -E 's/^.+\[/https:\/\/www.youtube.com\/watch?v=/' | sed -E 's/\]\..+//' | xclip -selection clipboard
 # (Größer-als-Zeichen): Ähnlich wie der vorherige Befehl, aber für Piped (eine alternative YouTube-Frontend) URLs
 map <gt> $printf "%s" "$fx" | sed -E 's/^.+\[/https:\/\/piped.video\/watch?v=/' | sed -E 's/\]\..+//' | xclip -selection clipboard
 map <c-l> unselect          # <Strg+l> Hebt die Auswahl aller ausgewählten Dateien auf

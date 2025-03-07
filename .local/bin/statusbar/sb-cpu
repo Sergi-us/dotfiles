@@ -9,6 +9,8 @@ case $BLOCK_BUTTON in
 	3) notify-send "  CPU Modul " "\- zeigt CPU Temperatur.
 - Klick zeigt intensive Prozesse.
 - mittel-Klicl öffnet btop." ;;
+    4) ;;
+    5) ;;
 	6) setsid -f "$TERMINAL" -e "$EDITOR" "$0" ;;
 esac
 
