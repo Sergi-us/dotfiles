@@ -1,0 +1,315 @@
+#!/bin/bash
+## 2025-03-07 SARBS
+# youtube_stats - Holt YouTube-Kanalstatistiken und alle Videostatistiken via
+# Shell-Skript und curl und js
+# Cronjob erstellen:
+#
+# crontab -e
+# Stündlich
+# 0 * * * * $HOME/.local/bin/yt-stats > /dev/null 2>&1
+# 0:00, 6:00, 12:00 und 18:00 Uhr...
+# 0 */6 * * * $HOME/.local/bin/yt-stats > /dev/null 2>&1
+# täglich (jeden Tag um 3:00 Uhr nachts aus)
+# 0 3 * * * $HOME/.local/bin/yt-stats > /dev/null 2>&1
+#
+
+# === VARIABLEN / KONFIGURATION ===
+API_KEY="hier einfügen"
+CHANNEL_ID="hier einfügen"
+OUTPUT_DIR="$HOME/.local/share/yt-stats"
+OUTPUT_FILE="yt_stats.json"
+FULL_OUTPUT_PATH="$OUTPUT_DIR/$OUTPUT_FILE"
+MAX_VIDEOS_PER_REQUEST=50
+
+# Temporäres Verzeichnis für die Zwischenspeicherung von Daten
+TEMP_DIR=$(mktemp -d)
+echo "Temporäres Verzeichnis: $TEMP_DIR"
+trap 'rm -rf "$TEMP_DIR"' EXIT
+
+# Funktion zum Abrufen der Kanalstatistiken
+get_channel_stats() {
+    echo "Rufe Kanalstatistiken ab..."
+    local channel_url="https://www.googleapis.com/youtube/v3/channels?part=statistics,snippet&id=$CHANNEL_ID&key=$API_KEY"
+
+    # Abrufen der Kanalstatistiken
+    curl -s "$channel_url" > "$TEMP_DIR/channel_stats.json"
+
+    # Debug: Ausgabe der Antwort
+    echo "Kanal-API-Antwort:"
+    cat "$TEMP_DIR/channel_stats.json"
+
+    # Überprüfen, ob die Anfrage erfolgreich war
+    if jq -e '.error' "$TEMP_DIR/channel_stats.json" > /dev/null 2>&1; then
+        echo "Fehler bei der API-Anfrage:"
+        jq '.error.message' "$TEMP_DIR/channel_stats.json"
+        exit 1
+    fi
+
+    # Prüfen, ob "items" im JSON vorhanden ist
+    if ! jq -e '.items' "$TEMP_DIR/channel_stats.json" > /dev/null 2>&1; then
+        echo "Fehler: Keine 'items' in der Kanalantwort gefunden."
+        exit 1
+    fi
+
+    # Basisdaten extrahieren
+    jq '{
+        channel_title: .items[0].snippet.title,
+        subscriber_count: .items[0].statistics.subscriberCount,
+        view_count: .items[0].statistics.viewCount,
+        video_count: .items[0].statistics.videoCount,
+        comment_count: 0,  # Wird später mit den tatsächlichen Kommentaren aktualisiert
+        timestamp: (now | strftime("%Y-%m-%d %H:%M:%S"))
+    }' "$TEMP_DIR/channel_stats.json" > "$TEMP_DIR/processed_stats.json"
+
+    # Debug: Ausgabe der verarbeiteten Statistiken
+    echo "Verarbeitete Kanalstatistiken:"
+    cat "$TEMP_DIR/processed_stats.json"
+
+    echo "Kanalstatistiken erfolgreich abgerufen."
+}
+
+# Funktion zum Abrufen aller Video-IDs des Kanals
+get_all_video_ids() {
+    echo "Rufe alle Video-IDs ab..."
+    local next_page_token=""
+    local video_ids_file="$TEMP_DIR/video_ids.txt"
+    > "$video_ids_file"  # Datei leeren
+
+    # Zuerst versuchen wir die uploads-Playlist-ID zu bekommen
+    local channel_url="https://www.googleapis.com/youtube/v3/channels?part=contentDetails&id=$CHANNEL_ID&key=$API_KEY"
+    curl -s "$channel_url" > "$TEMP_DIR/channel_details.json"
+
+    # Debug: Ausgabe der Kanaldetails
+    echo "Kanal-Details:"
+    cat "$TEMP_DIR/channel_details.json"
+
+    # Uploads-Playlist-ID extrahieren
+    local uploads_playlist_id=$(jq -r '.items[0].contentDetails.relatedPlaylists.uploads' "$TEMP_DIR/channel_details.json")
+    echo "Uploads-Playlist-ID: $uploads_playlist_id"
+
+    if [ "$uploads_playlist_id" == "null" ] || [ -z "$uploads_playlist_id" ]; then
+        echo "Fehler: Uploads-Playlist-ID konnte nicht ermittelt werden."
+        exit 1
+    fi
+
+    # Jetzt alle Videos aus der Uploads-Playlist abrufen
+    while true; do
+        local playlist_url="https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&maxResults=50&playlistId=$uploads_playlist_id&key=$API_KEY"
+
+        # Wenn ein Page-Token existiert, füge es zur URL hinzu
+        if [ -n "$next_page_token" ]; then
+            playlist_url="$playlist_url&pageToken=$next_page_token"
+        fi
+
+        echo "Playlist-URL: $playlist_url"
+
+        # Abrufen der Playlist-Elemente
+        curl -s "$playlist_url" > "$TEMP_DIR/playlist_items.json"
+
+        # Debug: Ausgabe der ersten 500 Zeichen
+        echo "Playlist-Antwort (Auszug):"
+        head -c 500 "$TEMP_DIR/playlist_items.json"
+
+        # Überprüfen, ob die Anfrage erfolgreich war
+        if jq -e '.error' "$TEMP_DIR/playlist_items.json" > /dev/null 2>&1; then
+            echo "Fehler bei der API-Anfrage (Playlist):"
+            jq '.error.message' "$TEMP_DIR/playlist_items.json"
+            exit 1
+        fi
+
+        # Video-IDs extrahieren und der Datei hinzufügen
+        jq -r '.items[].snippet.resourceId.videoId' "$TEMP_DIR/playlist_items.json" >> "$video_ids_file"
+
+        # Nächstes Page-Token abrufen
+        next_page_token=$(jq -r '.nextPageToken // empty' "$TEMP_DIR/playlist_items.json")
+
+        # Wenn kein weiteres Page-Token existiert, beende die Schleife
+        if [ -z "$next_page_token" ]; then
+            break
+        fi
+
+        echo "Nächste Seite wird abgerufen..."
+        # Kurze Pause, um API-Limits zu respektieren
+        sleep 1
+    done
+
+    # Debug: Ausgabe der gefundenen Video-IDs
+    echo "Gefundene Video-IDs:"
+    cat "$video_ids_file"
+
+    echo "Alle Video-IDs wurden abgerufen."
+}
+
+# Funktion zum Abrufen der Statistiken für Batches von Videos
+get_video_stats() {
+    echo "Rufe Videostatistiken ab..."
+    local video_ids_file="$TEMP_DIR/video_ids.txt"
+    local video_stats_file="$TEMP_DIR/video_stats.json"
+    local total_comments=0
+
+    # Überprüfen, ob die Video-IDs-Datei existiert und nicht leer ist
+    if [ ! -s "$video_ids_file" ]; then
+        echo "Fehler: Keine Video-IDs gefunden."
+        exit 1
+    fi
+
+    # Array mit allen Video-IDs erstellen
+    mapfile -t video_ids < "$video_ids_file"
+
+    # Anzahl der Videos
+    local total_videos=${#video_ids[@]}
+    echo "Insgesamt $total_videos Videos gefunden."
+
+    # Initialisiere die Ausgabedatei für die Video-Statistiken als leeres Array
+    echo "[]" > "$video_stats_file"
+
+    # Verarbeite Videos in Batches von maximal MAX_VIDEOS_PER_REQUEST
+    for ((i=0; i<total_videos; i+=$MAX_VIDEOS_PER_REQUEST)); do
+        echo "Verarbeite Videos $((i+1)) bis $((i+MAX_VIDEOS_PER_REQUEST < total_videos ? i+MAX_VIDEOS_PER_REQUEST : total_videos)) von $total_videos..."
+
+        # Erstelle eine kommagetrennte Liste von Video-IDs für diesen Batch
+        local batch_end=$((i+MAX_VIDEOS_PER_REQUEST < total_videos ? i+MAX_VIDEOS_PER_REQUEST : total_videos))
+        local video_ids_batch=""
+
+        for ((j=i; j<batch_end; j++)); do
+            if [ -n "${video_ids[$j]}" ]; then
+                if [ -n "$video_ids_batch" ]; then
+                    video_ids_batch+=","
+                fi
+                video_ids_batch+="${video_ids[$j]}"
+            fi
+        done
+
+        # Debug: Ausgabe der Video-IDs für diesen Batch
+        echo "Video-IDs für diesen Batch: $video_ids_batch"
+
+        # Abrufen der Videostatistiken für diesen Batch
+        local videos_url="https://www.googleapis.com/youtube/v3/videos?part=statistics,snippet&id=$video_ids_batch&key=$API_KEY"
+
+        curl -s "$videos_url" > "$TEMP_DIR/batch_stats.json"
+
+        # Debug: Ausgabe der ersten 500 Zeichen der Antwort
+        echo "Video-Batch-Antwort (Auszug):"
+        head -c 500 "$TEMP_DIR/batch_stats.json"
+
+        # Überprüfen, ob die Anfrage erfolgreich war
+        if jq -e '.error' "$TEMP_DIR/batch_stats.json" > /dev/null 2>&1; then
+            echo "Fehler bei der API-Anfrage (Videos):"
+            jq '.error.message' "$TEMP_DIR/batch_stats.json"
+            continue
+        fi
+
+        # Überprüfen, ob die Antwort ein "items"-Array enthält
+        if ! jq -e '.items' "$TEMP_DIR/batch_stats.json" > /dev/null 2>&1; then
+            echo "Warnung: Keine 'items' in der Video-Antwort gefunden oder leeres Array."
+            continue
+        fi
+
+        # Zähle die Kommentare für diesen Batch
+        batch_comments=$(jq '[.items[].statistics.commentCount | tonumber] | add // 0' "$TEMP_DIR/batch_stats.json")
+        total_comments=$((total_comments + batch_comments))
+        echo "Kommentare in diesem Batch: $batch_comments, Gesamtkommentare bisher: $total_comments"
+
+        # Extrahiere die Items in ein neues Array
+        jq '.items' "$TEMP_DIR/batch_stats.json" > "$TEMP_DIR/batch_items.json"
+
+        # Debug: Ausgabe der extrahierten Items
+        echo "Extrahierte Items:"
+        head -c 500 "$TEMP_DIR/batch_items.json"
+
+        # Verarbeite die Videostatistiken und füge sie zur Gesamtliste hinzu
+        jq -s '.[0] + .[1]' "$video_stats_file" "$TEMP_DIR/batch_items.json" > "$TEMP_DIR/updated_stats.json"
+
+        # Debug: Ausgabe der aktualisierten Statistiken
+        echo "Aktualisierte Statistiken (Auszug):"
+        head -c 500 "$TEMP_DIR/updated_stats.json"
+
+        mv "$TEMP_DIR/updated_stats.json" "$video_stats_file"
+
+        # Kurze Pause, um API-Limits zu respektieren
+        sleep 1
+    done
+
+    # Aktualisiere die Gesamtzahl der Kommentare in den Kanalstatistiken
+    jq --argjson comments "$total_comments" '.comment_count = $comments' "$TEMP_DIR/processed_stats.json" > "$TEMP_DIR/updated_stats.json"
+    mv "$TEMP_DIR/updated_stats.json" "$TEMP_DIR/processed_stats.json"
+
+    echo "Videostatistiken erfolgreich abgerufen. Gesamtzahl der Kommentare: $total_comments"
+}
+
+# Funktion zum Zusammenfügen und Speichern aller Statistiken
+compile_and_save_stats() {
+    echo "Erstelle zusammengefasste Statistiken..."
+
+    # Debug: Ausgabe der Eingabedateien
+    echo "Processed Stats Inhalt:"
+    cat "$TEMP_DIR/processed_stats.json"
+
+    echo "Video Stats Inhalt (Auszug):"
+    head -c 500 "$TEMP_DIR/video_stats.json"
+
+    # Sicherstellen, dass video_stats.json ein gültiges Array ist
+    if [ ! -s "$TEMP_DIR/video_stats.json" ] || [ "$(cat "$TEMP_DIR/video_stats.json")" = "[]" ]; then
+        echo "Warnung: Keine Videostatistiken gefunden. Erstelle nur Kanalstatistiken."
+        # Erstelle Ausgabedatei nur mit Kanalstatistiken
+        jq '{
+            channel: .,
+            videos: []
+        }' "$TEMP_DIR/processed_stats.json" > "$TEMP_DIR/final_stats.json"
+    else
+        # Alle Videos verarbeiten - mit expliziter Konvertierung der Strings zu Zahlen
+        jq -s '
+        {
+            channel: .[0],
+            videos: .[1] |
+                map(. + {
+                    numeric_view_count: (if .statistics.viewCount then (.statistics.viewCount | tonumber) else 0 end)
+                }) |
+                sort_by(-.numeric_view_count) |
+                map({
+                    title: .snippet.title,
+                    video_id: .id,
+                    view_count: (if .statistics.viewCount then (.statistics.viewCount | tonumber) else 0 end),
+                    like_count: (if .statistics.likeCount then (.statistics.likeCount | tonumber) else 0 end),
+                    comment_count: (if .statistics.commentCount then (.statistics.commentCount | tonumber) else 0 end),
+                    published_at: .snippet.publishedAt
+                })
+                # Limitierung auf Top 10 Videos entfernt - jetzt werden alle Videos gespeichert
+        }
+        ' "$TEMP_DIR/processed_stats.json" "$TEMP_DIR/video_stats.json" > "$TEMP_DIR/final_stats.json"
+    fi
+
+    # Debug: Ausgabe der finalen Statistiken (nur die ersten 1000 Zeichen zur Übersichtlichkeit)
+    echo "Finale Statistiken (Auszug):"
+    head -c 1000 "$TEMP_DIR/final_stats.json"
+
+    # Erstelle Ausgabeverzeichnis, falls es nicht existiert
+    mkdir -p "$OUTPUT_DIR"
+
+    # Speichere die Statistiken in der Ausgabedatei
+    cp "$TEMP_DIR/final_stats.json" "$FULL_OUTPUT_PATH"
+
+    echo "Statistiken wurden erfolgreich in $FULL_OUTPUT_PATH gespeichert."
+}
+
+# Hauptfunktion
+main() {
+    echo "Starte YouTube-Statistikabfrage..."
+
+    # Kanalstatistiken abrufen
+    get_channel_stats
+
+    # Video-IDs abrufen
+    get_all_video_ids
+
+    # Videostatistiken abrufen
+    get_video_stats
+
+    # Statistiken zusammenfassen und speichern
+    compile_and_save_stats
+
+    echo "YouTube-Statistikabfrage abgeschlossen."
+}
+
+# Programm starten
+main
