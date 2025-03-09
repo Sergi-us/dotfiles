@@ -66,17 +66,19 @@ updateprice() { curl -sf \
 
 # Behandlung von Mausklicks
 case $BLOCK_BUTTON in
-	1) setsid "$TERMINAL" -e less -Srf "$chartfile" ;;
-    2)  notify-send -u low "$icon Aktualisierung..." "Aktualisiere $name Preis..."
+    1) notify-send -u low "$icon Aktualisierung..." "Aktualisiere $name Preis..."
         updateme="1"
         showupdate="1" ;;
-    3)  uptime="$(date -d "$filestat" '+%D at %T' | sed "s|$(date '+%D')|Heute|")"
-        notify-send "$icon $name Modul" "\
-- <b>Exakter Preis: \$$(cat "$pricefile")</b>
-- Linksklick für Preisverlauf
-- Mittelklick zum Aktualisieren
+	2) setsid "$TERMINAL" -e less -Srf "$chartfile" ;;
+    3) uptime="$(date -d "$filestat" '+%D at %T' | sed "s|$(date '+%D')|Heute|")"
+       notify-send "$icon $name Modul" "\- <b>Exakter Preis: \$$(cat "$pricefile")</b>
+- M-󰍽 für Preisverlauf
+- L-󰍽 zum Aktualisieren
 - Zeigt 🔃 während der Aktualisierung
-- <b>Letzte Aktualisierung:	$uptime</b>" ;;
+- <b>Letzte Aktualisierung:
+    $uptime</b>" ;;
+    4) ;;
+    5) ;;
 	6) setsid -f "$TERMINAL" -e "$EDITOR" "$0" ;;
 esac
 
@@ -87,4 +89,4 @@ esac
 
 # Setze das LC_NUMERIC-Format für printf
 LC_NUMERIC=C
-[ -f "$pricefile" ] && printf "%s%s\n" "$icon" "$(cat "$pricefile" | awk '{ printf "%\047d,%02d", int($1), ($1-int($1))*100 }' | sed 's/,/./; s/\B(?=(\d{3})+(?!\d))/./g')$symb"
+[ -f "$pricefile" ] && printf "%s%s\n" "$icon " "$(cat "$pricefile" | awk '{ printf "%\047d,%02d", int($1), ($1-int($1))*100 }' | sed 's/,/./; s/\B(?=(\d{3})+(?!\d))/./g')$symb"

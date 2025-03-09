@@ -16,36 +16,22 @@ is_android_webcam() {
 ANDROID_RESOLUTION="1920x1080"
 STANDARD_RESOLUTION="1280x720"
 PIXELFORMAT="MJPG"
-MPV_BASE_OPTIONS=" --untimed --no-cache --no-osc --no-input-default-bindings --profile=low-latency --input-conf=/dev/null --title=webcam"
-# ANDROID_FILTERS="hue=s=0,crop=1450:1080,hflip,vflip"
-ANDROID_FILTERS="hue=s=0,crop=1450:1080,hflip"
+
+# Reduzierte GPU-Optionen für mpv
+MPV_BASE_OPTIONS="--untimed --no-cache --no-osc --no-input-default-bindings --profile=low-latency --input-conf=/dev/null --title=webcam"
+# MPV_BASE_OPTIONS="--untimed --no-cache --no-osc --no-input-default-bindings --profile=low-latency --input-conf=/dev/null --title=webcam --vo=x11 --hwdec=no"
+ANDROID_FILTERS="hue=s=0,crop=1450:1080,hflip,vflip"
+# ANDROID_FILTERS="hue=s=0,crop=1450:1080,hflip"
 STANDARD_FILTERS="hue=s=0,crop=720:720,scale=720:720"
 ANDROID_ROTATION="--video-rotate=90"
 
-# === Filter Optionen FILTERS ===
-#
-
-# === MPV_BASE_OPTIONS ===
-# --untimed ->  Deaktiviert das Timing-System, Nützlich für Echtzeitanwendungen.
-# --no-cache -> Verhindert, dass mpv einen Puffer für die Wiedergabe anlegt.
-# --no-osc ->   Deaktiviert das On-Screen-Controller-Overlay
-# --no-input-default-bindings -> Deaktiviert alle standardmäßigen Tastenkombinationen in mpv
-# --profile=low-latency -> Aktiviert das Profil für niedrige Latenz
-# --input-conf=/dev/null -> Verhindert Änderungen durch Eingabekonfigurationsdateien
-# --title=webcam -> Setzt den Fenstertitel
-# --hwdec=vaapi ->
-# --vf=format=nv12,hwupload ->
-# --vo=gpu ->
-
 # Alle verfügbaren Videogeräte auflisten und mit dmenu auswählen
 DEVICE=$(list_video_devices | dmenu -p "Wähle Webcam:")
-
 # Überprüfen, ob ein Gerät ausgewählt wurde
 if [ -z "$DEVICE" ]; then
     echo "Kein Videogerät ausgewählt."
     exit 1
 fi
-
 # Konfiguriere das Gerät basierend auf dem Typ
 if is_android_webcam "$DEVICE"; then
     RESOLUTION=$ANDROID_RESOLUTION
@@ -62,5 +48,5 @@ WIDTH=$(echo $RESOLUTION | cut -d'x' -f1)
 HEIGHT=$(echo $RESOLUTION | cut -d'x' -f2)
 v4l2-ctl --set-fmt-video=width=$WIDTH,height=$HEIGHT,pixelformat=$PIXELFORMAT --device=$DEVICE
 
-# Starte MPV mit den konfigurierten Optionen
-mpv $MPV_BASE_OPTIONS $ROTATION --vf="$FILTERS" $DEVICE
+# Starte MPV mit den konfigurierten Optionen und beschränke CPU-Nutzung
+nice -n 10 mpv $MPV_BASE_OPTIONS $ROTATION --vf="$FILTERS" $DEVICE
