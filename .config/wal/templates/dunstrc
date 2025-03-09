@@ -1,57 +1,82 @@
 [global]
+    # Anzeige
     monitor = 0
     follow = keyboard
+
+    # Größe und Position
     width = 500
     height = (0, 300)
-    offset = (10, 50)       # Abstand vom oberen und linken Rand
-    padding = 3             # Innerer Abstand in der Benachrichtigung
-    horizontal_padding = 5
-    transparency = 10
+    offset = (15, 60)
     notification_limit = 20
-    line_height = 2
-    min_icon_size = 32
-    font = JetBrains Mono Nerd Font 14
-    icon_theme = Adwaita
-    format = "<b>%s</b>\n%b"
 
+    # Aussehen
+    font = JetBrains Mono Nerd Font 13
+    line_height = 4
+    frame_width = 2
+    corner_radius = 10
+    separator_height = 2
+    separator_color = frame
+
+    # Padding und Abstände
+    padding = 8
+    horizontal_padding = 12
+    text_icon_padding = 15
+
+    # Transparenz und Schatten
+    transparency = 10
+    gap_size = 5
+
+    # Icons
+    icon_theme = Adwaita
+    min_icon_size = 48
+    max_icon_size = 64
+
+    # Text und Format
+    markup = full
+    format = "<b>%s</b>\n%b"
+    alignment = left
+    vertical_alignment = center
+    word_wrap = yes
+
+    # Interaktion
+    mouse_left_click = close_current
+    mouse_middle_click = do_action, close_current
+    mouse_right_click = context
+
+
+# TODO Farben an Pywall anpassen...
+# Dringlichkeitsstufen mit verbesserten Kontrasten
 [urgency_low]
-    background = "{color0}" # color0
-    foreground = "{color8}" # color8
-    timeout = 3
+    background = "#1a1a1a"
+    foreground = "#aaaaaa"
+    frame_color = "#333333"
+    timeout = 4
 
 [urgency_normal]
-    foreground = "{color15}" # color15
-    background = "{color4}" # color4
-    timeout = 5
+    background = "#2d2d2d"
+    foreground = "#ffffff"
+    frame_color = "#4e4e4e"
+    timeout = 6
 
 [urgency_critical]
-    background = "{color1}" # color1
-    foreground = "{color15}" # color15
-    frame_color = "{color11}" # color11
-    timeout = 10
+    background = "#900000"
+    foreground = "#ffffff"
+    frame_color = "#ff4f4f"
+    timeout = 0  # 0 = kein automatisches Ausblenden
 
-##  [urgency_low]
-##      # IMPORTANT: colors have to be defined in quotation marks.
-##      # Otherwise the "#" and following would be interpreted as a comment.
-##      background = "#222222"
-##      foreground = "#888888"
-##      timeout = 10
-##      # Icon for notifications with low urgency
-##      default_icon = dialog-information
-
-##  [urgency_normal]
-##      background = "#285577"
-##      foreground = "#ffffff"
-##      timeout = 10
-##      override_pause_level = 30
-##      # Icon for notifications with normal urgency
-##      default_icon = dialog-information
-
-##  [urgency_critical]
-##      background = "#900000"
-##      foreground = "#ffffff"
-##      frame_color = "#ff0000"
-##      timeout = 0
-##      override_pause_level = 60
-##      # Icon for notifications with critical urgency
-##      default_icon = dialog-warning
+#### Alte Settings
+####[urgency_low]
+####    background = "{color0}" # color0
+####    foreground = "{color8}" # color8
+####    timeout = 3
+####
+####[urgency_normal]
+####    foreground = "{color15}" # color15
+####    background = "{color4}" # color4
+####    timeout = 5
+####
+####[urgency_critical]
+####    background = "{color1}" # color1
+####    foreground = "{color15}" # color15
+####    frame_color = "{color11}" # color11
+####    timeout = 10

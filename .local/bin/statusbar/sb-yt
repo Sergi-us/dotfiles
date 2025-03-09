@@ -35,7 +35,7 @@ display_stats() {
     TOP_VIDEO_COMMENTS=$(jq -r '.videos[0].comment_count' "$YT_STATS_FILE")
 
     # Ausgabeformat für die Statusbar - wähle aus, was angezeigt werden soll
-    echo "$SUBS  $COMMENTS"
+echo "$SUBS  $COMMENTS"
 
     # Alternative Anzeigeformate (auskommentiert)
     # echo "$SUBS  $COMMENTS | $VIEWS Aufrufe"
@@ -67,6 +67,7 @@ show_details() {
     VIDEOS=$(jq -r '.channel.video_count' "$YT_STATS_FILE")
     UPDATE=$(jq -r '.channel.timestamp' "$YT_STATS_FILE")
     COMMENTS=$(jq -r '.channel.comment_count' "$YT_STATS_FILE")
+    LIKES=$(jq -r '.channel.like_count' "$YT_STATS_FILE")
 
     # Top-Video Informationen
     TOP_VIDEO_TITLE=$(jq -r '.videos[0].title' "$YT_STATS_FILE")
@@ -80,14 +81,14 @@ show_details() {
     # Formatierte Benachrichtigung senden
     notify-send "$CHANNEL - YouTube Statistiken" "\
   $SUBS          $COMMENTS     $VIEWS
-  $VIDEOS        $UPDATE
+  $VIDEOS           $LIKES
+  $UPDATE
 
 🏆 Top Video:
 $SHORTENED_TITLE
-󰛐 $TOP_VIDEO_VIEWS Aufrufe |  $TOP_VIDEO_LIKES Likes
- $TOP_VIDEO_COMMENTS Kommentare" -t 10000
+󰛐 $TOP_VIDEO_VIEWS       $TOP_VIDEO_LIKES       $TOP_VIDEO_COMMENTS" -t 10000
 }
-hold (0-100) for
+
 # Öffne die Statistik-Datei im bevorzugten Editor
 edit_stats_file() {
     setsid -f "$TERMINAL" -e "$EDITOR" "$YT_STATS_FILE"
@@ -95,8 +96,8 @@ edit_stats_file() {
 
 # Button-Actions für dwmblocks
 case $BLOCK_BUTTON in
-    1) shohold (0-100) forw_details ;; # Linksklick: Details anzeigen
-    2) update_stats ;; # Mittelklick: Statistiken aktualisieren
+    1) show_details; pkill -RTMIN+28 "${STATUSBAR:-dwmblocks}" ;;
+    2) update_stats; pkill -RTMIN+28 "${STATUSBAR:-dwmblocks}" ;;
     3) notify-send " YouTube-Modul" "\- L-󰍽 YouTube übersicht anzeigen
 - M-󰍽 Statistiken aktualisieren
 - R-󰍽 Hilfe anzeigen" ;;
