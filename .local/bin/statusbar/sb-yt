@@ -35,7 +35,7 @@ display_stats() {
     TOP_VIDEO_COMMENTS=$(jq -r '.videos[0].comment_count' "$YT_STATS_FILE")
 
     # Ausgabeformat für die Statusbar - wähle aus, was angezeigt werden soll
-echo "$SUBS  $COMMENTS"
+echo "  $SUBS  $COMMENTS"
 
     # Alternative Anzeigeformate (auskommentiert)
     # echo "$SUBS  $COMMENTS | $VIEWS Aufrufe"
@@ -46,7 +46,7 @@ echo "$SUBS  $COMMENTS"
 
 # Titel auf maximal 40 Zeichen kürzen
 truncate_title() {
-    if [ ${#1} -gt 30 ]; then
+    if [ ${#1} -gt 40 ]; then
         echo "${1:0:17}..."
     else
         echo "$1"
