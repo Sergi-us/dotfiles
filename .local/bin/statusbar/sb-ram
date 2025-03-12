@@ -1,0 +1,40 @@
+#!/bin/sh
+## 2025-03-05 SARBS
+
+# Berechne die aktuelle RAM-Nutzung (benutzt / gesamt) in GB
+ram_usage=$(free --mebi | awk 'NR==2 {printf("%.2fGB von %.1fGB", $3/1024, $2/1024)}')
+# Ermittelt die Top-Prozesse nach Speicherverbrauch
+ram_tops=$(ps axch -o cmd:15,%mem --sort=-%mem | head)
+# Funktion zur Berechnung des RAM-Verbrauchs in Prozent
+calc_ram_percentage() {
+    free --mebi | awk 'NR==2 {printf("%.1f", $3/$2 * 100)}'
+}
+# Variable, die den berechneten Prozentwert speichert
+ram_percent=$(calc_ram_percentage)
+
+case $BLOCK_BUTTON in
+    1) notify-send " RAM tops" "$ram_tops" ;;
+    2) setsid -f "$TERMINAL" -e btop ;;
+    3) notify-send " RAM Modul" "\- ${ram_percent}% oder $ram_usage
+- L-󰍽 Topverbraucher.
+- M-󰍽 öffnet btop." ;;
+    4) ;;
+    5) ;;
+    6) setsid -f "$TERMINAL" -e "$EDITOR" "$0" ;;
+esac
+
+# Darstellung
+# free --mebi | sed -n '2{p;q}' | awk -v rp="$ram_percent" '{printf " %s%%", rp}'
+# free --mebi | sed -n '2{p;q}' | awk '{printf " ${ram_percent}%"}'
+free --mebi | sed -n '2{p;q}' | awk '{printf (" %2.2fGB", ( $3 / 1024), ($2 / 1024))}'
+
+#### vorversion...
+####case $BLOCK_BUTTON in
+####    1) notify-send "  RAM tops" "$(ps axch -o cmd:15,%mem --sort=-%mem | head)" ;;
+####    2) setsid -f "$TERMINAL" -e btop ;;
+####    3) notify-send "  RAM Modul" "\- zeigt RAM-verbrauch.
+####- L-󰍽 Topverbraucher.
+####- M-󰍽 öffnet btop." ;;
+####    6) setsid -f "$TERMINAL" -e "$EDITOR" "$0" ;;
+####esac
+####free --mebi | sed -n '2{p;q}' | awk '{printf (" %2.1fGB", ( $3 / 1024), ($2 / 1024))}'

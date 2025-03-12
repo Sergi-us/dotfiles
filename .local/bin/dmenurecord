@@ -1,9 +1,7 @@
 #!/bin/bash
-## 2025-01-09 SARBS
-# dmenurecord (vereinfacht)
-# Um die verfügbaren Encoder festzustellen:
-# ffmpeg -hide_banner -encoders > encoder.txt
-#
+## 2025-03-12 SARBS
+# TODO Die aufnahme und der Codex passt!!! Variable Bitrate und Opus testen
+
 notify() {
     notify-send "$1"
 }
@@ -21,63 +19,99 @@ killrecording() {
 }
 
 ##### Version für Software Encoding
-####screencast() {
-####    local out="$HOME/Videos/scr/screencast-$(date '+%y%m%d-%H%M-%S').mp4"
-####    ffmpeg -y \
-####        -f x11grab -framerate 30 -video_size 2560x1440 -i "$DISPLAY" \
-####        -f pulse -channels 2 -i default \
-####        -c:v libx264 -crf 18 -preset medium \
-####        -c:a aac -b:a 128k \
-####        -pix_fmt yuv420p \
-####        "$out" &
-####    echo $! > /tmp/recordingpid
-####    notify "Creencast gestartet"
-####    updateicon "  "
-####}
+#screencast() {
+#    local out="$HOME/Videos/scr/screencast-$(date '+%y%m%d-%H%M-%S').mp4"
+#    ffmpeg -y \
+#        -f x11grab -framerate 30 -video_size 2560x1440 -i "$DISPLAY" \
+#        -f pulse -channels 2 -i default \
+#        -c:v libx264 -crf 18 -preset medium \
+#        -c:a aac -b:a 128k \
+#        -pix_fmt yuv420p \
+#        "$out" &
+#    echo $! > /tmp/recordingpid
+#    notify "Creencast gestartet"
+#    updateicon "  "
+#}
 
 ##### Version für Hardware Encoding mit h265_vaapi
 ## 2025-01-18 libra unterstützung einrichten (Thinkpad T480 Intel UHD Graphics 620)
 ## sudo pacman -S libva-intel-driver libva-utils (für Intel CPU's)
+#screencast() {
+#    local out="$HOME/Videos/scr/screencast-$(date '+%y%m%d-%H%M-%S').mp4"
+#    ffmpeg -y \
+#        -vaapi_device /dev/dri/renderD128 \
+#        -f x11grab -framerate 30 -video_size 2560x1440 -i "$DISPLAY" \
+#        -f pulse -channels 2 -i default \
+#        -vf 'format=nv12,hwupload' \
+#        -c:v hevc_vaapi -qp 20 -profile:v main \
+#        -c:a aac -b:a 256k \
+#        "$out" &
+#    echo $! > /tmp/recordingpid
+#    # notify "Screencast gestartet"
+#    updateicon "  "
+#}
+
+##### Version für Hardware Encoding mit h265_vaapi
+## Variable Bitrate für Video und Opus für Audio
+## Mit höherer Qualität für Bearbeitung in DaVinci Resolve
+## -application voip für Opus, optimiert für Sprachaufnahmen (alternativ 'audio')
+## Der kritischste Parameter dürfte die minimale Bitrate (minrate) sein, die
+## verhindert, dass die Qualität in komplexen Szenen zu stark abfällt.
+## Ton verbessert (compression unklar) Ton ist fasst perfekt (Lautärke könne höher)
 screencast() {
+    # Aktuelle Hauptbildschirmauflösung ermitteln
+    local resolution
+    resolution=$(xrandr --current | grep -w "primary" | grep -o '[0-9]*x[0-9]*' | head -n1)
+##### Fallback auf eine Standardauflösung, falls die Erkennung fehlschlägt
+####if [ -z "$resolution" ]; then
+####    resolution="2560x1440"
+####    notify "Auflösung konnte nicht erkannt werden, verwende Standard: $resolution"
+####else
+####    notify "Erkannte Auflösung: $resolution"
+####fi
     local out="$HOME/Videos/scr/screencast-$(date '+%y%m%d-%H%M-%S').mp4"
-    ffmpeg -y \
+    nice -n -10 ffmpeg -y \
         -vaapi_device /dev/dri/renderD128 \
-        -f x11grab -framerate 30 -video_size 2560x1440 -i "$DISPLAY" \
-        -f pulse -channels 2 -i default \
+        -f x11grab -framerate 30 -video_size "$resolution" -i "$DISPLAY" \
+        -probesize 10M -analyzeduration 10M \
+        -f pulse -sample_rate 48000 -channels 2 -i default \
+        -af "aresample=48000:async=1000" \
         -vf 'format=nv12,hwupload' \
-        -c:v hevc_vaapi -qp 20 -profile:v main \
-        -c:a aac -b:a 256k \
+        -c:v hevc_vaapi -b:v 4M -minrate 2M -maxrate 9M -bufsize 12M -profile:v main \
+        -rc_mode 1 \
+        -c:a libopus -b:a 192k -application audio -compression_level 10 \
         "$out" &
     echo $! > /tmp/recordingpid
-    # notify "Screencast gestartet"
     updateicon "  "
 }
-
-##### 4K Version für Hardware Encoding mit h265_vaapi und 60frames
-## 2025-01-18 Vaapi unterstützung einrichten (Thinkpad T480)
-## sudo pacman -S libva-intel-driver libva-utils (für Intel CPU's)
-####screencast() {
-####    local out="$HOME/Videos/scr/screencast-$(date '+%y%m%d-%H%M-%S').mp4"
-####    ffmpeg -y \
-####        -vaapi_device /dev/dri/renderD128 \
-####        -f x11grab -framerate 60 -video_size 2560x1440 -i "$DISPLAY" \
-####        -vf 'scale=3840:2160:flags=lanczos,format=nv12,hwupload' \
-####        -c:v hevc_vaapi -qp 20 -profile:v main \
-####        -c:a aac -b:a 256k \
-####        "$out" &
-####    echo $! > /tmp/recordingpid
-####    notify "Screencast gestartet"
-####    updateicon "  "
-####}
 
 screencast_monitor() {
     # Monitor-Auswahl ohne Fehlermeldungen
     local selected_monitor
     selected_monitor="$(xrandr --listmonitors | tail -n +2 | awk '{print $4}' | dmenu -i -p "Monitor auswählen:")"
 
-    # Dummy-Auflösung, anpassbar nach Bedarf
-    local resolution="2560x1440"
-    local offset="+0+0"
+    # Wenn kein Monitor ausgewählt wurde, breche ab
+    if [ -z "$selected_monitor" ]; then
+        notify "Keine Monitorauswahl getroffen, Aufnahme abgebrochen."
+        return 1
+    fi
+
+    # Auflösung und Offset für den ausgewählten Monitor ermitteln
+    local resolution offset
+    read -r resolution offset <<< $(xrandr | grep -w "$selected_monitor" | grep -o '[0-9]*x[0-9]*[+][0-9]*[+][0-9]*' | head -n1 | awk '{
+        match($0, /([0-9]+)x([0-9]+)([+][0-9]+[+][0-9]+)/, a);
+        print a[1]"x"a[2], a[3];
+    }')
+
+##### Fallback auf eine Standardauflösung, falls die Erkennung fehlschlägt
+####if [ -z "$resolution" ]; then
+####    resolution="1920x1080"
+####    offset="+0+0"
+####    notify "Auflösung konnte nicht erkannt werden, verwende Standard: $resolution"
+####else
+####    notify "Erkannte Auflösung für $selected_monitor: $resolution mit Offset $offset"
+####fi
+
     local out="$HOME/Videos/scr/screencast-${selected_monitor}-$(date '+%y%m%d-%H%M-%S').mp4"
 
     ffmpeg -y \
@@ -91,28 +125,6 @@ screencast_monitor() {
     notify "Monitoraufnahme gestartet"
     updateicon "  "
 }
-
-####screencast_monitor() {
-####    # Monitor-Auswahl ohne Fehlermeldungen
-####    local selected_monitor
-####    selected_monitor="$(xrandr --listmonitors | tail -n +2 | awk '{print $4}' | dmenu -i -p "Monitor auswählen:")"
-####
-####    # Dummy-Auflösung, anpassbar nach Bedarf
-####    local resolution="1920x1080"
-####    local offset="+0+0"
-####    local out="$HOME/Videos/scr/screencast-${selected_monitor}-$(date '+%y%m%d-%H%M-%S').mp4"
-####
-####    ffmpeg -y \
-####        -f x11grab -framerate 30 -video_size "$resolution" -i "$DISPLAY$offset" \
-####        -f pulse -channels 2 -i default \
-####        -c:v libx264 -crf 18 -preset medium \
-####        -c:a aac -b:a 128k \
-####        -pix_fmt yuv420p \
-####        "$out" &
-####    echo $! > /tmp/recordingpid
-####    notify "Monitoraufnahme gestartet"
-####    updateicon "  "
-####}
 
 audio() {
     local out="$HOME/Podcast/audio-$(date '+%y%m%d-%H%M-%S').flac"

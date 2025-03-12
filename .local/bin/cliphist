@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+## 2025-03-05 SARBS
+
+histfile="$HOME/.local/share/sarbs/cliphist"
+placeholder="<NEWLINE>"
+
+highlight() {
+  clip=$(xclip -o -selection primary | xclip -i -f -selection clipboard 2>/dev/null) ;}
+
+output() {
+  clip=$(xclip -i -f -selection clipboard 2>/dev/null) ;}
+
+write() {
+  [ -f "$histfile" ] || notify-send "Erstelle $histfile"; touch $histfile
+  [ -z "$clip" ] && exit 0
+  multiline=$(echo "$clip" | sed ':a;N;$!ba;s/\n/'"$placeholder"'/g')
+  grep -Fxq "$multiline" "$histfile" || echo "$multiline" >> "$histfile"
+  notification=$(echo \"$multiline\") ;}
+
+sel() {
+  selection=$(tac "$histfile" | dmenu  -b -l 15 -i -fn "JetBrainsMono NF ExtraLight-18" -p "Zwischenablage:")
+  [ -n "$selection" ] && echo "$selection" | sed "s/$placeholder/\n/g" | xclip -i -selection clipboard && notification="Copied to clipboard!" ;}
+
+case "$1" in
+  add) highlight && write ;;
+  out) output && write ;;
+  sel) sel ;;
+  *) printf "$0 | Datei: $histfile\n\nadd - kopiert die primäre Auswahl in die Zwischenablage und fügt sie zur Verlaufsdatei hinzu\nout - leitet Befehle um, kopiert die Ausgabe in die Zwischenablage und fügt sie zur Verlaufsdatei hinzu\nsel - wählt aus der Verlaufsdatei mit dmenu aus und kopiert erneut!\n" ; exit 0 ;;
+esac
+
+notify-send "$notification"
