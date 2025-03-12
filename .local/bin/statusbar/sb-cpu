@@ -1,7 +1,7 @@
 #!/bin/sh
-## 2025-01-09 SARBS
+## 2025-03-10 SARBS
 
-# TODO Scroll tasten sind noch frei zum belegen im CPU Kontext
+#  als Hinweis für eine bestimmte Temperatur integrieren...
 
 case $BLOCK_BUTTON in
 	1) notify-send "  CPU tops" "$(ps axch -o cmd:15,%cpu --sort=-%cpu | head)\\n(100% per core)" ;;

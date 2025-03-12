@@ -3,7 +3,7 @@
 
 case $BLOCK_BUTTON in
     1) ;;
-    2) "$TERMINAL" -e nmtui; pkill -RTMIN+4 dwmblocks ;;
+    2) "$TERMINAL" -e nmtui; pkill -RTMIN+23 dwmblocks ;;
     3) notify-send " Internet Modul" "\
 󰳾 Netzwerkmanager
 󰖪 wifi Ausgeschalten

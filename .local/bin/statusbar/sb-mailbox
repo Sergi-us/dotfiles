@@ -5,8 +5,8 @@
 # Bei Klick wird `neomutt` geöffnet.
 
 case $BLOCK_BUTTON in
-	1) setsid -f mw -Y >/dev/null; notify-send "Mails werden Aktualisiert"; pkill -RTMIN+12 "${STATUSBAR:-dwmblocks}" ;;
-	2) setsid -w -f "$TERMINAL" -e neomutt; pkill -RTMIN+12 "${STATUSBAR:-dwmblocks}" ;;
+	1) setsid -f mw -Y >/dev/null; notify-send -u low "Mails werden Aktualisiert"; pkill -RTMIN+20 "${STATUSBAR:-dwmblocks}" ;;
+	2) setsid -w -f "$TERMINAL" -e neomutt; pkill -RTMIN+20 "${STATUSBAR:-dwmblocks}" ;;
 	3) notify-send " Mail Modul" "\- Zeigt ungelesene E-Mails
 - L-󰍽 synchronisiert E-Mails
 - M-󰍽 öffnet NeoMutt" ;;
@@ -15,6 +15,6 @@ esac
 
 unread="$(find "${XDG_DATA_HOME:-$HOME/.local/share}"/mail/*/[Ii][Nn][Bb][Oo][Xx]/new/* -type f | wc -l 2>/dev/null)"
 
-pidof mbsync >/dev/null 2>&1 && icon="  "
+[ "$unread" = "0" ] && [ "$icon" = " " ] || echo "󰗯 $unread$icon"
 
-[ "$unread" = "." ] && [ "$icon" = "" ] || echo "󰗯 $unread$icon"
+pidof mbsync >/dev/null 2>&1 && icon="  "

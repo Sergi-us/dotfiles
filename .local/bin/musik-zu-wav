@@ -1,0 +1,18 @@
+#!/bin/bash
+
+# Verzeichnis mit den MP3-Dateien
+INPUT_DIR="."
+
+
+# Durchlaufe alle MP3-Dateien im Verzeichnis
+for file in "$INPUT_DIR"/*.mp3; do
+    # Extrahiere den Dateinamen ohne Pfad und Erweiterung
+    filename=$(basename -- "$file")
+    basename="${filename%.*}"
+
+    # Konvertiere MP3 zu WAV mit ffmpeg
+    echo "Konvertiere $filename zu $basename.wav"
+    ffmpeg -i "$file" -acodec pcm_s16le -ar 48000 "$basename.wav"
+done
+
+echo "Konvertierung abgeschlossen!"
