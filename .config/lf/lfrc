@@ -47,6 +47,38 @@ cmd convert_audio ${{
     notify-send "✅ Verarbeitung abgeschlossen."
 }}
 
+# Video umwandeln (für Camaufnahmen)
+cmd convert_video ${{
+    clear; tput cup $(($(tput lines)/3)); tput bold
+    set -f
+    notify-send "Video wird konvertiert..."
+    for x in $fx; do
+        # Extrahieren von Verzeichnis, Dateiname und Erweiterung
+        dir_name=$(dirname "$x")
+        base_name=$(basename "$x")
+        filename="${base_name%.*}"
+
+        # Ausgabedatei mit Präfix "konvertiert_"
+        output_file="${dir_name}/${filename}-convertiert.mp4"
+
+        echo "Konvertiere '$x' nach '$output_file'..."
+
+        # ffmpeg-Konvertierungsbefehl direkt ausführen
+        if ffmpeg -vaapi_device /dev/dri/renderD128 -i "$x" \
+           -vf 'format=nv12,hwupload' \
+           -c:v hevc_vaapi -b:v 4M -maxrate 6M -bufsize 8M \
+           -c:a libopus -b:a 96k \
+           "$output_file"; then
+            lf -remote "send $id reload"
+            notify-send "🎵 Erfolgreich" "Datei $x wurde konvertiert."
+        else
+            notify-send "❌ Fehler" "Datei $x konnte nicht konvertiert werden."
+        fi
+    done
+    notify-send "✅ Verarbeitung abgeschlossen."
+}}
+
+
 # Öffnungsbefehl für verschiedene Dateitypen:
 # setsid -f     # sorgt dafür dass es in einem neuen Terminal geöffnet wird!!
 cmd open ${{
@@ -262,8 +294,9 @@ map Am Handy-Musik
 # === P Menu für Bildbearbeitung ===
 map Pk bild-80-komprimieren
 
-# === R Menu für Bildbearbeitung ===
+# === R Menu für Videobearbeitung ===
 map Rx convert_audio
+map Rv convert_video
 
 # === Navigieren ===
 map <c-f> $lf -remote "send $id select \"$(fzf --height=-10)\"" # <Strg+f> Dateisuche mit fzf
@@ -286,13 +319,25 @@ map <c-s> set hidden!       # <Strg+s> = Versteckte Dateien An/Aus-blenden
 map B bulkrename            # <B> = Startet die Massenumbenennung für mehrere ausgewählte Dateien.
 map b $setbg $f             # <b> = Setzt die ausgewähltes Bild als Hintergrund.
 
+# Testversionen für die Taste o und O
+cmd mimeopen_default &{{
+    mimeopen "$f"
+}}
+
+cmd mimeopen_ask ${{
+    mimeopen --ask "$f"
+}}
+
+
 # === Dateibearbeitung ===
 map <enter> shell           # <Enter> Shell im aktuellen Verzeichniss öffnen
 map x $$f                   # <x> Führt Datei als Befehl aus.
 map X !$f                   # <X> Führt Datei als Befehl aus und wartet auf Beendigung.
 map T $nsxiv -t "$(pwd)"    # <T> öffnet den Thumbnailmodus für Bilder
-map o &mimeopen "$f"        # <o> Öffnet die Datei mit dem Standard-Programm.
-map O $mimeopen --ask "$f"  # <O> Fragt, mit welchem Programm die Datei geöffnet werden soll.
+## map o &mimeopen "$f"        # <o> Öffnet die Datei mit dem Standard-Programm.
+## map O $mimeopen --ask "$f"  # <O> Fragt, mit welchem Programm die Datei geöffnet werden soll.
+map o mimeopen_default   # <o> Öffnet die Datei mit dem Standard-Programm in einem neuen Terminal
+map O mimeopen_ask       # <O> Fragt, mit welchem Programm die Datei geöffnet werden soll
 map V push :!nvim<space>    # <V> Öffnet vim im aktuellen Verzeichnis
 map W $setsid -f $TERMINAL >/dev/null 2>&1	# W = Öffnet ein neues Terminal-Fenster im aktuellen Verzeichnis
     # <Strg+y> Ausführungsrechte für ausgewählte Dateien entziehen
