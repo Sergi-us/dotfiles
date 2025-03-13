@@ -29,6 +29,9 @@ mw -a deine@e.mail
 `i+1`   Postfach *1* auswählen
 `y`     Mailbox auswählen
 
+
+
+
 === Verbindung zur Mailbox anpassen ===
 
 Notice: SSLType is deprecated. Use TLSType instead.
