@@ -37,10 +37,10 @@ esac
 ## (Di) 14.Jan [03] 14:20
 # date "+(%a) %d.%b [%V] %H:%M"
 ## 14.Jan [03] 🕛 14:20
-# date "+%d.%b [%V] $icon %H:%M"
+date "+%a %d.%b [%V] $icon %H:%M"
 ## 14.Jan.2025 14:20
 # date "+%d.%b.%Y %H:%M"
 ## 14.Jan.2025 🕛 14:20
 # date "+%d.%b.%Y $icon %H:%M"
 ## 14:20
-date "+%H:%M"
+# date "+%H:%M"
