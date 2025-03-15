@@ -1,0 +1,108 @@
+#!/bin/bash
+
+#######################################
+### KONFIGURATIONSBEREICH - ANPASSEN ###
+#######################################
+
+# Datumsbereich (Format: YYYY-MM-DD)
+START_DATE="1950-10-02"  # Erster Peanuts-Comic
+END_DATE="2023-12-31"    # Aktuelles Datum oder beliebiges Enddatum
+
+# ANZEIGEOPTION WÄHLEN (Nur eine Zeile aktivieren, alle anderen auskommentieren)
+#DISPLAY_METHOD="browser"    # Standard-Webbrowser
+#DISPLAY_METHOD="feh"       # Feh Image Viewer
+#DISPLAY_METHOD="sxiv"      # Simple X Image Viewer
+DISPLAY_METHOD="nsxiv"     # Neo Simple X Image Viewer
+#DISPLAY_METHOD="img2txt"   # ASCII-Art im Terminal (Teil von caca-utils)
+#DISPLAY_METHOD="cacaview"  # ASCII-Art im Terminal (Teil von libcaca)
+
+# Temporäre Datei für den heruntergeladenen Comic
+TEMP_FILE="/tmp/peanuts_comic.jpg"
+
+# Anzeigeoptionen für Terminal-Anzeige
+IMG2TXT_WIDTH=100  # Breite für ASCII-Art
+
+#######################################
+### AB HIER NICHTS MEHR ÄNDERN #######
+#######################################
+
+url="https://www.gocomics.com/peanuts"
+
+# Konvertiere zu Unix-Zeitstempeln für einfachere Berechnung
+start_ts=$(date -d "$START_DATE" +%s)
+end_ts=$(date -d "$END_DATE" +%s)
+
+# Berechne die Anzahl der Tage im Bereich
+days=$(( (end_ts - start_ts) / 86400 ))
+
+# Wähle einen zufälligen Tag im Bereich
+random_days=$(( RANDOM % (days + 1) ))
+random_date_ts=$(( start_ts + random_days * 86400 ))
+random_date=$(date -d "@$random_date_ts" +%Y/%m/%d)
+
+echo "Zufälliger Peanuts-Comic vom: $random_date"
+
+# Hole die Bild-URL des Comics
+comic_url=$(wget -qO- "$url/$random_date" | grep "og:image" | head -n1 | cut -d\" -f4)
+
+if [ -z "$comic_url" ]; then
+    echo "Fehler: Konnte den Comic nicht finden."
+    exit 1
+fi
+
+echo "Comic URL: $comic_url"
+
+# Herunterladen des Comics für lokale Anzeige
+if [ "$DISPLAY_METHOD" != "browser" ]; then
+    wget -q -O "$TEMP_FILE" "$comic_url"
+    if [ ! -f "$TEMP_FILE" ]; then
+        echo "Fehler: Download fehlgeschlagen."
+        exit 1
+    fi
+fi
+
+# Comic anzeigen mit der gewählten Methode
+case "$DISPLAY_METHOD" in
+    "browser")
+        echo "Öffne Comic im Browser..."
+        if command -v xdg-open >/dev/null 2>&1; then
+            xdg-open "$comic_url"  # Für Linux
+        elif command -v open >/dev/null 2>&1; then
+            open "$comic_url"      # Für macOS
+        elif command -v start >/dev/null 2>&1; then
+            start "$comic_url"     # Für Windows
+        else
+            echo "Comic kann nicht automatisch geöffnet werden. URL: $comic_url"
+        fi
+        ;;
+    "feh")
+        echo "Zeige Comic mit feh an..."
+        feh --auto-zoom --scale-down "$TEMP_FILE"
+        ;;
+    "sxiv")
+        echo "Zeige Comic mit sxiv an..."
+        sxiv "$TEMP_FILE"
+        ;;
+    "nsxiv")
+        echo "Zeige Comic mit nsxiv an..."
+        nsxiv "$TEMP_FILE"
+        ;;
+    "img2txt")
+        echo "Zeige Comic als ASCII-Art mit img2txt an..."
+        img2txt -W "$IMG2TXT_WIDTH" "$TEMP_FILE"
+        ;;
+    "cacaview")
+        echo "Zeige Comic als ASCII-Art mit cacaview an..."
+        cacaview "$TEMP_FILE"
+        ;;
+    *)
+        echo "Fehler: Unbekannte Anzeigemethode '$DISPLAY_METHOD'"
+        echo "URL: $comic_url"
+        exit 1
+        ;;
+esac
+
+# Aufräumen (auskommentieren, wenn Sie das Bild behalten möchten)
+if [ "$DISPLAY_METHOD" != "browser" ]; then
+    rm -f "$TEMP_FILE"
+fi
