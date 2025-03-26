@@ -5,7 +5,7 @@
 CONFIG_DIR="$HOME/.config/xsct"
 TEMP_FILE="$CONFIG_DIR/temp"
 MIN_TEMP=1000   # Wärmste Temperatur (rot)
-MAX_TEMP=20000  # Kälteste Temperatur (blau)
+MAX_TEMP=10000  # Kälteste Temperatur (blau)
 DEFAULT_TEMP=6500  # Standardwert
 STEP=500        # Temperaturänderung pro Schritt
 
@@ -50,7 +50,7 @@ adjust_temperature() {
         toggle)
             # Toggle zwischen DEFAULT_TEMP und einem warmen Wert
             if [ "$current_temp" -eq "$DEFAULT_TEMP" ]; then
-                new_temp=3500  # Warme Temperatur für den Abend
+                new_temp=3000  # Warme Temperatur für den Abend
             else
                 new_temp=$DEFAULT_TEMP
             fi
@@ -79,7 +79,7 @@ show_status() {
 
     # Temperatur in Kelvin anzeigen, formatiert mit Dezimalpunkt
     temp_k=$(awk "BEGIN {printf \"%.1fK\", $current_temp/1000}")
-    echo "$temp_icon $temp_k"
+    echo "[$temp_icon $temp_k]"
 }
 
 # Hauptlogik

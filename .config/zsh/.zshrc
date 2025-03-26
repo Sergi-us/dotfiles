@@ -2,6 +2,8 @@
 #
 # TODO Zinit testen https://github.com/zdharma-continuum/zinit
 # TODO Plugin's Testen
+# TODO Git integration überprüfen und neue Symbole ergänzen   
+# TODO Pure Promt testen (sieht interessant aus)
 
 # Hilfsfunktion zum Hinzufügen einer Datei zur Zsh-Konfiguration
 function zsh_add_file() {
@@ -16,7 +18,7 @@ function zsh_add_file() {
 
 # Funktion für Container-Check
 function container_status() {
-    [ -f /run/.containerenv ] && echo "🐋 "
+    [ -f /run/.containerenv ] && echo " "
 }
 
 # Farben einschalten und Eingabeaufforderung ändern
@@ -28,7 +30,7 @@ autoload -Uz tetriscurses
 vi-git-untracked() {
     if [[ $(git rev-parse --is-inside-work-tree 2> /dev/null) == 'true' ]] && \
        git status --porcelain | grep '??' &> /dev/null ; then
-        echo -n " "
+        echo -n " "
     fi
 }
 

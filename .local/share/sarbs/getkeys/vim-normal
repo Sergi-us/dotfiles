@@ -17,9 +17,9 @@ r       replace (erseze)                (/)     Satz-anfang/ende
 .       repead (wiederhole)             )       Satzende
 o       open new Line                   {/}     Paragraph-Anfang/Ende
 
-
-q1      Macro 1 aufzeichnen
-q       Macro aufzeichnung beenden
+                                        gqq     Zeile Umbreichen
+q1      Macro 1 aufzeichnen             J       Zeilen verbinden
+q       Macro aufzeichnung beenden      gJ      wie 'J' ohne Lehrzeichen
 @1      Macro 1 ausführen
 
 

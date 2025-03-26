@@ -1,7 +1,7 @@
 #!/bin/sh
 ## 2025-03-06 SARBS
 
-clock=$(date'+%I')
+clock=$(date '+%I')
 
 case "$clock" in
 	"00") icon="󱑖" ;;
@@ -22,7 +22,7 @@ esac
 case $BLOCK_BUTTON in
 	1) notify-send "Dieser Monat" "$(cal | sed "s/\<$(date +'%e'|tr -d ' ')\>/<b><span color='red'>&<\/span><\/b>/")" && notify-send "Termine" "$(calcurse -d30)" ;;
 	2) setsid -f "$TERMINAL" -e calcurse ;;
-	3) notify-send "📅 Zeit-/Datumsmodul" "\- L-󰍽 um bevorstehende Termine und Monat
+	3) notify-send " Zeit-/Datumsmodul" "\- L-󰍽 um bevorstehende Termine und Monat
 - M-󰍽 öffnet calcurse" ;;
     4) ;;
     5) ;;
@@ -31,16 +31,16 @@ esac
 
 # Unterschiedliche Darstellung
 ## KW03 (Di) 14.Jan.2025 14:20
-# date "+KW%V (%a) %d.%b.%Y %H:%M"
-## (Di) 14.Jan.2025 [03] 🕛14:20
-# date "+(%a) %d.%b.%Y [%V] $icon %H:%M"
+#date "+KW%V (%a) %d.%b.%Y %H:%M"
+## [Di 14.Jan KV03 🕛14:20]
+date "+[%H:%M $icon %a %d.%b KV%V]"
 ## (Di) 14.Jan [03] 14:20
-# date "+(%a) %d.%b [%V] %H:%M"
+#date "+(%a) %d.%b [%V] %H:%M"
 ## 14.Jan [03] 🕛 14:20
-date "+%a %d.%b [%V] $icon %H:%M"
+#date "+%a %d.%b [%V] $icon %H:%M"
 ## 14.Jan.2025 14:20
-# date "+%d.%b.%Y %H:%M"
+#date "+%d.%b.%Y %H:%M"
 ## 14.Jan.2025 🕛 14:20
-# date "+%d.%b.%Y $icon %H:%M"
+#date "+%d.%b.%Y $icon %H:%M"
 ## 14:20
-# date "+%H:%M"
+#date "+%H:%M"

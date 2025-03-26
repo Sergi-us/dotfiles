@@ -48,5 +48,5 @@ cryptid="$(echo "$lsblkoutput" | grep "/${chosen#*/}$")"
 cryptid="${cryptid%% *}"
 if [ -b /dev/mapper/"${cryptid##*/}" ]; then
     sudo -A cryptsetup close "$cryptid"
-    notify-send "🔒Geräteverschlüsselung geschlossen." "Laufwerk ist jetzt wieder sicher verschlossen."
+    notify-send " Geräteverschlüsselung geschlossen." "Laufwerk ist jetzt wieder sicher verschlossen."
 fi
