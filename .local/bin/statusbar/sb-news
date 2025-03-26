@@ -7,8 +7,7 @@
 case $BLOCK_BUTTON in
     1) setsid -f newsup >/dev/null && exit ;;
     2) setsid "$TERMINAL" -e newsboat ;;
-    3) notify-send " News-Modul" "\- Zeigt ungelesene Nachrichten an
-- Zeigt 🔃, wenn mit \`newsup\` aktualisiert wird
+    3) notify-send " RSS News-Modul" "\- Zeigt ungelesene Nachrichten an
 - L-󰍽 synchronisiert RSS-Feeds
 - M-󰍽 öffnet newsboat
 <b>Hinweis:</b> Es darf jeweils nur eine Instanz von newsboat (einschließlich Updates) laufen." ;;

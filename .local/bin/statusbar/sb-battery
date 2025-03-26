@@ -1,6 +1,8 @@
 #!/bin/sh
-## 2025-03-06 SARBS
-# TODO Verbleibende Batteriedauer implementieren als Notify Promt integrieren
+## 2025-03-25 SARBS
+
+# TODO Entscheiden ob brightnessctl oder xbacklight zum einsatz kommt
+# TODO Code Vereinfachen
 
 # Zeigt den aggregierten Batteriestand mit Symbolen entsprechend dem Ladestand an
 
@@ -10,7 +12,7 @@ adjust_brightness() {
     elif command -v xbacklight &> /dev/null; then
         tool="xbacklight"
     else
-        notify-send " Kein Helligkeitstool gefunden"
+        notify-send " Kein Helligkeitstool gefunden"
         exit 1
     fi
 
@@ -30,48 +32,72 @@ adjust_brightness() {
             fi
             ;;
         *)
-            notify-send " Ungültige Operation"
+            notify-send " Ungültige Operation"
             exit 1
             ;;
     esac
 }
 
-case $BLOCK_BUTTON in
-    1) ;;
-    2) ;;
-    3) notify-send "Batteriemodul" "
-- 󱕒 Scrollen, um Helligkeit zu ändern." ;;
-    4) adjust_brightness inc ;;
-    5) adjust_brightness dec ;;
-    6) setsid -f "$TERMINAL" -e "$EDITOR" "$0" ;;
-esac
+# Sammelt Informationen über alle Batterien
+get_all_batteries_info() {
+    battery_info=""
+    for battery in /sys/class/power_supply/BAT?*; do
+        [ -d "$battery" ] || continue
+        battery_name=$(basename "$battery")
+        capacity=$(cat "$battery/capacity" 2>/dev/null)
+        battery_info="${battery_info}${battery_name}: ${capacity}%\n"
+    done
+    echo "$battery_info"
+}
 
 get_battery_symbol() {
     capacity=$1
-    [ "$capacity" -le 10 ] && { echo "󰂃"; return; }
-    [ "$capacity" -le 20 ] && { echo "󰁺"; return; }
-    [ "$capacity" -le 30 ] && { echo "󰁻"; return; }
-    [ "$capacity" -le 40 ] && { echo "󰁼"; return; }
-    [ "$capacity" -le 50 ] && { echo "󰁽"; return; }
-    [ "$capacity" -le 60 ] && { echo "󰁾"; return; }
-    [ "$capacity" -le 70 ] && { echo "󰁿"; return; }
-    [ "$capacity" -le 80 ] && { echo "󰂀"; return; }
-    [ "$capacity" -le 90 ] && { echo "󰂁"; return; }
-    echo "󰁹"
+    if [ "$capacity" -le 10 ]; then
+        echo "󰂃"
+    elif [ "$capacity" -le 20 ]; then
+        echo "󰁺"
+    elif [ "$capacity" -le 30 ]; then
+        echo "󰁻"
+    elif [ "$capacity" -le 40 ]; then
+        echo "󰁼"
+    elif [ "$capacity" -le 50 ]; then
+        echo "󰁽"
+    elif [ "$capacity" -le 60 ]; then
+        echo "󰁾"
+    elif [ "$capacity" -le 70 ]; then
+        echo "󰁿"
+    elif [ "$capacity" -le 80 ]; then
+        echo "󰂀"
+    elif [ "$capacity" -le 90 ]; then
+        echo "󰂁"
+    else
+        echo "󰁹"
+    fi
 }
 
 get_battery_symbol_charger() {
     capacity=$1
-    [ "$capacity" -le 10 ] && { echo "󰢜 "; return; }
-    [ "$capacity" -le 20 ] && { echo "󰂆 "; return; }
-    [ "$capacity" -le 30 ] && { echo "󰂇 "; return; }
-    [ "$capacity" -le 40 ] && { echo "󰂈 "; return; }
-    [ "$capacity" -le 50 ] && { echo "󰢝 "; return; }
-    [ "$capacity" -le 60 ] && { echo "󰂉 "; return; }
-    [ "$capacity" -le 70 ] && { echo "󰢞 "; return; }
-    [ "$capacity" -le 80 ] && { echo "󰂊 "; return; }
-    [ "$capacity" -le 90 ] && { echo "󰂋 "; return; }
-    echo "󰂅 "
+    if [ "$capacity" -le 10 ]; then
+        echo "󰢜 "
+    elif [ "$capacity" -le 20 ]; then
+        echo "󰂆 "
+    elif [ "$capacity" -le 30 ]; then
+        echo "󰂇 "
+    elif [ "$capacity" -le 40 ]; then
+        echo "󰂈 "
+    elif [ "$capacity" -le 50 ]; then
+        echo "󰢝 "
+    elif [ "$capacity" -le 60 ]; then
+        echo "󰂉 "
+    elif [ "$capacity" -le 70 ]; then
+        echo "󰢞 "
+    elif [ "$capacity" -le 80 ]; then
+        echo "󰂊 "
+    elif [ "$capacity" -le 90 ]; then
+        echo "󰂋 "
+    else
+        echo "󰂅 "
+    fi
 }
 
 get_connection_status() {
@@ -81,6 +107,20 @@ get_connection_status() {
     done
     echo "BAT"
 }
+
+case $BLOCK_BUTTON in
+    1) ;;
+    2) ;;
+    3)
+        all_batteries=$(get_all_batteries_info)
+        notify-send "Batteriemodul" "
+Batteriestand:
+${all_batteries}
+- 󱕒 Scrollen, um Helligkeit zu ändern." ;;
+    4) adjust_brightness inc ;;
+    5) adjust_brightness dec ;;
+    6) setsid -f "$TERMINAL" -e "$EDITOR" "$0" ;;
+esac
 
 # Aggregiere alle Batterien
 total_capacity=0
@@ -102,13 +142,13 @@ else
 fi
 
 # Warnsymbol und kritische Benachrichtigung, wenn Akkuladung <= 10%
-if [ "$overall_capacity" -le 5 ]; then
-    warn=" "
+if [ "$overall_capacity" -le 3 ]; then
+    warn=" "
     notify-send -u critical "Kritischer Batterieladung" "Akkuladung bei ${overall_capacity}%!"
 else
     warn=""
 fi
 
 # output="$symbol$warn$overall_capacity%"
-output="$symbol$warn$overall_capacity%"
-echo "$output"
+output="$symbol$warn"
+echo " $output"

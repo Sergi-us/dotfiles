@@ -24,7 +24,7 @@ wmpid() {
 
 # Hauptmenü mit verschiedenen Systemaktionen
 # dmenu wird verwendet, um eine grafische Auswahl anzuzeigen
-case "$(printf " Sperren\n $WM verlassen\n $WM erneuern\n󰒲 Ruhezustand\n Neustart\n Herunterfahren\n💤 Schlafmodus\n📺 Bildschirm aus" | dmenu -i -p 'Aktion: ')" in
+case "$(printf " Sperren\n $WM verlassen\n $WM erneuern\n󰒲 Ruhezustand\n Neustart\n Herunterfahren\n💤 Schlafmodus\n󰶐  Bildschirm aus" | dmenu -i -p 'Aktion: ')" in
     ' Sperren')
         slock ;;  # Bildschirm sperren
     " $WM verlassen")
@@ -39,7 +39,7 @@ case "$(printf " Sperren\n $WM verlassen\n $WM erneuern\n󰒲 Ruhezusta
         $ctl reboot -i ;;           # Starte das System neu
     ' Herunterfahren')
         $ctl poweroff -i ;;         # Fahre das System herunter
-    '📺 Bildschirm aus')
+    '󰶐 Bildschirm aus')
         xset dpms force off ;;      # Schalte den Bildschirm aus
     *)  # Falls keine gültige Option ausgewählt wurde
         exit 1 ;;

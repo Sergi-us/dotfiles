@@ -1,5 +1,5 @@
 #!/bin/sh
-## 2025-01-09 SARBS
+## 2025-03-25 SARBS
 
 # Zeigt die Anzahl ungelesener E-Mails und ein Lade-Symbol während der Aktualisierung.
 # Bei Klick wird `neomutt` geöffnet.
@@ -7,14 +7,17 @@
 case $BLOCK_BUTTON in
 	1) setsid -f mw -Y >/dev/null; notify-send -u low "Mails werden Aktualisiert"; pkill -RTMIN+20 "${STATUSBAR:-dwmblocks}" ;;
 	2) setsid -w -f "$TERMINAL" -e neomutt; pkill -RTMIN+20 "${STATUSBAR:-dwmblocks}" ;;
-	3) notify-send " Mail Modul" "\- Zeigt ungelesene E-Mails
+	3) notify-send " Mail Modul" "\- Zeigt ungelesene E-Mails
 - L-󰍽 synchronisiert E-Mails
 - M-󰍽 öffnet NeoMutt" ;;
 	6) setsid -f "$TERMINAL" -e "$EDITOR" "$0" ;;
 esac
 
+# Anzahl ungelesener E-Mails ermitteln
 unread="$(find "${XDG_DATA_HOME:-$HOME/.local/share}"/mail/*/[Ii][Nn][Bb][Oo][Xx]/new/* -type f | wc -l 2>/dev/null)"
 
-[ "$unread" = "0" ] && [ "$icon" = " " ] || echo "󰗯 $unread$icon"
+# Prüfen, ob mbsync läuft und entsprechendes Icon setzen
+pidof mbsync >/dev/null 2>&1 && icon="󰁪"
 
-pidof mbsync >/dev/null 2>&1 && icon="  "
+# Ausgabe nur, wenn unread nicht "0" ist oder wenn ein Icon angezeigt werden soll
+[ "$unread" = "0" ] && [ "$icon" = "" ] || echo "$unread$icon"

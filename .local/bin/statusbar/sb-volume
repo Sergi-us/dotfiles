@@ -40,4 +40,4 @@ else
 fi
 
 # Output the result
-echo "$icon $vol%"
+echo "[$icon $vol%]"
