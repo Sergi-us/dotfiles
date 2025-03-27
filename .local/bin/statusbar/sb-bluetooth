@@ -1,0 +1,85 @@
+#!/bin/sh
+## 2025-03-25 SARBS
+
+# Hilfsfunktion zum Überprüfen, ob Bluetooth eingeschaltet ist
+bluetooth_status() {
+    if bluetoothctl show | grep -F -q "Powered: yes"; then
+        return 0 # Bluetooth ist eingeschaltet
+    else
+        return 1 # Bluetooth ist ausgeschaltet
+    fi
+}
+
+# Hilfsfunktion zum Umschalten des Bluetooth-Status
+toggle_bluetooth() {
+    if bluetooth_status; then
+        bluetoothctl power off
+    else
+        if rfkill list bluetooth | grep -F -q 'blocked: yes'; then
+            rfkill unblock bluetooth && sleep 1
+        fi
+        bluetoothctl power on
+    fi
+}
+
+# Hilfsfunktion zum Anzeigen verbundener Geräte
+get_connected_devices() {
+    if ! bluetooth_status; then
+        echo "Bluetooth ist ausgeschaltet"
+        return
+    fi
+
+    devices=""
+    # Hier ist die korrigierte Zeile - 'devices Paired' statt 'paired-devices'
+    mapfile -t paired_devices < <(bluetoothctl devices Paired | grep -F Device | cut -d ' ' -f 2)
+
+    if [ ${#paired_devices[@]} -eq 0 ]; then
+        echo "Keine gekoppelten Geräte"
+        return
+    fi
+
+    devices="Verbundene Geräte:\n"
+    for device in "${paired_devices[@]}"; do
+        if bluetoothctl info "$device" | grep -F -q "Connected: yes"; then
+            device_name="$(bluetoothctl info "$device" | grep -F "Alias" | cut -d ' ' -f 2-)"
+            devices="${devices}• ${device_name}\n"
+        fi
+    done
+
+    # Wenn keine Geräte verbunden sind
+    if [ "$devices" = "Verbundene Geräte:\n" ]; then
+        devices="${devices}Keine verbundenen Geräte"
+    fi
+
+    echo -e "$devices"
+}
+
+# Symbol basierend auf Bluetooth-Status
+get_bluetooth_icon() {
+    if bluetooth_status; then
+        echo "" # Bluetooth eingeschaltet
+    else
+        echo "󰂲" # Bluetooth ausgeschaltet
+    fi
+}
+
+case $BLOCK_BUTTON in
+	1) setsid -f blue ;; # Führt blue im dmenu aus
+	2) toggle_bluetooth ;; # Schaltet Bluetooth ein und aus
+	3)
+        devices_info=$(get_connected_devices)
+        notify-send "$(get_bluetooth_icon) Bluetooth Modul " "\
+${devices_info}
+
+- L 󰍽 Führt blue aus (Bluetooth-Manager).
+- M 󰍽 Bluetooth Ein/Aus.
+- R 󰍽 Diese Meldung anzeigen." ;;
+    4) ;; # unbelegt
+    5) ;; # unbelegt
+	6) setsid -f "$TERMINAL" -e "$EDITOR" "$0" ;; # Das Skript bearbeiten
+esac
+
+
+## Statusausgabe für Statusleiste
+icon=$(get_bluetooth_icon)
+echo "$icon"
