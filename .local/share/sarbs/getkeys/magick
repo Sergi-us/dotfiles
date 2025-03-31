@@ -1,0 +1,34 @@
+## 2025-03-28 SARBS
+#######################################################################################################################
+ m    m                 "           #
+ ##  ##  mmm    mmmm  mmm     mmm   #   m       Das Bildmanipulations-tool
+ # ## # "   #  #" "#    #    #"  "  # m"        magick
+ # "" # m"""#  #   #    #    #      #"#         convert eingabe <oprion> ausgabe
+ #    # "mm"#  "#m"#  mm#mm  "#mm"  #  "m       mogrify <Option> eingabe
+                m  #
+                 ""
+
+=== magick ===                          === convert ===                         === mogrify ===
+input.jpg output.png                    -rotate [winkel]                        -rotate [winkel]
+input.jpg -negate output.jpg            -resize [w]x[h]                         -resize [w]x[h]
+montage *.jpg output.jpg                -crop [w]x[h]+[x]+[y]                   -crop [w]x[h]+[x]+[y]
+identify input.jpg                      -flip (vertikal spiegeln)               -flip (vertikal spiegeln)
+display input.jpg                       -flop (horizontal spiegeln)             -flop (horizontal spiegeln)
+-blur [radius]x[sigma]                  -blur [radius]x[sigma]
+-sharpen [radius]x[sigma]               -sharpen [radius]x[sigma]
+-grayscale                              -grayscale
+-threshold [wert]                       -threshold [wert]
+-contrast-stretch [black]x[white]%      -contrast-stretch [black]x[white]%
+-quality [wert]                         -quality [wert]
+
+
+
+
+
+
+
+
+Bachbearbeitung:
+magick montage *.jpg -geometry 200x200+10+10 -background "#ffffff" collage.jpg
+for bild in *.jpg; do convert "$bild" -rotate 180 "gedreht_$bild"; done
+#######################################################################################################################
