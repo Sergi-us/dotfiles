@@ -79,7 +79,8 @@ show_status() {
 
     # Temperatur in Kelvin anzeigen, formatiert mit Dezimalpunkt
     temp_k=$(awk "BEGIN {printf \"%.1fK\", $current_temp/1000}")
-    echo "[$temp_icon $temp_k]"
+    echo "$temp_icon"
+    # echo "[$temp_icon $temp_k]"
 }
 
 # Hauptlogik

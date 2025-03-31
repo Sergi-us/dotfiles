@@ -1,27 +1,20 @@
 #!/bin/sh
+## 2025-03-27 SARBS DEV
 ## 2025-03-05 SARBS
 
-# Uncomment the mixer you prefer to use
-MIXER="pulsemixer"
+# TODO Standard widergabegerät wird noc nicht angezeigt
 
+# Konfiguration
+# Auf "true" setzen, um die Prozentanzeige auszublenden
+HIDE_PERCENTAGE="false"
 
-# INFO die pkill -RTMIN+21 "${STATUSBAR:-dwmblocks}" testen...
-case $BLOCK_BUTTON in
-    1) wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle; pkill -RTMIN+21 "${STATUSBAR:-dwmblocks}" ;;
-    2) setsid -w -f "$TERMINAL" -e $MIXER; pkill -RTMIN+21 "${STATUSBAR:-dwmblocks}" ;;
-    3) notify-send "Lautstärke Modul" "\- Zeigt Lautsärke   ,
-- L 󰍽 Stumm 
-- M 󰍽 Pulsmixer
-- 󱕒 Lautstärke ändern" ;;
-    4) wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%+; pkill -RTMIN+21 "${STATUSBAR:-dwmblocks}" ;;
-    5) wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-; pkill -RTMIN+21 "${STATUSBAR:-dwmblocks}" ;;
-    6) setsid -f "$TERMINAL" -e "$EDITOR" "$0" ;;
-esac
-
-# Get the current volume and mute status
+# Get the current volume, mute status and device name
 vol_info=$(wpctl get-volume @DEFAULT_AUDIO_SINK@)
 vol=$(echo "$vol_info" | awk '{print $2}')
 muted=$(echo "$vol_info" | grep -q MUTED && echo "yes" || echo "no")
+
+# Get current audio device name
+current_device=$(pactl get-default-sink | xargs pactl list sinks | grep -A 2 "Name: " | grep "Description" | sed 's/.*Description: //')
 
 # Convert volume to percentage
 vol=$(awk -v vol="$vol" 'BEGIN{printf "%.0f\n", vol * 100}')
@@ -39,5 +32,19 @@ else
     icon="󰝟"
 fi
 
-# Output the result
+case $BLOCK_BUTTON in
+    1) wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle; pkill -RTMIN+21 "${STATUSBAR:-dwmblocks}" ;;
+    2) setsid -w -f "$TERMINAL" -e $MIXER; pkill -RTMIN+21 "${STATUSBAR:-dwmblocks}" ;;
+    3) notify-send "Lautstärke Modul" "\- Zeigt Lautsärke 🔊 $vol%,
+- Aktives Gerät: $current_device
+- L 󰍽 Stumm
+- M 󰍽 Pulsmixer
+- 󱕒 Lautstärke ändern
+- HIDE_PERCENTAGE=$HIDE_PERCENTAGE im Skript ändern um Prozentanzeige zu verstecken" ;;
+    4) wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%+; pkill -RTMIN+21 "${STATUSBAR:-dwmblocks}" ;;
+    5) wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-; pkill -RTMIN+21 "${STATUSBAR:-dwmblocks}" ;;
+    6) setsid -f "$TERMINAL" -e "$EDITOR" "$0" ;;
+esac
+
+# echo "[$icon]"
 echo "[$icon $vol%]"

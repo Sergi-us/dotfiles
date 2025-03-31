@@ -2,7 +2,7 @@
 ## 2025-03-10 SARBS
 
 # Temperatur-Schwellenwert
-TEMP_THRESHOLD=80
+TEMP_THRESHOLD=96
 
 # Funktion zum Auslesen der CPU-Temperatur - jetzt mit vollständiger Reinigung
 get_cpu_temp() {
