@@ -33,3 +33,18 @@ autocmd({ "FocusGained", "BufEnter", "CursorHold", "CursorHoldI" }, {
     end
   end,
 })
+
+-- dwmblocks nach änderungen aktualisieren
+vim.cmd([[
+  autocmd BufWritePost ~/.local/src/dwmblocks/config.h !cd ~/.local/src/dwmblocks/; sudo make install && { killall -q dwmblocks;setsid -f dwmblocks }
+]])
+
+-- aktualisiert shortcust nach dem ändern von bm-files und bm-dirs
+vim.cmd([[
+  autocmd BufWritePost bm-files,bm-dirs !shortcuts
+]])
+
+-- aktualisiert auflößung nach
+vim.cmd([[
+  autocmd BufWritePost Xresources,Xdefaults,xresources,xdefaults !xrdb %
+]])
