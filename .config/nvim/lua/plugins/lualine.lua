@@ -19,6 +19,7 @@ return {
         disabled_filetypes = {},
         always_divide_middle = true,
         always_show_tabline = true,
+        transparent = true, -- Hier wird die Transparenz aktiviert
         globalstatus = true, -- Eine globale Statuszeile für alle Fenster
       refresh = {
         statusline = 100,

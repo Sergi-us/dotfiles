@@ -1,13 +1,18 @@
 #!/bin/sh
-## 2025-03-25 SARBS
+## 2025-04-01 SARBS
 
-# Hilfsfunktion zum Überprüfen, ob Bluetooth eingeschaltet ist
+# Signalnummer für dwmblocks-Aktualisierung
+UPDATE_SIGNAL=31
+
+# Hilfsfunktion zur Aktualisierung des Blocks in dwmblocks
+update_block() {
+    pkill -RTMIN+$UPDATE_SIGNAL dwmblocks >/dev/null 2>&1
+}
+
+# Hilfsfunktion zum Überprüfen, ob Bluetooth eingeschaltet ist (optimiert)
 bluetooth_status() {
-    if bluetoothctl show | grep -F -q "Powered: yes"; then
-        return 0 # Bluetooth ist eingeschaltet
-    else
-        return 1 # Bluetooth ist ausgeschaltet
-    fi
+    bluetoothctl show | grep -F -q "Powered: yes"
+    return $?
 }
 
 # Hilfsfunktion zum Umschalten des Bluetooth-Status
@@ -16,38 +21,68 @@ toggle_bluetooth() {
         bluetoothctl power off
     else
         if rfkill list bluetooth | grep -F -q 'blocked: yes'; then
-            rfkill unblock bluetooth && sleep 1
+            rfkill unblock bluetooth && sleep 0.5
         fi
         bluetoothctl power on
     fi
+    # Block aktualisieren nach Statusänderung
+    update_block
 }
 
-# Hilfsfunktion zum Anzeigen verbundener Geräte
+# Hilfsfunktion zum Abrufen des Batteriestands eines Geräts (optimiert)
+get_battery_level() {
+    local device="$1"
+    local battery_info
+
+    # Extraktion des tatsächlichen Prozentwertes aus den Klammern
+    battery_info=$(bluetoothctl info "$device" | grep -F "Battery Percentage:" | grep -o '([0-9]\+)' | tr -d '()')
+
+    # Wenn der Batteriestand gefunden wurde, formatiere ihn
+    if [ -n "$battery_info" ]; then
+        echo " ${battery_info}%"
+    else
+        echo ""
+    fi
+}
+
+# Hilfsfunktion zum Anzeigen verbundener Geräte mit Batteriestand (optimiert)
 get_connected_devices() {
     if ! bluetooth_status; then
         echo "Bluetooth ist ausgeschaltet"
         return
     fi
 
-    devices=""
-    # Hier ist die korrigierte Zeile - 'devices Paired' statt 'paired-devices'
-    mapfile -t paired_devices < <(bluetoothctl devices Paired | grep -F Device | cut -d ' ' -f 2)
+    # Alle gekoppelten Geräte mit einem einzigen Aufruf abrufen
+    paired_devices=$(bluetoothctl devices Paired | grep -F Device | cut -d ' ' -f 2)
 
-    if [ ${#paired_devices[@]} -eq 0 ]; then
+    if [ -z "$paired_devices" ]; then
         echo "Keine gekoppelten Geräte"
         return
     fi
 
     devices="Verbundene Geräte:\n"
-    for device in "${paired_devices[@]}"; do
-        if bluetoothctl info "$device" | grep -F -q "Connected: yes"; then
-            device_name="$(bluetoothctl info "$device" | grep -F "Alias" | cut -d ' ' -f 2-)"
-            devices="${devices}• ${device_name}\n"
+    connected_found=0
+
+    for device in $paired_devices; do
+        # Prüfen, ob das Gerät verbunden ist und alle benötigten Infos mit einem Aufruf holen
+        device_info=$(bluetoothctl info "$device")
+        if echo "$device_info" | grep -F -q "Connected: yes"; then
+            connected_found=1
+            device_name=$(echo "$device_info" | grep -F "Alias" | cut -d ' ' -f 2-)
+
+            # Batteriestand extrahieren (den Wert in Klammern)
+            battery_info=""
+            battery_level=$(echo "$device_info" | grep -F "Battery Percentage:" | grep -o '([0-9]\+)' | tr -d '()')
+            if [ -n "$battery_level" ]; then
+                battery_info=" ${battery_level}%"
+            fi
+
+            devices="${devices}• ${device_name}${battery_info}\n"
         fi
     done
 
     # Wenn keine Geräte verbunden sind
-    if [ "$devices" = "Verbundene Geräte:\n" ]; then
+    if [ $connected_found -eq 0 ]; then
         devices="${devices}Keine verbundenen Geräte"
     fi
 
@@ -64,22 +99,29 @@ get_bluetooth_icon() {
 }
 
 case $BLOCK_BUTTON in
-	1) setsid -f blue ;; # Führt blue im dmenu aus
-	2) toggle_bluetooth ;; # Schaltet Bluetooth ein und aus
-	3)
-        devices_info=$(get_connected_devices)
-        notify-send "$(get_bluetooth_icon) Bluetooth Modul " "\
+    1)
+       setsid -f blue  # Führt blue im dmenu aus
+       update_block
+       ;;
+    2)
+       toggle_bluetooth  # Schaltet Bluetooth ein und aus (enthält bereits update_block)
+       ;;
+    3)
+       devices_info=$(get_connected_devices)
+       notify-send "$(get_bluetooth_icon) Bluetooth Modul " "\
 ${devices_info}
 
 - L 󰍽 Führt blue aus (Bluetooth-Manager).
 - M 󰍽 Bluetooth Ein/Aus.
-- R 󰍽 Diese Meldung anzeigen." ;;
+- R 󰍽 Diese Meldung anzeigen."
+       ;;
     4) ;; # unbelegt
     5) ;; # unbelegt
-	6) setsid -f "$TERMINAL" -e "$EDITOR" "$0" ;; # Das Skript bearbeiten
+    6)
+       setsid -f "$TERMINAL" -e "$EDITOR" "$0"  # Das Skript bearbeiten
+       ;;
 esac
 
-
-## Statusausgabe für Statusleiste
+# Statusausgabe für Statusleiste
 icon=$(get_bluetooth_icon)
 echo "$icon"

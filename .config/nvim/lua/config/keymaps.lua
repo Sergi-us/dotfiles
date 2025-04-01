@@ -16,11 +16,6 @@ map("n", "<A-k>", ":m .-2<CR>==", { desc = "Zeile nach oben bewegen" })
 map("n", "<leader>bn", ":bnext<CR>", { desc = "Nächster Puffer" })
 map("n", "<leader>bp", ":bprevious<CR>", { desc = "Vorheriger Puffer" })
 
--- VimWiki Keybindings
-vim.keymap.set("n", "<leader>v", ":VimwikiIndex<CR>", { noremap = true, silent = true })
--- ws überdenken... wi für wiki indes
-vim.keymap.set("n", "<leader>ws", ":VimwikiUISelect<CR>", { noremap = true, silent = true })
-
 -- Keybinding für nvim-tree
 vim.keymap.set("n", "<leader>n", ":NvimTreeToggle<CR>", { noremap = true, silent = true })
 
@@ -37,9 +32,9 @@ vim.keymap.set('n', 'z0', 'z=', { noremap = true })            -- Zeigt Wortvors
 
 -- === Funktionen ===
 -- vim.keymap.set('n', '<leader>t', ':term<CR>', { noremap = true })  -- Terminal öffnen (auskommentiert wegen zsh Problemen)
-vim.keymap.set('', '<leader>s', ':setlocal spell! spelllang=de_de,en_us<CR>', { noremap = true })  -- Rechtschreibprüfung ein/ausschalten
+vim.keymap.set('', '<leader>s', ':setlocal spell! spelllang=de_de,en_us<CR>', { noremap = true })     -- Rechtschreibprüfung ein/ausschalten
 -- vim.keymap.set('', '<leader>o', ':!clear && shellcheck -x %<CR>', { noremap = true })              -- Shellskripte mit shellcheck analysieren
-vim.keymap.set('n', '<leader>h', ':call ToggleHiddenAll()<CR>', { noremap = true })                -- Versteckte Elemente ein-/ausblenden (benötigt die ToggleHiddenAll Funktion)
+-- vim.keymap.set('n', '<leader>h', ':call ToggleHiddenAll()<CR>', { noremap = true })                -- Versteckte Elemente ein-/ausblenden (benötigt die ToggleHiddenAll Funktion)
 
 -- Suchhervorhebung ausschalten mit Escape
 vim.keymap.set('n', '<Esc>', ':nohlsearch<CR>', { noremap = true, silent = true })

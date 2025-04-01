@@ -1,7 +1,19 @@
 -- lua/config/autocmds.lua
--- ## 2025-03-30 SARBS
+-- ## 2025-04-01 SARBS
 local augroup = vim.api.nvim_create_augroup
 local autocmd = vim.api.nvim_create_autocmd
+
+-- Gruppe für Highlighting-Prioritäten (NEU)
+local highlight_group = augroup("HighlightPriority", { clear = true })
+
+-- Stelle sicher, dass MatchParen immer Priorität hat (über CursorLine) (NEU)
+autocmd("ColorScheme", {
+  group = highlight_group,
+  callback = function()
+    -- MatchParen mit stärkerer Hervorhebung (ohne priority-Attribut)
+    vim.api.nvim_set_hl(0, "MatchParen", { bg = "#6a7086", fg = "#ffffff", bold = true, blend = 0 })
+  end,
+})
 
 -- Cursor zur letzten Position in der Datei setzen
 autocmd("BufReadPost", {
@@ -31,6 +43,13 @@ autocmd({ "FocusGained", "BufEnter", "CursorHold", "CursorHoldI" }, {
     if not vim.api.nvim_buf_get_option(0, "modified") then
       vim.cmd("checktime")
     end
+  end,
+})
+
+-- Highlight bei Yank (NEU)
+autocmd("TextYankPost", {
+  callback = function()
+    vim.highlight.on_yank({ higroup = "IncSearch", timeout = 300 })
   end,
 })
 
