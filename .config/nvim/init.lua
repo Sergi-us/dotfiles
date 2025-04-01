@@ -23,7 +23,10 @@ if not vim.loop.fs_stat(lazypath) then
     lazypath,
   })
 end
+
 vim.opt.rtp:prepend(lazypath)
+
+
 
 -- Grundlegende Neovim Konfiguration
 vim.g.mapleader = " "      -- Space als Leader-Taste
