@@ -34,7 +34,7 @@ fi
 
 case $BLOCK_BUTTON in
     1) wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle; pkill -RTMIN+21 "${STATUSBAR:-dwmblocks}" ;;
-    2) setsid -w -f "$TERMINAL" -e $MIXER; pkill -RTMIN+21 "${STATUSBAR:-dwmblocks}" ;;
+    2) setsid -w -f "$TERMINAL" -e pulsemixer; pkill -RTMIN+21 "${STATUSBAR:-dwmblocks}" ;;
     3) notify-send "Lautstärke Modul" "\- Zeigt Lautsärke 🔊 $vol%,
 - Aktives Gerät: $current_device
 - L 󰍽 Stumm
