@@ -1,3 +1,5 @@
+-- Dateimanager Konfiguration
+--## 2025-04-02
 return {
   "nvim-tree/nvim-tree.lua",
   lazy = false,
@@ -16,6 +18,21 @@ return {
       filters = {
         dotfiles = false,
       },
+      on_attach = function(bufnr)
+        local api = require("nvim-tree.api")
+
+        local function opts(desc)
+          return { desc = 'nvim-tree: ' .. desc, buffer = bufnr, noremap = true, silent = true, nowait = true }
+        end
+
+        -- Standard-Mappings
+        vim.keymap.set('n', '<CR>', api.node.open.edit, opts('Open'))
+        vim.keymap.set('n', 'o', api.node.open.edit, opts('Open'))
+        vim.keymap.set('n', '<2-LeftMouse>', api.node.open.edit, opts('Open'))
+
+        -- Öffne in Tab mit t
+        vim.keymap.set('n', 't', api.node.open.tab, opts('Open in New Tab'))
+      end,
     })
   end,
   -- Optional: Keys für nvim-tree

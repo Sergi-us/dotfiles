@@ -6,15 +6,6 @@ local autocmd = vim.api.nvim_create_autocmd
 -- Gruppe für Highlighting-Prioritäten (NEU)
 local highlight_group = augroup("HighlightPriority", { clear = true })
 
--- Stelle sicher, dass MatchParen immer Priorität hat (über CursorLine) (NEU)
-autocmd("ColorScheme", {
-  group = highlight_group,
-  callback = function()
-    -- MatchParen mit stärkerer Hervorhebung (ohne priority-Attribut)
-    vim.api.nvim_set_hl(0, "MatchParen", { bg = "#6a7086", fg = "#ffffff", bold = true, blend = 0 })
-  end,
-})
-
 -- Cursor zur letzten Position in der Datei setzen
 autocmd("BufReadPost", {
   callback = function()

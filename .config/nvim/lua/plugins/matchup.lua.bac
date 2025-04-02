@@ -19,12 +19,17 @@ return {
     -- Surround-Unterstützung
     vim.g.matchup_surround_enabled = 1
 
-    -- Sehr auffällige Hervorhebung für Klammern definieren
-    -- Wird durch die ColorScheme-Anpassung aufgerufen
     vim.api.nvim_exec([[
       function! HighlightMatchParen()
-        highlight MatchParen guibg=#ff5555 guifg=#ffffff gui=bold ctermbg=203 ctermfg=231 cterm=bold
-        highlight MatchWord guibg=#ff5555 guifg=#ffffff gui=bold ctermbg=203 ctermfg=231 cterm=bold
+        " Wir rufen hier die zentrale Transparenz-Funktion auf,
+        " anstatt die Farben direkt zu setzen
+        if exists("*v:lua.set_transparent_background")
+          call v:lua.set_transparent_background()
+        else
+          " Fallback, falls die zentrale Funktion nicht existiert
+          highlight MatchParen guibg=#ff5555 guifg=#ffffff gui=bold ctermbg=203 ctermfg=231 cterm=bold
+          highlight MatchWord guibg=#ff5555 guifg=#ffffff gui=bold ctermbg=203 ctermfg=231 cterm=bold
+        endif
       endfunction
 
       augroup VeryVisibleMatchParen

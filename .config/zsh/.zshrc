@@ -5,6 +5,12 @@
 # TODO Git integration überprüfen und neue Symbole ergänzen   
 # TODO Pure Promt testen (sieht interessant aus)
 
+# rust-stakeholder
+# cargo install --git https://github.com/giacomo-b/rust-stakeholder.git
+# https://github.com/giacomo-b/rust-stakeholder
+# rust-stakeholder -d game-development -j extreme -c extreme
+export PATH="$HOME/.local/share/cargo/bin:$PATH"
+
 # Hilfsfunktion zum Hinzufügen einer Datei zur Zsh-Konfiguration
 function zsh_add_file() {
     local FILE_PATH="$ZDOTDIR/$1"

@@ -49,6 +49,7 @@ return {
             breakindent = vim.opt.breakindent:get(),
             spell = vim.opt.spell:get(),
             cursorline = vim.opt.cursorline:get(),
+            cursorcolumn = vim.opt.cursorcolumn:get(), -- NEU
             showcmd = vim.opt.showcmd:get()
           }
 
@@ -63,9 +64,10 @@ return {
           vim.cmd("highlight LineNr guifg=#444a73")
           vim.cmd("highlight StatusLine guibg=#393552 guifg=#e0def4")
 
-          -- Transparenz-Fix aufrufen, falls vorhanden
-          if _G.set_transparent_background then
-            _G.set_transparent_background()
+          -- Verwende die Transparenz-Funktion aus transparenz.lua, wenn verfügbar
+          local transparenz = require("config.transparenz")
+          if transparenz and transparenz.setup then
+            transparenz.setup()
           end
 
           -- Klammern-Hervorhebung beibehalten
@@ -73,39 +75,44 @@ return {
             vim.cmd("call HighlightMatchParen()")
           end
         end,
-        on_close = function()
-          -- Stelle die ursprünglichen Einstellungen wieder her
-          if _G.original_settings then
-            vim.opt.wrap = _G.original_settings.wrap
-            vim.opt.linebreak = _G.original_settings.linebreak
-            vim.opt.breakindent = _G.original_settings.breakindent
 
-            if not _G.original_settings.spell then
-              vim.cmd("setlocal nospell")
-            end
+      on_close = function()
+        -- Stelle die ursprünglichen Einstellungen wieder her
+        if _G.original_settings then
+          vim.opt.wrap = _G.original_settings.wrap
+          vim.opt.linebreak = _G.original_settings.linebreak
+          vim.opt.breakindent = _G.original_settings.breakindent
+          vim.opt.cursorline = _G.original_settings.cursorline     -- Stellt cursorline wieder her
+          vim.opt.cursorcolumn = _G.original_settings.cursorcolumn -- Stellt cursorcolumn wieder her (NEU)
 
-            vim.opt.cursorline = _G.original_settings.cursorline
-            vim.opt.showcmd = _G.original_settings.showcmd
-          else
-            -- Fallback, falls original_settings nicht verfügbar
-            vim.opt.wrap = false
-            vim.opt.linebreak = false
-            vim.opt.breakindent = false
+          if not _G.original_settings.spell then
             vim.cmd("setlocal nospell")
           end
 
+          vim.opt.showcmd = _G.original_settings.showcmd
+        else
+          -- Fallback, falls original_settings nicht verfügbar
+          vim.opt.wrap = false
+          vim.opt.linebreak = false
+          vim.opt.breakindent = false
+          vim.opt.cursorline = true     -- Standardwert wiederherstellen
+          vim.opt.cursorcolumn = true   -- Standardwert wiederherstellen (NEU)
+          vim.cmd("setlocal nospell")
+        end
+
           -- Theme wiederherstellen
-          vim.cmd.colorscheme "catppuccin"
+          vim.cmd.colorscheme "pywal"
 
-          -- Transparenz-Fix aufrufen, falls vorhanden
-          if _G.set_transparent_background then
-            _G.set_transparent_background()
+          -- Verwende die Transparenz-Funktion aus transparenz.lua, wenn verfügbar
+          local transparenz = require("config.transparenz")
+          if transparenz and transparenz.setup then
+            transparenz.setup()
           end
 
-          -- Klammern-Hervorhebung beibehalten
-          if vim.fn.exists("*HighlightMatchParen") == 1 then
-            vim.cmd("call HighlightMatchParen()")
-          end
+        -- Klammern-Hervorhebung beibehalten
+        if vim.fn.exists("*HighlightMatchParen") == 1 then
+          vim.cmd("call HighlightMatchParen()")
+        end
         end,
       })
     end,
