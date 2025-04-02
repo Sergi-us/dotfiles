@@ -1,3 +1,6 @@
+-- ~/.config/nvim/lua/plugins/autopairs.lua
+-- Schließ die klammer sofort wieder...
+-- ## 2025-04-02
 return {
   "windwp/nvim-autopairs",
   event = "InsertEnter",

@@ -1,3 +1,5 @@
+-- Git-Diff-Ansicht
+-- ## 2025-04-02
 return {
   "sindrets/diffview.nvim",
   dependencies = {
