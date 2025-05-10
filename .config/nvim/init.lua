@@ -272,7 +272,10 @@ lazy.setup({
 }) -- Schließende Klammer für lazy.setup
 
 -- Lade Benutzereinstellungen nach dem Lazy-Setup
-pcall(require, "config.options")  -- Grundlegende Vim-Optionen
-pcall(require, "config.keymaps")  -- Tastenkombinationen
-pcall(require, "config.autocmds") -- Automatische Befehle
-pcall(require, "config.transparenz") --
+pcall(require, "config.options")      -- Grundlegende Vim-Optionen
+pcall(require, "config.keymaps")      -- Tastenkombinationen
+pcall(require, "config.autocmds")     -- Automatische Befehle
+pcall(require, "config.transparency") -- Schaltbare Transparenz mit <leader>ü
+pcall(require, "config.shortcuts")    -- Shortcurt integration der Tastenkürzel für vim
+pcall(require, "config.sarbs")        -- Meine Wiki zu CSV konvertieren...
+pcall(require, "config.zeiterfassung")  -- SumHours  addiert alle stunden in der Datei zusammen und gibt die Summenzeile aus

@@ -1,23 +1,57 @@
 #!/bin/sh
-## 2025-03-25 SARBS
+## 2025-04-03 SARBS - Verbesserte Mailbox-Anzeige
 
-# Zeigt die Anzahl ungelesener E-Mails und ein Lade-Symbol während der Aktualisierung.
-# Bei Klick wird `neomutt` geöffnet.
+# Zeigt die Anzahl ungelesener E-Mails und ein Symbol je nach Status
+# Geschlossener Briefumschlag wenn keine ungelesenen Mails, geöffneter mit Anzahl wenn ungelesene vorhanden
+# Bei Klick wird `neomutt` geöffnet, Rechtsklick zeigt detaillierte Mailbox-Informationen
 
 case $BLOCK_BUTTON in
-	1) setsid -f mw -Y >/dev/null; notify-send -u low "Mails werden Aktualisiert"; pkill -RTMIN+20 "${STATUSBAR:-dwmblocks}" ;;
+	1) setsid -f mw -Y >/dev/null; notify-send -u low "Mails werden aktualisiert"; pkill -RTMIN+20 "${STATUSBAR:-dwmblocks}" ;;
 	2) setsid -w -f "$TERMINAL" -e neomutt; pkill -RTMIN+20 "${STATUSBAR:-dwmblocks}" ;;
-	3) notify-send " Mail Modul" "\- Zeigt ungelesene E-Mails
-- L-󰍽 synchronisiert E-Mails
-- M-󰍽 öffnet NeoMutt" ;;
+	3)
+		# Detaillierte Informationen zu den einzelnen Postfächern anzeigen
+		mail_dir="${XDG_DATA_HOME:-$HOME/.local/share}/mail"
+		header="Ungelesen - Account"
+		details=""
+
+		# Alle Mail-Accounts durchlaufen
+		for account in "$mail_dir"/*; do
+			# Prüfen, ob es sich um ein Verzeichnis handelt
+			[ -d "$account" ] || continue
+
+			# Verzeichnisnamen extrahieren
+			account_name=$(basename "$account")
+
+			# Ungelesene Mails zählen
+			unread_count=$(find "$account/INBOX/new/" -type f 2>/dev/null | wc -l)
+
+			# Zum details-String hinzufügen, wenn der Account existiert
+			[ -n "$account_name" ] && details="${details}${unread_count} - ${account_name}\n"
+		done
+
+		# Notify-send mit Überschrift und Details
+		notify-send " Mail Modul" "$header\n$details\n- L-󰍽 synchronisiert E-Mails\n- M-󰍽 öffnet NeoMutt" ;;
 	6) setsid -f "$TERMINAL" -e "$EDITOR" "$0" ;;
 esac
 
-# Anzahl ungelesener E-Mails ermitteln
-unread="$(find "${XDG_DATA_HOME:-$HOME/.local/share}"/mail/*/[Ii][Nn][Bb][Oo][Xx]/new/* -type f | wc -l 2>/dev/null)"
+# Mail-Verzeichnis
+mail_dir="${XDG_DATA_HOME:-$HOME/.local/share}/mail"
+
+# Anzahl ungelesener E-Mails ermitteln (alle Accounts zusammen)
+unread="$(find "$mail_dir"/*/[Ii][Nn][Bb][Oo][Xx]/new/* -type f 2>/dev/null | wc -l)"
 
 # Prüfen, ob mbsync läuft und entsprechendes Icon setzen
-pidof mbsync >/dev/null 2>&1 && icon="󰁪"
+pidof mbsync >/dev/null 2>&1 && sync_icon=" 󰁪 "
 
-# Ausgabe nur, wenn unread nicht "0" ist oder wenn ein Icon angezeigt werden soll
-[ "$unread" = "0" ] && [ "$icon" = "" ] || echo "$unread$icon"
+# Mail-Icons: geschlossener und geöffneter Briefumschlag
+closed_icon="󰇰"
+open_icon="󰗯"
+
+# Ausgabe mit entsprechendem Icon je nach Status
+if [ "$unread" = "0" ]; then
+    # Keine ungelesenen Mails: geschlossener Briefumschlag
+    [ -n "$sync_icon" ] && echo "$closed_icon$sync_icon" || echo "$closed_icon"
+else
+    # Ungelesene Mails: geöffneter Briefumschlag mit Anzahl
+    echo "$open_icon $unread$sync_icon"
+fi
