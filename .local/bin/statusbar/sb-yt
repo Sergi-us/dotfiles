@@ -96,8 +96,8 @@ edit_stats_file() {
 
 # Button-Actions für dwmblocks
 case $BLOCK_BUTTON in
-    1) show_details; pkill -RTMIN+28 "${STATUSBAR:-dwmblocks}" ;;
-    2) update_stats; pkill -RTMIN+28 "${STATUSBAR:-dwmblocks}" ;;
+    1) update_stats; pkill -RTMIN+28 "${STATUSBAR:-dwmblocks}" ;;
+    2) show_details; pkill -RTMIN+28 "${STATUSBAR:-dwmblocks}" ;;
     3) notify-send " YouTube-Modul" "\- L-󰍽 YouTube übersicht anzeigen
 - M-󰍽 Statistiken aktualisieren
 - R-󰍽 Hilfe anzeigen" ;;

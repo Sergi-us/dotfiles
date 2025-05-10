@@ -21,7 +21,6 @@ PIXELFORMAT="MJPG"
 MPV_BASE_OPTIONS="--untimed --no-cache --no-osc --no-input-default-bindings --profile=low-latency --input-conf=/dev/null --title=webcam"
 # MPV_BASE_OPTIONS="--untimed --no-cache --no-osc --no-input-default-bindings --profile=low-latency --input-conf=/dev/null --title=webcam --vo=x11 --hwdec=no"
 ANDROID_FILTERS="hue=s=0,crop=1450:1080,hflip,vflip"
-# ANDROID_FILTERS="hue=s=0,crop=1450:1080,hflip"
 STANDARD_FILTERS="hue=s=0,crop=720:720,scale=720:720"
 ANDROID_ROTATION="--video-rotate=90"
 

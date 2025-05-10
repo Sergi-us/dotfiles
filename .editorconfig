@@ -1,0 +1,148 @@
+# Globale EditorConfig-Datei
+# Diese Datei definiert die Standard-Formatierungseinstellungen für alle Dateien
+# Weitere Informationen: https://editorconfig.org/
+
+# root = true gibt an, dass diese Datei die oberste EditorConfig-Datei ist
+# Bei projektspezifischen EditorConfig-Dateien solltest du diese Zeile ebenfalls
+# einfügen, um das Durchsuchen höherer Verzeichnisse zu stoppen
+root = true
+
+###############################################################################
+# GRUNDEINSTELLUNGEN FÜR ALLE DATEIEN
+###############################################################################
+[*]
+# Zeichenkodierung für alle Dateien: UTF-8
+charset = utf-8
+
+# Zeilenende-Stil für alle Dateien: LF (Unix-Style)
+# Optionen: lf (Unix), crlf (Windows), cr (Mac)
+end_of_line = lf
+
+# Fügt immer eine leere Zeile am Ende der Datei ein
+insert_final_newline = true
+
+# Entfernt Leerzeichen am Ende jeder Zeile
+trim_trailing_whitespace = true
+
+# Standard-Einrückungsstil: Leerzeichen statt Tabs
+# Optionen: space, tab
+indent_style = space
+
+# Standard-Einrückungstiefe: 4 Leerzeichen
+indent_size = 4
+
+###############################################################################
+# PROGRAMMIERSPRACHEN - WEBENTWICKLUNG (2 Leerzeichen)
+###############################################################################
+# Frontend-Web-Technologien
+[*.{html,htm,css,scss,sass,less}]
+indent_size = 2
+# Kommentar: Die meisten Web-Standards und Frameworks verwenden 2 Leerzeichen
+
+# JavaScript und verwandte Technologien
+[*.{js,jsx,ts,tsx,json,jsonc}]
+indent_size = 2
+# Kommentar: NodeJS, React, Angular, TypeScript etc. nutzen üblicherweise 2 Leerzeichen
+
+# Markup- und Datenformate
+[*.{xml,svg,yaml,yml,toml}]
+indent_size = 2
+# Kommentar: Für diese Formate ist eine kompaktere Einrückung lesbar und üblich
+
+# Web-Frameworks und -Komponenten
+[*.{vue,svelte,astro,liquid,njk,handlebars,hbs}]
+indent_size = 2
+# Kommentar: Moderne Web-Framework-Dateien folgen JavaScript-Konventionen
+
+###############################################################################
+# PROGRAMMIERSPRACHEN - STANDARD (4 Leerzeichen)
+###############################################################################
+# Systemnahe und traditionelle Sprachen
+[*.{c,cpp,h,hpp,cs,java}]
+indent_size = 4
+# Kommentar: Diese Sprachen verwenden traditionell 4 Leerzeichen
+
+# Skriptsprachen
+[*.{py,rb,php,pl,tcl}]
+indent_size = 4
+# Kommentar: Python (PEP 8) fordert explizit 4 Leerzeichen, andere folgen oft
+
+###############################################################################
+# PROGRAMMIERSPRACHEN - SPEZIALFÄLLE
+###############################################################################
+# Lua (2 Leerzeichen, wie von dir bevorzugt)
+[*.lua]
+indent_size = 2
+# Kommentar: Für deine Neovim-Konfiguration und Lua-Skripte
+
+# Go (Tabs, Standard für Go)
+[*.go]
+indent_style = tab
+indent_size = 4
+# Kommentar: Go hat eine strenge Formatierung mit Tabs
+
+# Rust (4 Leerzeichen, offizieller rustfmt-Standard)
+[*.rs]
+indent_size = 4
+# Kommentar: Rustfmt erzwingt standardmäßig 4 Leerzeichen
+
+# Shell-Skripte
+[*.{sh,bash,zsh,fish}]
+indent_size = 2
+# Kommentar: Für bessere Lesbarkeit in Terminal-Skripten
+
+###############################################################################
+# SPEZIELLE DATEITYPEN
+###############################################################################
+# Makefiles - erfordern Tabs
+[{Makefile,makefile,*.mk}]
+indent_style = tab
+# Kommentar: Make erfordert Tabs für die Syntax
+
+# Markdown - spezielle Behandlung
+[*.{md,markdown}]
+indent_size = 2
+trim_trailing_whitespace = false
+# Kommentar: Leerzeichen am Zeilenende erzeugen Zeilenumbrüche in Markdown
+
+# VimWiki-Dateien
+[*.wiki]
+indent_size = 4
+# Kommentar: Für deine VimWiki-Dateien
+
+# Konfigurationsdateien
+[*.{ini,conf,cfg,properties}]
+indent_size = 2
+# Kommentar: Für bessere Lesbarkeit in Konfigurationsdateien
+
+# Dockerfile
+[{Dockerfile,*.dockerfile}]
+indent_size = 2
+# Kommentar: Docker-Community-Konvention
+
+###############################################################################
+# PROJEKTSPEZIFISCHE DATEIEN
+###############################################################################
+# Paketverwaltung
+[{package.json,package-lock.json,yarn.lock,pnpm-lock.yaml,bun.lockb}]
+indent_size = 2
+# Kommentar: Standardformat für npm/yarn/Pakete
+
+# CI/CD-Konfigurationen
+[{.gitlab-ci.yml,.github/workflows/*.yml,azure-pipelines.yml}]
+indent_size = 2
+# Kommentar: Gängige Praxis für CI/CD-Konfigurationsdateien
+
+# Git-Konfiguration
+[.gitconfig]
+indent_style = tab
+# Kommentar: Gängige Praxis für Git-Konfiguration
+
+###############################################################################
+# SPEZIFISCHE DATEIAUSSCHLÜSSE
+###############################################################################
+# Generierte oder Binärdateien nicht verarbeiten
+[{*.min.js,*.min.css,*.bundle.js}]
+indent_style = ignore
+indent_size = ignore
+# Kommentar: Minifizierte Dateien sollten nicht umformatiert werden
