@@ -9,6 +9,7 @@ c.auto_save.session = True
 # ================================================================================
 
 # Schriftgrößen für HiDPI-Display
+# c.fonts.default_size = '16pt'
 c.fonts.tabs.selected = '16pt default_family'
 c.fonts.tabs.unselected = '12pt default_family'
 # Allgemeine UI-Schriftgröße
@@ -91,7 +92,6 @@ config.set("content.webrtc_ip_handling_policy", "default-public-interface-only")
 config.set("content.cookies.accept", "all")
 config.set("content.cookies.store", True)
 # config.set("content.javascript.enabled", False) # tsh keybind to toggle
-
 
 # Referrer-Policy einschränken
 c.content.headers.referer = 'same-domain'
