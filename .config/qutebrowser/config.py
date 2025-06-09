@@ -2,7 +2,7 @@
 config.load_autoconfig(True)
 
 # Browserverhalten
-c.auto_save.session = True
+c.auto_save.session = False
 
 # ================================================================================
 # HiDPI & UI-EINSTELLUNGEN
@@ -190,8 +190,8 @@ c.url.searchengines = {
 }
 
 # Startseite festlegen
-c.url.start_pages = ['https://start.duckduckgo.de']
-c.url.default_page = 'https://start.duckduckgo.de'
+c.url.start_pages = ['https://start.duckduckgo.com']
+c.url.default_page = 'https://start.duckduckgo.com'
 
 # ================================================================================
 # KEYBINDINGS
