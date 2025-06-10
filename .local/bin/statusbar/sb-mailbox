@@ -1,5 +1,5 @@
 #!/bin/sh
-## 2025-04-03 SARBS - Verbesserte Mailbox-Anzeige
+## 2025-06-10 SARBS
 
 # Zeigt die Anzahl ungelesener E-Mails und ein Symbol je nach Status
 # Geschlossener Briefumschlag wenn keine ungelesenen Mails, geöffneter mit Anzahl wenn ungelesene vorhanden
