@@ -1,5 +1,5 @@
 # SARBS lf-Einstellungen
-## 2025-02-25
+## 2025-06-09   Funktion um Daten zum Lokalen Rechner zu Syncronisieren
 ## 2025-01-21 Neues Menukürzel für Videobearbeitung 'R'
 
 # TODO Funktion zum einfügen aus der Zwischenablage erstellen. z.B. Bilder vom Snipping tool oder Text in ne textdatei...
@@ -217,9 +217,9 @@ cmd bild-80-komprimieren ${{
     for x in $fx; do
         output="${x%.*}_komprimiert-80.${x##*.}"
         if magick "$x" -quality 80 "$output"; then
-            notify-send "🖼️ Erfolgreich" "Bild $x wurde als $output gespeichert."
+            notify-send " Erfolgreich" "Bild $x wurde als $output gespeichert."
         else
-            notify-send "❌ Fehler" "Bild $x konnte nicht verarbeitet werden."
+            notify-send "❌Fehler" "Bild $x konnte nicht verarbeitet werden."
         fi
     done
     notify-send "✅ Verarbeitung abgeschlossen." "Alle ausgewählten Bilder wurden bearbeitet."
@@ -285,7 +285,22 @@ cmd Handy-Downloads ${{
 	done
 }}
 
+# Sync zum Dell - Mirror-Modus (löscht nicht vorhandene Dateien)
+cmd sync-to-dell ${{
+    clear
+    echo "Sync zu Dell..."
+    for item in $fx; do
+        echo "→ $(basename "$item")"
+        rsync -avzP --delete --relative "$item" dell:~/
+    done
+    echo "Fertig!"
+    read dummy
+}}
+
 # ===TASTENBELEGUNGEN ===
+
+# === Sync funktionen für ssh verbundene Rechner ===
+map Sd sync-to-dell    # St = Sync to (Dateien zum anderen Rechner)
 
 # === A Menu für Kopieraktionen mit ADB-Push auf ein Android Handy ===
 map Ad Handy-Downloads
