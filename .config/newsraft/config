@@ -1,0 +1,23 @@
+## 2025-01-08 SARBS
+
+# Basis-Einstellungen
+reload-period 60
+scrolloff 3
+# show-read-articles true
+# show-read-feeds no
+list-entry-date-format "%d.%m.%Y"
+
+# Farben (optional)
+# color-list-item-fg white
+# color-list-item-unread-fg yellow
+ #color-list-item-bg black
+
+# Keybindings (optional - nur wenn du Änderungen willst)
+# bind h help
+# bind m mark-important
+# bind o open-in-browser
+bind m exec mpv "%l"
+bind f exec feh "%l"
+
+# User-Agent Header (optional)
+# send-user-agent-header false
