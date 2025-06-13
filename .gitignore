@@ -1,0 +1,9 @@
+# Backup-Dateien ignorieren
+*.bac
+
+# Weitere nützliche Ignores für Shell-Skripte
+*.tmp
+*.swp
+*.swo
+*~
+.DS_Store
