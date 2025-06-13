@@ -1,5 +1,6 @@
 #!/bin/sh
-## 2025-01-09 SARBS
+## 2025-06-13 SARBS
+## Angepasst: Zeigt Traffic nur bei aktiver Netzwerkverbindung (Hardware-Check)
 
 # Module showing network traffic. Shows how much data has been received (RX) or
 # transmitted (TX) since the previous time this script ran. So if run every
@@ -7,10 +8,35 @@
 
 case $BLOCK_BUTTON in
 	1) setsid -f "$TERMINAL" -e bmon ;;
-	3) notify-send " Netzwerk Daten Modul" " Daten Empfangen
- Daten gesendet" ;;
+	3) notify-send " Netzwerk Daten Modul" " Daten Empfangen
+ Daten gesendet" ;;
 	6) setsid -f "$TERMINAL" -e "$EDITOR" "$0" ;;
 esac
+
+# Funktion zur Überprüfung der Netzwerkverbindung über Hardware
+check_network() {
+    # Erkenne interfaces
+    wifi_iface=$(ls /sys/class/net | grep "^w" | head -n 1)
+    eth_iface=$(ls /sys/class/net | grep "^e" | head -n 1)
+
+    # Prüfe ob WiFi aktiv ist
+    if [ "$(cat /sys/class/net/$wifi_iface/operstate 2>/dev/null)" = 'up' ]; then
+        return 0  # WiFi ist verbunden
+    fi
+
+    # Prüfe ob Ethernet aktiv ist
+    if [ "$(cat /sys/class/net/$eth_iface/operstate 2>/dev/null)" = 'up' ]; then
+        return 0  # Ethernet ist verbunden
+    fi
+
+    # Prüfe ob VPN/Tunnel aktiv ist
+    if [ -n "$(cat /sys/class/net/tun*/operstate 2>/dev/null | grep 'up')" ]; then
+        return 0  # VPN ist verbunden
+    fi
+
+    # Keine aktive Verbindung gefunden
+    return 1
+}
 
 update() {
     sum=0
@@ -24,7 +50,14 @@ update() {
     printf %d\\n $(( sum - old ))
 }
 
-rx=$(update /sys/class/net/[ew]*/statistics/rx_bytes)
-tx=$(update /sys/class/net/[ew]*/statistics/tx_bytes)
-
-printf "[%4sB %4sB]" $(numfmt --to=iec $rx $tx)
+# Prüfe Netzwerkverbindung über Hardware
+if check_network; then
+    # Verbunden - zeige Traffic
+    rx=$(update /sys/class/net/[ew]*/statistics/rx_bytes)
+    tx=$(update /sys/class/net/[ew]*/statistics/tx_bytes)
+    printf "%4sB %4sB" $(numfmt --to=iec $rx $tx)
+else
+    # Offline - zeige Offline-Symbol
+    printf " " # Nerd Font Symbol für "Offline"
+    # printf "󰤭" # Nerd Font Symbol für "Offline"
+fi

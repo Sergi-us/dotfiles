@@ -32,8 +32,10 @@ esac
 # Unterschiedliche Darstellung
 ## KW03 (Di) 14.Jan.2025 14:20
 #date "+KW%V (%a) %d.%b.%Y %H:%M"
-## [Di 14.Jan KV03 🕛14:20]
-date "+[%H:%M $icon %a %d.%b KV%V]"
+## [22:25 󱑖 Di 14.Jan KW03]
+date "+[%H:%M $icon %a %d.%b KW%V]"
+## [22:25 󱑖 Di 14.Jan KW03]
+# date "+[%H:%M $icon %a %d.%b KW%V]"
 ## (Di) 14.Jan [03] 14:20
 #date "+(%a) %d.%b [%V] %H:%M"
 ## 14.Jan [03] 🕛 14:20
