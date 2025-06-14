@@ -1,19 +1,21 @@
-# Important Note
-## 2025-01-09 SARBS
+# Cronjob Hinweise
+## 2025-06-14 SARBS
 
-These cronjobs have components that require information about your current display to display notifications correctly.
+Diese Cronjobs haben Komponenten, die Informationen über Ihr aktuelles Display benötigen, um Benachrichtigungen korrekt anzuzeigen.
 
-When you add them as cronjobs, I recommend you precede the command with commands as those below:
+Es können eigene Cronjobs angelegt werden und diese können mit `crontag` :
+
+Wenn Sie sie als Cronjobs hinzufügen, empfehle ich Ihnen, dem Befehl die folgenden Befehle voranzustellen:
 
 ```
-export DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$(id -u $USER)/bus; export DISPLAY=:0; . $HOME/.zprofile;  then_command_goes_here
+export DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$(id -u $USER)/bus; export DISPLAY=:0; . $HOME/.zprofile;  dann_geht_der_befehl_hier_hin
 ```
 
-This ensures that notifications will display, xdotool commands will function and environmental variables will work as well.
+Dies stellt sicher, dass Benachrichtigungen angezeigt werden, xdotool-Befehle funktionieren und Umgebungsvariablen ebenfalls funktionieren.
 
-## Cronjob einrichten
+## Setting up Cronjobs
 
-### 1. Instalieren und Starten
+### 1. Install and Start
 ```
 p -S cronie
 sudo systemctl enable --now cronie
@@ -23,14 +25,15 @@ systemctl status cronie
 ### 2. Syntax verstehen
 Crontab-Einträge haben folgendes Format:
 Minute Stunde Tag Monat Wochentag Befehl
+
 Jedes Zeitfeld kann folgende Werte haben:
 
-``
+```
 * : Jeder mögliche Wert
 */n : Alle n Werte (z.B. */2 für jede zweite Einheit)
 n-m : Bereich von n bis m
 n,m,o : Liste bestimmter Werte
-``
+```
 
 ### 3. Beispiele
 
@@ -54,12 +57,12 @@ n,m,o : Liste bestimmter Werte
 0 9,15,21 * * * $HOME/.local/bin/yt-stats > /dev/null 2>&1
 ```
 
-- Wenn du die Ausgabe des Skripts protokollieren möchtest:
+- Wenn Sie die Ausgabe des Skripts protokollieren möchten:
 ```
 0 * * * * $HOME/.local/bin/yt-stats >> $HOME/.local/share/yt-stats/log.txt 2>&1
 ```
 
-### Fehlerbehebung
+### Troubleshooting/Fehlersuche
 ```
 grep CRON /var/log/syslog
 ```
