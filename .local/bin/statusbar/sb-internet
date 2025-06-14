@@ -1,16 +1,7 @@
 #!/bin/sh
 ## 2025-06-13 SARBS
-## Optimized: Schnelle Performance ohne Wifi-Scan-Latenz
-##
-## Wifi-Symbole:
-## 󰤯 (0-25%) - Schwach
-## 󰤟 (26-50%) - Mäßig
-## 󰤢 (51-75%) - Gut
-## 󰤥 (76-100%) - Stark
-## 󰖪 Wifi ausgeschaltet
-## 󰤫 Keine Verbindung
 
-# Konfiguration: Prozente in Statusbar anzeigen? (true/false)
+# Prozente in Statusbar anzeigen? (true/false)
 SHOW_PERCENT=false
 
 case $BLOCK_BUTTON in
@@ -38,7 +29,13 @@ case $BLOCK_BUTTON in
             current_ssid=$(nmcli -t -f name connection show --active | head -1)
             signal_strength=$(awk '/^\s*w/ { print int($3 * 100 / 70) }' /proc/net/wireless)
 
-            # Signalstärke-Icon
+            # Signalstärke-Ic## Wifi-Symbole:
+            ## 󰤥 (76-100%) - Stark
+            ## 󰤢 (51-75%) - Gut
+            ## 󰤟 (26-50%) - Mäßig
+            ## 󰤯 (0-25%) - Schwach
+            ## 󰖪 Wifi ausgeschaltet
+            ## 󰤫 Keine Verbindungon
             if [ "$signal_strength" -ge 76 ]; then
                 signal_icon="󰤥"
             elif [ "$signal_strength" -ge 51 ]; then
@@ -119,4 +116,5 @@ fi
 # 󰢭 vpn is aktiv
 [ -n "$(cat /sys/class/net/tun*/operstate 2>/dev/null)" ] && tunicon="󰢭"
 
-printf "%s%s%s\n" "[$ethericon $wifiicon $tunicon]"
+printf "%s%s%s\n" "$wifiicon $ethericon $tunicon"
+# printf "%s%s%s\n" "[$ethericon $wifiicon $tunicon]"

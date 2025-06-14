@@ -1,17 +1,25 @@
 #!/bin/sh
-## 2025-01-09 SARBS
+## 2025-06-14 SARBS
 
 # Schaltet alle Cronjobs aus/ein.
-# Speichert deaktivierte Crontabs in ~/.config/cronsaved bis zur Wiederherstellung.
+# Speichert deaktivierte Crontabs in ~/.config/cronsaved für Backup-Zwecke.
 
-([ -f "${XDG_CONFIG_HOME:-$HOME/.config}"/cronsaved ] \
-    && crontab - < "${XDG_CONFIG_HOME:-$HOME/.config}"/cronsaved \
-    && rm "${XDG_CONFIG_HOME:-$HOME/.config}"/cronsaved \
-    && notify-send "🕓 Cronjobs wieder aktiviert.") \
-    || ( crontab -l > "${XDG_CONFIG_HOME:-$HOME/.config}"/cronsaved \
-    && crontab -r && notify-send "🕓 Cronjobs gespeichert und deaktiviert.")
+CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}"
+CRONSAVED_FILE="$CONFIG_DIR/cronsaved"
 
-
-# Stores disabled crontabs in ~/.config/cronsaved until restored.
-
-#([ -f "${XDG_CONFIG_HOME:-$HOME/.config}"/cronsaved ] && crontab - < "${XDG_CONFIG_HOME:-$HOME/.config}"/cronsaved  && rm "${XDG_CONFIG_HOME:-$HOME/.config}"/cronsaved && notify-send "🕓 Cronjobs re-enabled.") || ( crontab -l > "${XDG_CONFIG_HOME:-$HOME/.config}"/cronsaved && crontab -r && notify-send "🕓 Cronjobs saved and disabled.")
+# Prüfen ob Cronjobs aktuell aktiv sind
+if crontab -l >/dev/null 2>&1 && [ "$(crontab -l 2>/dev/null | wc -l)" -gt 0 ]; then
+    # Cronjobs sind aktiv - deaktivieren und speichern
+    crontab -l > "$CRONSAVED_FILE" 2>/dev/null \
+        && crontab -r \
+        && notify-send "🕓 Cronjobs gespeichert und deaktiviert." \
+        || notify-send "❌ Fehler beim Deaktivieren der Cronjobs."
+elif [ -f "$CRONSAVED_FILE" ]; then
+    # Cronjobs sind inaktiv aber Backup existiert - wiederherstellen
+    crontab - < "$CRONSAVED_FILE" \
+        && notify-send "🕓 Cronjobs wieder aktiviert." \
+        || notify-send "❌ Fehler beim Aktivieren der Cronjobs."
+else
+    # Keine aktiven Cronjobs und kein Backup
+    notify-send "⚠️ Keine Cronjobs gefunden und kein Backup vorhanden."
+fi
