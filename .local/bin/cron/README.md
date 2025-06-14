@@ -3,7 +3,7 @@
 
 Diese Cronjobs haben Komponenten, die Informationen über Ihr aktuelles Display benötigen, um Benachrichtigungen korrekt anzuzeigen.
 
-Es können eigene Cronjobs angelegt werden und diese können mit `crontag` :
+Es können eigene Cronjobs angelegt werden und diese können mit `crontag` ein/aus geschalten werden. (Zwischengespeicherte Datei bleibt für Backup erhalten)
 
 Wenn Sie sie als Cronjobs hinzufügen, empfehle ich Ihnen, dem Befehl die folgenden Befehle voranzustellen:
 
