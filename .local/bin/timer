@@ -1,0 +1,67 @@
+#!/bin/bash
+## 2025-06-03 SARBS
+# Multi-Platform Countdown Timer Stream
+
+# Variablen setzen - hier deine Keys eintragen:
+# export YT_KEY="dein_youtube_key"
+# export TWITCH_KEY="dein_twitch_key"
+# export FB_KEY="dein_facebook_key"
+# export TIKTOK_KEY="dein_tiktok_key"
+
+# Konfiguration:
+START_ZEIT="20:30"                              # Wann der eigentliche Stream beginnt (HH:MM)
+INTRO_DATEI="/home/sergi/Videos/Linux Talk/Linux-Talk-Intro.mp4"
+SCHRIFT_GROSE="72"                              # Größe der Countdown-Schrift
+SCHRIFT_FARBE="white"                           # Schriftfarbe
+SCHRIFT_DATEI="/usr/share/fonts/TTF/DejaVuSans-Bold.ttf"  # Schriftart (.ttf Datei)
+COUNTDOWN_POSITION="x=(w-text_w)/2:y=h/4"       # Position des Countdowns
+
+# Bitrate-Anpassung für Plattformen
+YT_BITRATE="3000k"      # YouTube kann höhere Bitrate
+TB_BITRATE="2500k"      # Twitch Standard
+FB_BITRATE="2000k"      # Facebook etwas niedriger
+TT_BITRATE="1500k"      # TikTok mobile-optimiert
+
+# Lokale Aufzeichnung des Countdowns (optional)
+LOCAL_RECORDING=false
+RECORDING_PATH="$HOME/Videos/countdown_$(date +%Y%m%d_%H%M%S).mp4"
+
+echo "🎬 Multi-Platform Countdown-Stream wird gestartet..."
+echo "Stream beginnt um: $START_ZEIT"
+echo "Video-Loop: $INTRO_DATEI"
+
+# Prüfe ob Video-Datei existiert
+if [ ! -f "$INTRO_DATEI" ]; then
+    echo "❌ Video-Datei nicht gefunden: $INTRO_DATEI"
+    exit 1
+fi
+
+# Aktive Streams anzeigen
+echo ""
+echo "🎯 Aktive Countdown-Ziele:"
+[ -n "$YT_KEY" ] && echo "  ▶️  YouTube (${YT_BITRATE})"
+[ -n "$TWITCH_KEY" ] && echo "  🟣 Twitch (${TB_BITRATE})"
+[ -n "$FB_KEY" ] && echo "  🔵 Facebook (${FB_BITRATE})"
+[ -n "$TIKTOK_KEY" ] && echo "  ⚫ TikTok (${TT_BITRATE})"
+[ "$LOCAL_RECORDING" = true ] && echo "  💾 Lokale Aufzeichnung: $RECORDING_PATH"
+
+echo ""
+echo "Drücke Ctrl+C zum Beenden"
+echo ""
+
+# Countdown-Stream starten
+ffmpeg \
+  -stream_loop -1 -i "$INTRO_DATEI" \
+  -filter_complex "[0:v]drawtext=text='Stream startet um ${START_ZEIT//:/\\:}':fontfile=${SCHRIFT_DATEI}:fontsize=${SCHRIFT_GROSE}:fontcolor=${SCHRIFT_FARBE}:${COUNTDOWN_POSITION}:box=1:boxcolor=black@0.5:boxborderw=10[video]" \
+  -map "[video]" -map 0:a \
+  `# YouTube Output` \
+  ${YT_KEY:+-c:v libx264 -preset veryfast -maxrate "$YT_BITRATE" -bufsize 5000k -pix_fmt yuv420p -g 60 -keyint_min 60 -c:a aac -ar 44100 -b:a 128k -f flv "rtmp://a.rtmp.youtube.com/live2/$YT_KEY"} \
+  `# Twitch Output` \
+  ${TWITCH_KEY:+-c:v libx264 -preset veryfast -maxrate "$TB_BITRATE" -bufsize 4000k -pix_fmt yuv420p -g 60 -keyint_min 60 -c:a aac -ar 44100 -b:a 128k -f flv "rtmp://live.twitch.tv/live/$TWITCH_KEY"}
+#  `# Facebook Output` \
+#  ${FB_KEY:+-c:v libx264 -preset veryfast -maxrate "$FB_BITRATE" -bufsize 3000k -pix_fmt yuv420p -g 60 -keyint_min 60 -c:a aac -ar 44100 -b:a 96k -f flv "rtmp://live-api-s.facebook.com/rtmp/$FB_KEY"} \
+#  `# TikTok Output - mobile-optimiert` \
+#  ${TIKTOK_KEY:+-c:v libx264 -preset veryfast -maxrate "$TT_BITRATE" -bufsize 2000k -pix_fmt yuv420p -g 30 -keyint_min 30 -c:a aac -ar 44100 -b:a 96k -f flv "rtmp://live.tiktok.com/live/$TIKTOK_KEY"} \
+
+echo ""
+echo "Multi-Platform Countdown-Stream beendet."
