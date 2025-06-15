@@ -1,12 +1,13 @@
 #!/bin/bash
-## 2025-06-15   SARBS
+## 2025-06-15 SARBS
 # Multi-Platform Streaming Script - mit Audio-Detection
+# TikTok und Facebook muss erst getestet werden
 
 # Variablen setzen - hier deine Keys eintragen:
 # export YT_KEY="dein_youtube_key"
-# export TWITCH_KEY="dein_twitch_key"
+# export TW_KEY="dein_twitch_key"
 # export FB_KEY="dein_facebook_key"
-# export TIKTOK_KEY="dein_tiktok_key"
+# export TT_KEY="dein_tiktok_key"
 
 # Konfiguration:
 # Automatische Auflösungserkennung
@@ -57,9 +58,9 @@ fi
 echo ""
 echo "🎯 Aktive Ziele:"
 [ -n "$YT_KEY" ] && echo "  ▶️  YouTube"
-[ -n "$TWITCH_KEY" ] && echo "  🟣 Twitch"
+[ -n "$TW_KEY" ] && echo "  🟣 Twitch"
 [ -n "$FB_KEY" ] && echo "  🔵 Facebook"
-[ -n "$TIKTOK_KEY" ] && echo "  ⚫ TikTok"
+[ -n "$TT_KEY" ] && echo "  ⚫ TikTok"
 [ "$LOCAL_RECORDING" = true ] && echo "  💾 Lokale Aufzeichnung: $RECORDING_PATH"
 
 echo ""
@@ -79,13 +80,16 @@ if [ "$MIC_AVAILABLE" = true ] && [ "$SYS_AVAILABLE" = true ]; then
       `# YouTube Output` \
       ${YT_KEY:+-map 0:v -map "[aout]" -c:a aac -ar 44100 -b:a "$AUDIO_BITRATE" -f flv "rtmp://a.rtmp.youtube.com/live2/$YT_KEY"} \
       `# Twitch Output - einfach auskommentieren zum Deaktivieren` \
-      ${TWITCH_KEY:+-map 0:v -map "[aout]" -c:a aac -ar 44100 -b:a "$AUDIO_BITRATE" -f flv "rtmp://live.twitch.tv/live/$TWITCH_KEY"} \
-      `# Facebook Output` \
-      `# ${FB_KEY:+-map 0:v -map "[aout]" -c:a aac -ar 44100 -b:a "$AUDIO_BITRATE" -f flv "rtmp://live-api-s.facebook.com/rtmp/$FB_KEY"}` \
-      `# TikTok Output` \
-      `# ${TIKTOK_KEY:+-map 0:v -map "[aout]" -c:a aac -ar 44100 -b:a "$AUDIO_BITRATE" -f flv "rtmp://live.tiktok.com/live/$TIKTOK_KEY"}` \
-      `# Lokale Aufzeichnung` \
+      ${TW_KEY:+-map 0:v -map "[aout]" -c:a aac -ar 44100 -b:a "$AUDIO_BITRATE" -f flv "rtmp://live.twitch.tv/live/$TW_KEY"} \
       ${LOCAL_RECORDING:+$([ "$LOCAL_RECORDING" = true ] && echo "-map 0:v -map \"[aout]\" -c:v libx264 -preset medium -crf 23 -c:a aac \"$RECORDING_PATH\"")}
+
+    # Zusätzliche Outputs im Test
+    # `# Facebook Output` \
+    # ${FB_KEY:+-map 0:v -map "[aout]" -c:a aac -ar 44100 -b:a "$AUDIO_BITRATE" -f flv "rtmp://live-api-s.facebook.com/rtmp/$FB_KEY"} \
+    # `# TikTok Output` \
+    # ${TT_KEY:+-map 0:v -map "[aout]" -c:a aac -ar 44100 -b:a "$AUDIO_BITRATE" -f flv "rtmp://live.tiktok.com/live/$TT_KEY"} \
+    # `# Lokale Aufzeichnung` \
+    #
 
 elif [ "$MIC_AVAILABLE" = true ]; then
     echo "Stream nur mit Mikrofon..."
@@ -95,9 +99,7 @@ elif [ "$MIC_AVAILABLE" = true ]; then
       -c:v libx264 -preset "$PRESET" -maxrate "$VIDEO_BITRATE" -bufsize 5000k \
       -pix_fmt yuv420p -g 60 -keyint_min 60 \
       ${YT_KEY:+-map 0:v -map 1:a -c:a aac -ar 44100 -b:a "$AUDIO_BITRATE" -f flv "rtmp://a.rtmp.youtube.com/live2/$YT_KEY"} \
-      ${TWITCH_KEY:+-map 0:v -map 1:a -c:a aac -ar 44100 -b:a "$AUDIO_BITRATE" -f flv "rtmp://live.twitch.tv/live/$TWITCH_KEY"} \
-      ${FB_KEY:+-map 0:v -map 1:a -c:a aac -ar 44100 -b:a "$AUDIO_BITRATE" -f flv "rtmp://live-api-s.facebook.com/rtmp/$FB_KEY"} \
-      ${TIKTOK_KEY:+-map 0:v -map 1:a -c:a aac -ar 44100 -b:a "$AUDIO_BITRATE" -f flv "rtmp://live.tiktok.com/live/$TIKTOK_KEY"} \
+      ${TW_KEY:+-map 0:v -map 1:a -c:a aac -ar 44100 -b:a "$AUDIO_BITRATE" -f flv "rtmp://live.twitch.tv/live/$TW_KEY"} \
       ${LOCAL_RECORDING:+$([ "$LOCAL_RECORDING" = true ] && echo "-map 0:v -map 1:a -c:v libx264 -preset medium -crf 23 -c:a aac \"$RECORDING_PATH\"")}
 
 elif [ "$SYS_AVAILABLE" = true ]; then
@@ -108,9 +110,7 @@ elif [ "$SYS_AVAILABLE" = true ]; then
       -c:v libx264 -preset "$PRESET" -maxrate "$VIDEO_BITRATE" -bufsize 5000k \
       -pix_fmt yuv420p -g 60 -keyint_min 60 \
       ${YT_KEY:+-map 0:v -map 1:a -c:a aac -ar 44100 -b:a "$AUDIO_BITRATE" -f flv "rtmp://a.rtmp.youtube.com/live2/$YT_KEY"} \
-      ${TWITCH_KEY:+-map 0:v -map 1:a -c:a aac -ar 44100 -b:a "$AUDIO_BITRATE" -f flv "rtmp://live.twitch.tv/live/$TWITCH_KEY"} \
-      ${FB_KEY:+-map 0:v -map 1:a -c:a aac -ar 44100 -b:a "$AUDIO_BITRATE" -f flv "rtmp://live-api-s.facebook.com/rtmp/$FB_KEY"} \
-      ${TIKTOK_KEY:+-map 0:v -map 1:a -c:a aac -ar 44100 -b:a "$AUDIO_BITRATE" -f flv "rtmp://live.tiktok.com/live/$TIKTOK_KEY"} \
+      ${TW_KEY:+-map 0:v -map 1:a -c:a aac -ar 44100 -b:a "$AUDIO_BITRATE" -f flv "rtmp://live.twitch.tv/live/$TW_KEY"} \
       ${LOCAL_RECORDING:+$([ "$LOCAL_RECORDING" = true ] && echo "-map 0:v -map 1:a -c:v libx264 -preset medium -crf 23 -c:a aac \"$RECORDING_PATH\"")}
 
 else
@@ -121,9 +121,7 @@ else
       -c:v libx264 -preset "$PRESET" -maxrate "$VIDEO_BITRATE" -bufsize 5000k \
       -pix_fmt yuv420p -g 60 -keyint_min 60 \
       ${YT_KEY:+-map 0:v -map 1:a -c:a aac -ar 44100 -b:a "$AUDIO_BITRATE" -f flv "rtmp://a.rtmp.youtube.com/live2/$YT_KEY"} \
-      ${TWITCH_KEY:+-map 0:v -map 1:a -c:a aac -ar 44100 -b:a "$AUDIO_BITRATE" -f flv "rtmp://live.twitch.tv/live/$TWITCH_KEY"} \
-      ${FB_KEY:+-map 0:v -map 1:a -c:a aac -ar 44100 -b:a "$AUDIO_BITRATE" -f flv "rtmp://live-api-s.facebook.com/rtmp/$FB_KEY"} \
-      ${TIKTOK_KEY:+-map 0:v -map 1:a -c:a aac -ar 44100 -b:a "$AUDIO_BITRATE" -f flv "rtmp://live.tiktok.com/live/$TIKTOK_KEY"} \
+      ${TW_KEY:+-map 0:v -map 1:a -c:a aac -ar 44100 -b:a "$AUDIO_BITRATE" -f flv "rtmp://live.twitch.tv/live/$TW_KEY"} \
       ${LOCAL_RECORDING:+$([ "$LOCAL_RECORDING" = true ] && echo "-map 0:v -map 1:a -c:v libx264 -preset medium -crf 23 -c:a aac \"$RECORDING_PATH\"")}
 fi
 
