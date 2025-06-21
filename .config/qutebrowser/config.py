@@ -1,8 +1,14 @@
+# QuteBrowser Konfiguration
+## 2025-06-21   SARBS
+
 # Autoconfig laden (UI-Einstellungen werden übernommen)
 config.load_autoconfig(True)
 
 # Browserverhalten
 c.auto_save.session = False
+
+# Editor-Einstellungen
+c.editor.command = ['st', '-e', 'nvim', '{}']
 
 # ================================================================================
 # HiDPI & UI-EINSTELLUNGEN
@@ -27,7 +33,7 @@ c.tabs.show = 'always'
 c.tabs.title.format = '{audio}{current_title}'
 c.tabs.title.format_pinned = '{audio}'
 c.tabs.padding = {'top': 4, 'bottom': 4, 'left': 8, 'right': 8}
-c.tabs.indicator.width = 0  # Ladesymbol deaktivieren
+c.tabs.indicator.width = 1  # Ladesymbol deaktivieren
 c.tabs.favicons.show = 'always'
 
 # ================================================================================
@@ -80,15 +86,23 @@ c.colors.tabs.even.fg = '#d0d0d0'
 
 # Cookies von Drittanbietern blockieren
 c.content.cookies.accept = 'no-3rdparty'
+# c.content.cookies.accept = 'no-3rdparty'
 c.content.cookies.store = True
 
 # Do-Not-Track-Header senden
 c.content.headers.do_not_track = True
 
 config.set("content.webgl", False, "*")
+# WebGL für Jitsi erlauben
+config.set("content.webgl", True, "https://meet.jit.si/*")
+config.set("content.webgl", True, "https://*.jitsi.org/*")
+
 config.set("content.canvas_reading", False)
 config.set("content.geolocation", False)
 config.set("content.webrtc_ip_handling_policy", "default-public-interface-only")
+# WebRTC für Jitsi-Domains erlauben
+##config.set("content.webrtc_ip_handling_policy", "default-public-and-private-interfaces", "https://meet.jit.si/*")
+##config.set("content.webrtc_ip_handling_policy", "default-public-and-private-interfaces", "https://*.jitsi.org/*")
 config.set("content.cookies.accept", "all")
 config.set("content.cookies.store", True)
 # config.set("content.javascript.enabled", False) # tsh keybind to toggle
@@ -121,12 +135,12 @@ c.content.headers.accept_language = 'de-DE,de;q=0.9,en-US;q=0.8,en;q=0.7'
     # You can also watch yt vids directly in mpv, see qutebrowser FAQ for how to do that.
     # If you want additional blocklists, you can get the python-adblock package, or you can uncomment the ublock lists here.
 c.content.blocking.enabled = True
-c.content.blocking.method = 'both'  # Nutzt Hosts-Datei und ABP-Format
+c.content.blocking.method = 'hosts'  # Statt 'both'
 c.content.blocking.adblock.lists = [
     'https://easylist.to/easylist/easylist.txt',
     'https://easylist.to/easylist/easyprivacy.txt',
     'https://secure.fanboy.co.nz/fanboy-annoyance.txt',
-    'https://easylist-downloads.adblockplus.org/easylistgermany.txt'  # Deutsche Liste
+    'https://easylist-downloads.adblockplus.org/easylistgermany.txt',
     'https://github.com/ewpratten/youtube_ad_blocklist/blob/master/blocklist.txt',
     'https://github.com/uBlockOrigin/uAssets/raw/master/filters/legacy.txt',
     'https://github.com/uBlockOrigin/uAssets/raw/master/filters/filters.txt',
@@ -200,20 +214,17 @@ c.url.default_page = 'https://start.duckduckgo.com'
 # Einige Vim-ähnlichere Keybindings
 config.unbind('d')  # Standard Tab schließen unbinden
 config.bind('dd', 'tab-close')  # Tab mit 'dd' schließen
-config.bind('<Alt-j>', 'tab-next')  # Alt+j für nächsten Tab
-config.bind('<Alt-k>', 'tab-prev')  # Alt+k für vorherigen Tab
-config.bind('+', 'zoom-in')  # Zoom vergrößern
-config.bind('-', 'zoom-out')  # Zoom verkleinern
-config.bind('<F12>', 'inspector')  # Entwicklertools mit F12
-
+##config.bind('+', 'zoom-in')  # Zoom vergrößern
+##config.bind('-', 'zoom-out')  # Zoom verkleinern
+config.bind('<F12>', 'devtools')  # Entwicklertools mit F12
 # Schneller Zugriff auf bestimmte Einstellungen
-config.bind(',tp', 'set content.private_browsing !') # Toggle Private Mode
-config.bind(',tj', 'set content.javascript.enabled !') # Toggle JavaScript
+##config.bind(',tp', 'set content.private_browsing !') # Toggle Private Mode
+##config.bind(',tj', 'set content.javascript.enabled !') # Toggle JavaScript
 
 # Sicherheitsrelevante Tastenkombinationen
-config.bind(',c', 'config-clear')  # Konfiguration zurücksetzen
-config.bind(',p', 'set content.proxy socks://localhost:9050/')  # Tor-Proxy einschalten (wenn installiert)
-config.bind(',P', 'set content.proxy system')  # Proxy ausschalten
+##config.bind(',c', 'config-clear')  # Konfiguration zurücksetzen
+##config.bind(',p', 'set content.proxy socks://localhost:9050/')  # Tor-Proxy einschalten (wenn installiert)
+##config.bind(',P', 'set content.proxy system')  # Proxy ausschalten
 
 # Dark Mode Toggle
-config.bind(',d', 'set colors.webpage.darkmode.enabled !') # Dark mode umschalten
+##config.bind(',d', 'set colors.webpage.darkmode.enabled !') # Dark mode umschalten

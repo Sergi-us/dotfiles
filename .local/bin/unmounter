@@ -1,5 +1,6 @@
 #!/bin/sh
 ## 2025-01-09 SARBS
+# TODO Funktion hinzufügen die HDD's stromlos schaltet
 # TODO Testversion des unmount Skript's welches enutzte Geräte erkennen und deaktivieren soll
 # Eingabeaufforderungen und entschlüsselt auch LUKS-Laufwerke, die ausgehängt werden.
 # TODO Sicherstellen dass alle Schreibvorgänge abgeschlossen sind bevor etwas ausgeworfen wird... Die Aktuelle Logig ist noch in der Testphase...

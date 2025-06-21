@@ -1,23 +1,24 @@
 #!/bin/bash
+## 2025-06-15 SARBS
+# TODO fixen
 
 #######################################
 ### KONFIGURATIONSBEREICH - ANPASSEN ###
 #######################################
 
 # Datumsbereich (Format: YYYY-MM-DD)
-START_DATE="1950-10-02"  # Erster Peanuts-Comic
-END_DATE="2023-12-31"    # Aktuelles Datum oder beliebiges Enddatum
+START_DATE="1978-06-19"  # Erster Peanuts-Comic
+END_DATE="2025-03-15"    # Aktuelles Datum oder beliebiges Enddatum
 
 # ANZEIGEOPTION WÄHLEN (Nur eine Zeile aktivieren, alle anderen auskommentieren)
 #DISPLAY_METHOD="browser"    # Standard-Webbrowser
 #DISPLAY_METHOD="feh"       # Feh Image Viewer
 #DISPLAY_METHOD="sxiv"      # Simple X Image Viewer
 DISPLAY_METHOD="nsxiv"     # Neo Simple X Image Viewer
-#DISPLAY_METHOD="img2txt"   # ASCII-Art im Terminal (Teil von caca-utils)
 #DISPLAY_METHOD="cacaview"  # ASCII-Art im Terminal (Teil von libcaca)
 
 # Temporäre Datei für den heruntergeladenen Comic
-TEMP_FILE="/tmp/peanuts_comic.jpg"
+TEMP_FILE="/tmp/garfield_comic.jpg"
 
 # Anzeigeoptionen für Terminal-Anzeige
 IMG2TXT_WIDTH=100  # Breite für ASCII-Art
@@ -26,7 +27,7 @@ IMG2TXT_WIDTH=100  # Breite für ASCII-Art
 ### AB HIER NICHTS MEHR ÄNDERN #######
 #######################################
 
-url="https://www.gocomics.com/peanuts"
+url="https://www.gocomics.com/garfield"
 
 # Konvertiere zu Unix-Zeitstempeln für einfachere Berechnung
 start_ts=$(date -d "$START_DATE" +%s)

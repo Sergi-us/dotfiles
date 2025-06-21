@@ -6,8 +6,8 @@
 # export YT_KEY="dein_youtube_key"
 
 # Konfiguration:
-START_TIME="20:30"               # Wann der eigentliche Stream beginnt (HH:MM)
-VIDEO_FILE="/home/sergi/Intro-Template.webm"    # Dein Wartevideo (mp4, mov, etc.)
+START_TIME="19:00"               # Wann der eigentliche Stream beginnt (HH:MM)
+VIDEO_FILE="/home/sergi/Videos/Linux Talk/LinuxTalk_Trailer_V2.mkv"
 FONT_SIZE="72"                   # Größe der Countdown-Schrift
 FONT_COLOR="white"               # Schriftfarbe
 FONT_FILE="/usr/share/fonts/TTF/DejaVuSans-Bold.ttf"  # Schriftart (.ttf Datei)
