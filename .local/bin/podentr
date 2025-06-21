@@ -1,6 +1,7 @@
 #!/bin/sh
 ## 2025-01-09 SARBS
 # TODO muss gefixt werden
+# TODO prüfen ob überhaupt notwendig seit der Umstellung auf newsraft !
 
 # entr-Befehl, um `queueandnotify` auszuführen, wenn die Newsboat-Warteschlange geändert wird
 

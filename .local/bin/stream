@@ -1,129 +1,137 @@
 #!/bin/bash
-## 2025-06-15 SARBS
-# Multi-Platform Streaming Script - mit Audio-Detection
-# TikTok und Facebook muss erst getestet werden
+## 2025-06-20 SARBS - Robust Multi-Output
+# Multi-Platform Streaming Script mit tee muxer
 
-# Variablen setzen - hier deine Keys eintragen:
+# Stream Keys - hier deine Keys eintragen:
 # export YT_KEY="dein_youtube_key"
 # export TW_KEY="dein_twitch_key"
 # export FB_KEY="dein_facebook_key"
 # export TT_KEY="dein_tiktok_key"
 
-# Konfiguration:
-# Automatische Auflösungserkennung
-AUTO_RESOLUTION=$(xrandr | grep -E " connected (primary )?[0-9]" | head -n1 | sed 's/.*connected.* \([0-9]*x[0-9]*\).*/\1/')
-AUFLOSUNG="${AUFLOSUNG:-$AUTO_RESOLUTION}"
+# Auflösung erkennen
+AUFLOSUNG="${AUFLOSUNG:-$(xrandr 2>/dev/null | grep -oE "[0-9]+x[0-9]+" | head -n1)}"
+AUFLOSUNG="${AUFLOSUNG:-1920x1080}"  # Fallback
 FRAMERATE="30"
 
-# Dynamische Bitrate basierend auf Auflösung
+# Bitrate nach Auflösung
 case "$AUFLOSUNG" in
     "3840x2160"|"2560x1440") VIDEO_BITRATE="6000k" ;;
     "1920x1080") VIDEO_BITRATE="4000k" ;;
     "1280x720") VIDEO_BITRATE="2500k" ;;
-    *) VIDEO_BITRATE="3000k" ;;  # Fallback
+    *) VIDEO_BITRATE="3000k" ;;
 esac
 
 AUDIO_BITRATE="128k"
 PRESET="veryfast"
 
-# Lokale Aufzeichnung (optional)
+# Lokale Aufzeichnung
 LOCAL_RECORDING=true
 RECORDING_PATH="$HOME/Videos/stream_$(date +%Y%m%d_%H%M%S).mp4"
 
-echo "🚀 Multi-Platform Stream wird gestartet..."
-echo "Erkannte Auflösung: $AUFLOSUNG @ ${FRAMERATE}fps"
-echo "Video-Bitrate: $VIDEO_BITRATE (automatisch angepasst)"
+echo "🚀 Multi-Platform Stream"
+echo "Auflösung: $AUFLOSUNG @ ${FRAMERATE}fps | Bitrate: $VIDEO_BITRATE"
 
-# Audio-Quellen prüfen
-MIC_AVAILABLE=false
-SYS_AVAILABLE=false
+# Audio-Quellen definieren
+# Mikrofon: default (mappt auf dein aktives Mikrofon)
+DEFAULT_SOURCE="default"
+# Systemaudio: Internes Audio (PCI) - hardcoded
+SYS_MONITOR="alsa_output.pci-0000_00_1f.3.analog-stereo.monitor"
 
-# Mikrofon prüfen
-if pactl list sources short | grep -q "default"; then
-    MIC_AVAILABLE=true
-    echo "✅ Mikrofon verfügbar"
+# Prüfen ob die Quellen existieren
+if pactl list sources short 2>/dev/null | grep -q "^[0-9]*[[:space:]]$SYS_MONITOR"; then
+    echo "✅ Mikrofon: default"
+    echo "✅ Systemaudio: Internes Audio (PCI)"
 else
-    echo "❌ Mikrofon nicht verfügbar"
+    echo "❌ Warnung: Systemaudio-Quelle nicht gefunden!"
+    echo "   Verfügbare Monitor-Quellen:"
+    pactl list sources short | grep "\.monitor"
 fi
 
-# Systemaudio prüfen
-if pactl list sources short | grep -q "monitor"; then
-    SYS_AVAILABLE=true
-    echo "✅ Systemaudio verfügbar"
-else
-    echo "❌ Systemaudio nicht verfügbar"
+# Tee-Output String bauen
+TEE_OUTPUTS=""
+
+# Stream-Ziele
+echo -e "\n🎯 Aktive Ziele:"
+if [ -n "$YT_KEY" ]; then
+    echo "  ▶️  YouTube"
+    TEE_OUTPUTS="${TEE_OUTPUTS}[f=flv:onfail=ignore]rtmp://a.rtmp.youtube.com/live2/$YT_KEY|"
 fi
 
-# Aktive Streams anzeigen
-echo ""
-echo "🎯 Aktive Ziele:"
-[ -n "$YT_KEY" ] && echo "  ▶️  YouTube"
-[ -n "$TW_KEY" ] && echo "  🟣 Twitch"
-[ -n "$FB_KEY" ] && echo "  🔵 Facebook"
-[ -n "$TT_KEY" ] && echo "  ⚫ TikTok"
-[ "$LOCAL_RECORDING" = true ] && echo "  💾 Lokale Aufzeichnung: $RECORDING_PATH"
+if [ -n "$TW_KEY" ]; then
+    echo "  🟣 Twitch"
+    TEE_OUTPUTS="${TEE_OUTPUTS}[f=flv:onfail=ignore]rtmp://live.twitch.tv/live/$TW_KEY|"
+fi
 
-echo ""
-echo "Drücke Ctrl+C zum Beenden"
-echo ""
+if [ -n "$FB_KEY" ]; then
+    echo "  🔵 Facebook"
+    TEE_OUTPUTS="${TEE_OUTPUTS}[f=flv:onfail=ignore]rtmp://live-api-s.facebook.com/rtmp/$FB_KEY|"
+fi
 
-# Stream-Kommando je nach verfügbaren Audio-Quellen
-if [ "$MIC_AVAILABLE" = true ] && [ "$SYS_AVAILABLE" = true ]; then
-    echo "Stream mit Mikrofon + Systemaudio..."
-    ffmpeg \
-      -f x11grab -r $FRAMERATE -s $AUFLOSUNG -i :0.0 \
-      -f pulse -i default \
-      -f pulse -i alsa_output.pci-0000_00_1f.3.analog-stereo.monitor \
-      -filter_complex "[1:a]asplit=2[mic1][mic2];[2:a]asplit=2[sys1][sys2];[mic1][sys1]amix=inputs=2:normalize=0[left];[mic2][sys2]amix=inputs=2:normalize=0[right];[left][right]join=inputs=2:channel_layout=stereo[aout]" \
+if [ -n "$TT_KEY" ]; then
+    echo "  ⚫ TikTok"
+    TEE_OUTPUTS="${TEE_OUTPUTS}[f=flv:onfail=ignore]rtmp://live.tiktok.com/live/$TT_KEY|"
+fi
+
+if [ "$LOCAL_RECORDING" = true ]; then
+    echo "  💾 Aufzeichnung: ${RECORDING_PATH##*/}"
+    mkdir -p "$(dirname "$RECORDING_PATH")"
+    # MP4 statt MKV für bessere Kompatibilität mit tee
+    RECORDING_PATH="${RECORDING_PATH%.mkv}.mp4"
+    TEE_OUTPUTS="${TEE_OUTPUTS}[f=mp4:movflags=+faststart]$RECORDING_PATH"
+else
+    # Entferne letztes | wenn keine lokale Aufzeichnung
+    TEE_OUTPUTS="${TEE_OUTPUTS%|}"
+fi
+
+echo -e "\nStreaming... (Ctrl+C zum Beenden)\n"
+
+# FFmpeg starten
+if [ -n "$DEFAULT_SOURCE" ] && [ -n "$SYS_MONITOR" ]; then
+    # Mit Mikrofon + Systemaudio
+    ffmpeg -hide_banner -loglevel warning -stats \
+      -probesize 10M -f x11grab -r $FRAMERATE -s $AUFLOSUNG -i ${DISPLAY:-:0.0} \
+      -f pulse -i "$DEFAULT_SOURCE" \
+      -f pulse -i "$SYS_MONITOR" \
+      -filter_complex "[1:a]volume=1.0[mic];[2:a]volume=0.8[sys];[mic][sys]amix=inputs=2:normalize=0[audio]" \
+      -map 0:v -map "[audio]" \
       -c:v libx264 -preset "$PRESET" -maxrate "$VIDEO_BITRATE" -bufsize 5000k \
       -pix_fmt yuv420p -g 60 -keyint_min 60 \
-      `# YouTube Output` \
-      ${YT_KEY:+-map 0:v -map "[aout]" -c:a aac -ar 44100 -b:a "$AUDIO_BITRATE" -f flv "rtmp://a.rtmp.youtube.com/live2/$YT_KEY"} \
-      `# Twitch Output - einfach auskommentieren zum Deaktivieren` \
-      ${TW_KEY:+-map 0:v -map "[aout]" -c:a aac -ar 44100 -b:a "$AUDIO_BITRATE" -f flv "rtmp://live.twitch.tv/live/$TW_KEY"} \
-      ${LOCAL_RECORDING:+$([ "$LOCAL_RECORDING" = true ] && echo "-map 0:v -map \"[aout]\" -c:v libx264 -preset medium -crf 23 -c:a aac \"$RECORDING_PATH\"")}
+      -c:a aac -ar 44100 -b:a "$AUDIO_BITRATE" \
+      -f tee "$TEE_OUTPUTS"
 
-    # Zusätzliche Outputs im Test
-    # `# Facebook Output` \
-    # ${FB_KEY:+-map 0:v -map "[aout]" -c:a aac -ar 44100 -b:a "$AUDIO_BITRATE" -f flv "rtmp://live-api-s.facebook.com/rtmp/$FB_KEY"} \
-    # `# TikTok Output` \
-    # ${TT_KEY:+-map 0:v -map "[aout]" -c:a aac -ar 44100 -b:a "$AUDIO_BITRATE" -f flv "rtmp://live.tiktok.com/live/$TT_KEY"} \
-    # `# Lokale Aufzeichnung` \
-    #
-
-elif [ "$MIC_AVAILABLE" = true ]; then
-    echo "Stream nur mit Mikrofon..."
-    ffmpeg \
-      -f x11grab -r $FRAMERATE -s $AUFLOSUNG -i :0.0 \
-      -f pulse -i default \
+elif [ -n "$SYS_MONITOR" ]; then
+    # Nur Systemaudio
+    ffmpeg -hide_banner -loglevel warning -stats \
+      -probesize 10M -f x11grab -r $FRAMERATE -s $AUFLOSUNG -i ${DISPLAY:-:0.0} \
+      -f pulse -i "$SYS_MONITOR" \
+      -map 0:v -map 1:a \
       -c:v libx264 -preset "$PRESET" -maxrate "$VIDEO_BITRATE" -bufsize 5000k \
       -pix_fmt yuv420p -g 60 -keyint_min 60 \
-      ${YT_KEY:+-map 0:v -map 1:a -c:a aac -ar 44100 -b:a "$AUDIO_BITRATE" -f flv "rtmp://a.rtmp.youtube.com/live2/$YT_KEY"} \
-      ${TW_KEY:+-map 0:v -map 1:a -c:a aac -ar 44100 -b:a "$AUDIO_BITRATE" -f flv "rtmp://live.twitch.tv/live/$TW_KEY"} \
-      ${LOCAL_RECORDING:+$([ "$LOCAL_RECORDING" = true ] && echo "-map 0:v -map 1:a -c:v libx264 -preset medium -crf 23 -c:a aac \"$RECORDING_PATH\"")}
+      -c:a aac -ar 44100 -b:a "$AUDIO_BITRATE" \
+      -f tee "$TEE_OUTPUTS"
 
-elif [ "$SYS_AVAILABLE" = true ]; then
-    echo "Stream nur mit Systemaudio..."
-    ffmpeg \
-      -f x11grab -r $FRAMERATE -s $AUFLOSUNG -i :0.0 \
-      -f pulse -i alsa_output.pci-0000_00_1f.3.analog-stereo.monitor \
+elif [ -n "$DEFAULT_SOURCE" ]; then
+    # Nur Mikrofon
+    ffmpeg -hide_banner -loglevel warning -stats \
+      -probesize 10M -f x11grab -r $FRAMERATE -s $AUFLOSUNG -i ${DISPLAY:-:0.0} \
+      -f pulse -i "$DEFAULT_SOURCE" \
+      -map 0:v -map 1:a \
       -c:v libx264 -preset "$PRESET" -maxrate "$VIDEO_BITRATE" -bufsize 5000k \
       -pix_fmt yuv420p -g 60 -keyint_min 60 \
-      ${YT_KEY:+-map 0:v -map 1:a -c:a aac -ar 44100 -b:a "$AUDIO_BITRATE" -f flv "rtmp://a.rtmp.youtube.com/live2/$YT_KEY"} \
-      ${TW_KEY:+-map 0:v -map 1:a -c:a aac -ar 44100 -b:a "$AUDIO_BITRATE" -f flv "rtmp://live.twitch.tv/live/$TW_KEY"} \
-      ${LOCAL_RECORDING:+$([ "$LOCAL_RECORDING" = true ] && echo "-map 0:v -map 1:a -c:v libx264 -preset medium -crf 23 -c:a aac \"$RECORDING_PATH\"")}
+      -c:a aac -ar 44100 -b:a "$AUDIO_BITRATE" \
+      -f tee "$TEE_OUTPUTS"
 
 else
-    echo "Stream ohne Audio (nur Video)..."
-    ffmpeg \
-      -f x11grab -r $FRAMERATE -s $AUFLOSUNG -i :0.0 \
+    # Kein Audio
+    echo "⚠️  Kein Audio verfügbar - Stream nur mit Video"
+    ffmpeg -hide_banner -loglevel warning -stats \
+      -probesize 10M -f x11grab -r $FRAMERATE -s $AUFLOSUNG -i ${DISPLAY:-:0.0} \
       -f lavfi -i anullsrc=channel_layout=stereo:sample_rate=48000 \
+      -map 0:v -map 1:a \
       -c:v libx264 -preset "$PRESET" -maxrate "$VIDEO_BITRATE" -bufsize 5000k \
       -pix_fmt yuv420p -g 60 -keyint_min 60 \
-      ${YT_KEY:+-map 0:v -map 1:a -c:a aac -ar 44100 -b:a "$AUDIO_BITRATE" -f flv "rtmp://a.rtmp.youtube.com/live2/$YT_KEY"} \
-      ${TW_KEY:+-map 0:v -map 1:a -c:a aac -ar 44100 -b:a "$AUDIO_BITRATE" -f flv "rtmp://live.twitch.tv/live/$TW_KEY"} \
-      ${LOCAL_RECORDING:+$([ "$LOCAL_RECORDING" = true ] && echo "-map 0:v -map 1:a -c:v libx264 -preset medium -crf 23 -c:a aac \"$RECORDING_PATH\"")}
+      -c:a aac -ar 44100 -b:a "$AUDIO_BITRATE" \
+      -f tee "$TEE_OUTPUTS"
 fi
 
-echo ""
-echo "Multi-Platform Stream beendet."
+echo -e "\n✅ Stream beendet."

@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+## 2025-01-08 SARBS
+# SARBS Backup Script
+# TODO Zielüberprüfung hinzufügen
+
+# --ignore-times    zwingt rsync die alle Dateien zu prüfen
+# --inplace         zwingt rsync den Cache zu ignorieren
+# pkexec mit sudo ersetzen
+# --dry-run \
+
+
+
+sudo rsync \
+    -aAXv -e "ssh -i /home/sergi/.ssh/id_rsa -p 56832" \
+    --exclude={"/proc","/usr/lib","/usr/share","/var/log","/var/lib","/var/cache","/sys","/dev","/run","/tmp","/mnt","/media","/boot","/lost+found","/swapfile"} \
+    95.179.163.3:/ \
+    /home/sarbs/
+
+# Sicherstellen, dass alle Daten auf die Festplatte geschrieben wurden
+sync
+
+read -r -p "Drücke Enter, um das Terminal zu schließen..."

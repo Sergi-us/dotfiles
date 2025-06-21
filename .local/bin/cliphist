@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 ## 2025-03-05 SARBS
+# probs an Bread
 
 histfile="$HOME/.local/share/sarbs/cliphist"
 placeholder="<NEWLINE>"
