@@ -1,5 +1,5 @@
 #!/bin/sh
-## 2025-01-09 SARBS
+## 2025-06-22 SARBS
 # shellcheck disable=SC2155
 
 # Profil-Datei, wird beim Login ausgeführt. Umgebungsvariablen werden hier gesetzt.
@@ -18,12 +18,12 @@ unsetopt PROMPT_SP 2>/dev/null
 
 # Priorität 1
 # === Standardprogramme: ===
-export EDITOR="nvim"			# ok
-export TERMINAL="st"			# ok
-export TERMINAL_PROG="st"		# ok
-export BROWSER="librewolf"		# ok
-export MANPAGER="sh -c 'col -bx | bat -l man -p'"	# neu
-export MANROFFOPT="-c"								# neu
+export EDITOR="nvim"
+export TERMINAL="st"
+export TERMINAL_PROG="st"
+export BROWSER="qutebrowser"
+export MANPAGER="sh -c 'col -bx | bat -l man -p'"
+export MANROFFOPT="-c"
 
 # === XDG Standard Verzeichnisse ===
 export XDG_DATA_HOME="$HOME/.local/share"		# ok Anwendungsdaten
