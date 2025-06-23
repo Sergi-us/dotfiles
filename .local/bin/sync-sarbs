@@ -1,0 +1,84 @@
+#!/usr/bin/env bash
+## 2025-06-23   SARBS
+# sync-sarbs - Minimalistisches Sync-Script
+# abhängigkeiten: ssh rsync unison
+
+# === KONFIGURATION ===
+REMOTE="dell"  # Ziel-Rechner in der .ssh/config
+
+# Zu synchronisierende Verzeichnisse
+SYNC_DIRS=(
+    "$HOME/Davinci"
+    "$HOME/Videos"
+)
+
+# Unison Umgebungsvariablen (werden automatisch erstellt, können gelöscht werden)
+export UNISON="$HOME/.config/unison"
+export UNISONBACKUPDIR="$HOME/.local/share/unison/backup"
+export UNISONLOCALHOSTNAME="T480"
+
+# === SETUP (einmalig) ===
+setup_unison() {
+    echo "Erstelle Unison-Verzeichnisse..."
+    mkdir -p "$UNISON"
+    mkdir -p "$UNISONBACKUPDIR"
+    mkdir -p "$HOME/.cache/unison"
+
+    # Archive in .cache ablegen (via Symlink)
+    ln -sf "$HOME/.cache/unison" "$UNISON/ar"
+
+    echo "Setup abgeschlossen."
+    echo "Archive werden in ~/.cache/unison gespeichert"
+    echo "Configs sind in ~/.config/unison"
+}
+
+# === SYNC FUNKTION ===
+sync_directory() {
+    local local_dir="$1"
+    local remote_dir="$1"  # Gleicher Pfad auf beiden Seiten
+
+    echo "Synchronisiere: $local_dir"
+
+    # Unison direkt ausführen (ohne Profil-Datei)
+    unison \
+        "$local_dir" \
+        "ssh://$REMOTE/$remote_dir" \
+        -auto \
+        -batch \
+        -prefer newer \
+        -times \
+        -rsync \
+        -contactquietly \
+        -ignore "Name .*.swp" \
+        -ignore "Name *~" \
+        -ignore "Name *.tmp" \
+        -logfile "$HOME/.cache/unison/sync-$REMOTE.log"
+}
+
+# === HAUPTPROGRAMM ===
+
+# Prüfe ob Setup nötig
+if [ ! -d "$UNISON" ]; then
+    echo "Erste Ausführung erkannt..."
+    setup_unison
+fi
+
+# Prüfe SSH-Verbindung
+if ! ssh -q "$REMOTE" exit 2>/dev/null; then
+    echo "Fehler: Keine Verbindung zu '$REMOTE'"
+    exit 1
+fi
+
+echo "=== Sync T480 ↔ $REMOTE ==="
+echo "$(date)"
+
+# Synchronisiere alle Verzeichnisse
+for dir in "${SYNC_DIRS[@]}"; do
+    if [ -d "$dir" ]; then
+        sync_directory "$dir"
+    else
+        echo "Warnung: $dir existiert nicht"
+    fi
+done
+
+echo "Fertig."
