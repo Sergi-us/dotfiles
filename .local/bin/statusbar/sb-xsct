@@ -71,7 +71,7 @@ show_status() {
     # Unterschiedliche Symbole je nach Temperaturbereich
     if [ "$current_temp" -le 3500 ]; then
         temp_icon=""  # Thermometer für alle Temperaturen
-    elif [ "$current_temp" -le 5000 ]; then
+    elif [ "$current_temp" -le 5500 ]; then
         temp_icon=""  # Thermometer für alle Temperaturen
     else
         temp_icon=""  # Thermometer für alle Temperaturen

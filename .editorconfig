@@ -1,4 +1,5 @@
 # Globale EditorConfig-Datei
+## 2025-06-24	SARBS
 # Diese Datei definiert die Standard-Formatierungseinstellungen für alle Dateien
 # Weitere Informationen: https://editorconfig.org/
 
@@ -26,7 +27,7 @@ trim_trailing_whitespace = true
 
 # Standard-Einrückungsstil: Leerzeichen statt Tabs
 # Optionen: space, tab
-indent_style = space
+indent_style = tab
 
 # Standard-Einrückungstiefe: 4 Leerzeichen
 indent_size = 4
@@ -36,11 +37,13 @@ indent_size = 4
 ###############################################################################
 # Frontend-Web-Technologien
 [*.{html,htm,css,scss,sass,less}]
+indent_style = space
 indent_size = 2
 # Kommentar: Die meisten Web-Standards und Frameworks verwenden 2 Leerzeichen
 
 # JavaScript und verwandte Technologien
 [*.{js,jsx,ts,tsx,json,jsonc}]
+indent_style = space
 indent_size = 2
 # Kommentar: NodeJS, React, Angular, TypeScript etc. nutzen üblicherweise 2 Leerzeichen
 
@@ -59,19 +62,22 @@ indent_size = 2
 ###############################################################################
 # Systemnahe und traditionelle Sprachen
 [*.{c,cpp,h,hpp,cs,java}]
+indent_style = space
 indent_size = 4
 # Kommentar: Diese Sprachen verwenden traditionell 4 Leerzeichen
 
 # Skriptsprachen
 [*.{py,rb,php,pl,tcl}]
+indent_style = space
 indent_size = 4
 # Kommentar: Python (PEP 8) fordert explizit 4 Leerzeichen, andere folgen oft
 
 ###############################################################################
 # PROGRAMMIERSPRACHEN - SPEZIALFÄLLE
 ###############################################################################
-# Lua (2 Leerzeichen, wie von dir bevorzugt)
+# Lua (NeoVim)
 [*.lua]
+indent_style = tab
 indent_size = 2
 # Kommentar: Für deine Neovim-Konfiguration und Lua-Skripte
 
@@ -83,11 +89,13 @@ indent_size = 4
 
 # Rust (4 Leerzeichen, offizieller rustfmt-Standard)
 [*.rs]
+indent_style = space
 indent_size = 4
 # Kommentar: Rustfmt erzwingt standardmäßig 4 Leerzeichen
 
 # Shell-Skripte
 [*.{sh,bash,zsh,fish}]
+indent_style = space
 indent_size = 2
 # Kommentar: Für bessere Lesbarkeit in Terminal-Skripten
 
@@ -102,12 +110,13 @@ indent_style = tab
 # Markdown - spezielle Behandlung
 [*.{md,markdown}]
 indent_size = 2
+# Leerzeichen am Zeilenende erzeugen Zeilenumbrüche in Markdown
 trim_trailing_whitespace = false
-# Kommentar: Leerzeichen am Zeilenende erzeugen Zeilenumbrüche in Markdown
 
 # VimWiki-Dateien
 [*.wiki]
-indent_size = 4
+indent_style = tab
+indent_size = 2
 # Kommentar: Für deine VimWiki-Dateien
 
 # Konfigurationsdateien
