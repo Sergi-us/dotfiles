@@ -8,7 +8,7 @@ Konfigurationen und Skripte für eine minimalistische, auf Suckless-Software bas
 
 ## 📋 Übersicht
 
-Dieses Repository enthält meine persönlichen Dotfiles für SARBS - ein vollständig konfiguriertes Linux-System, das auf Suckless-Software und minimalistischen Prinzipien basiert. Die Konfiguration bietet eine produktive, aesthetisch ansprechende Desktop-Umgebung mit effizienten Workflows.
+Dieses Repository enthält meine Dotfiles für SARBS - ein vollständig konfiguriertes Linux-System, das auf Suckless-Software und minimalistischen Prinzipien basiert. Die Konfiguration bietet eine produktive, aesthetisch ansprechende Desktop-Umgebung mit effizienten Workflows.
 
 ### 🎯 Hauptkomponenten
 
@@ -27,19 +27,19 @@ Dieses Repository enthält meine persönlichen Dotfiles für SARBS - ein vollst�
 
 ```
 dotfiles/
-├── .config/              # XDG-konforme Anwendungskonfigurationen
-│   ├── nvim/            # Neovim-Konfiguration
-│   ├── zsh/             # Zsh-Konfigurationsdateien
-│   ├── lf/              # lf Dateimanager-Setup
-│   ├── newsboat/        # RSS Reader-Konfiguration
-│   └── ...              # Weitere App-Configs
-├── .local/              # Lokale Benutzerdateien
-│   ├── bin/             # Persönliche Skripte und Executables
-│   │   ├── cron/        # Cronjob-Skripte und -Verwaltung
-│   │   └── ...          # Weitere Skripte
-│   └── share/           # Lokale Daten und Ressourcen
-├── .x11/                # X11-bezogene Konfigurationen
-└── README.md            # Diese Datei
+├── .config/							# XDG-konforme Anwendungskonfigurationen
+│   ├── nvim/							# Neovim-Konfiguration
+│   ├── zsh/							# Zsh-Konfigurationsdateien
+│   ├── lf/								# lf Dateimanager-Setup
+│   ├── newsboat/					# RSS Reader-Konfiguration
+│   └── ...								# Weitere App-Configs
+├── .local/								# Lokale Benutzerdateien
+│   ├── bin/							# Persönliche Skripte und Executables
+│   │   ├── cron/					# Cronjob-Skripte und -Verwaltung
+│   │   └── ...						# Weitere Skripte
+│   └── share/						# Lokale Daten und Ressourcen
+├── .x11/									# X11-bezogene Konfigurationen
+└── README.md							# Diese Datei
 ```
 
 ## ⚡ Installation & Setup
@@ -58,7 +58,7 @@ cd ~/.dotfiles
 ./dotfiles-home  # erstellt Hardlinks zu $HOME (ich nutze kein Stow)
 ```
 
-Das `dotfiles-home` Skript erstellt Hardlinks der Konfigurationsdateien in's Home-Verzeichnis und gewährleistet eine saubere Integration ohne Symlinks.
+Das `dotfiles-home` Skript erstellt Hardlinks der Konfigurationsdateien in's Home-Verzeichnis und überschreibt die bestehende Konfigurationsdateien.
 
 ## 🛠️ Konfiguration
 
@@ -90,8 +90,6 @@ NeoVim ist das Herzstück der Entwicklungsumgebung und erhält besondere Aufmerk
 - **📦 Lazy Plugin-Management**: Umfangreiche Plugin-Suite für Entwicklung, LSP-Integration und Workflow-Optimierung
 - **⚡ IDE-Features**: Code-Completion, Syntax-Highlighting, Git-Integration, Debugging-Support
 - **🎨 Konsistente Themes**: Integration mit dem systemweiten pywal-Farbschema
-
-Die NeoVim-Konfiguration ist darauf ausgelegt, sowohl für Anfänger als auch für erfahrene Vim-Nutzer zugänglich zu sein, mit schrittweisen Lernhilfen und umfangreicher Dokumentation.
 
 ## 🔧 Verwendete Tools & Software
 
@@ -149,8 +147,8 @@ git pull origin main
 **🔥 Wichtiger Workflow-Tipp**: Für eigene Anpassungen sollten Sie das Repository forken und Ihre Änderungen dort vornehmen:
 
 ```bash
-# Ihr geforktes Repository klonen
-git clone https://github.com/IhrUsername/dotfiles.git ~/.dotfiles
+# Dein geforktes Repository klonen
+git clone https://github.com/Dein-Username/dotfiles.git ~/.dotfiles
 
 # Anpassungen vornehmen und commiten
 # Dann mit dotfiles-home aktualisieren
@@ -185,7 +183,7 @@ Diese Konfiguration ist unter der [MIT Lizenz](LICENSE) verfügbar.
 
 ## ⚠️ Disclaimer
 
-Diese Dotfiles sind für meine persönliche Nutzung optimiert. Bitte testen Sie alle Konfigurationen in einer sicheren Umgebung, bevor Sie sie auf Ihrem Hauptsystem einsetzen. Backups werden dringend empfohlen!
+Diese Dotfiles sind für meine Nutzung optimiert. Bitte teste die Konfigurationen in einer sicheren Umgebung. Backups werden dringend empfohlen!
 
 ---
 

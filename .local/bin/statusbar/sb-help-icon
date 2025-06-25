@@ -11,7 +11,7 @@ pidof dwm >/dev/null &&
 
 case $BLOCK_BUTTON in
     1) restartwm ;;
-    2) surf "https://sarbs.xyz/handbuch/" ;;
+    2) qutebrowser "https://sarbs.xyz/handbuch/" ;;
     3) notify-send " Hilfe Modul" "\- M-󰍽 für SARBS Online-Hilfe.
 - L-󰍽 DWM aktualisieren" ;;
     4) ;;
@@ -19,5 +19,5 @@ case $BLOCK_BUTTON in
     6) setsid -f "$TERMINAL" -e "$EDITOR" "$0" ;;
 esac;
 
-echo " "
-# echo " 󰺴 "
+# echo " "
+echo "󰺴 "
