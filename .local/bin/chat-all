@@ -1,0 +1,315 @@
+#!/bin/bash
+## 2025-06-15 SERGI
+## Multi-Platform Terminal Chat Viewer
+## Unterstützt: YouTube, Twitch
+## TODO alles testen
+## TODO loggingauswertung implementieren
+## TikTok und Facebook sind in arbeit
+
+# Variablen setzen - hier deine Keys eintragen:
+# export YT_API="dein_youtube_key"
+
+# Terminal-Farben
+RESET="\033[0m"
+BOLD="\033[1m"
+RED="\033[31m"
+GREEN="\033[32m"
+YELLOW="\033[33m"
+BLUE="\033[34m"
+PURPLE="\033[35m"
+CYAN="\033[36m"
+WHITE="\033[37m"
+
+# Platform-Symbole (Nerd Fonts)
+ICON_YT=" "     # YouTube
+ICON_TW=" "     # Twitch
+ICON_TT="TT"     # TikTok
+ICON_FB=" "     # Facebook
+
+# Platform-Farben
+COLOR_YT="$RED"
+COLOR_TW="$PURPLE"
+COLOR_TT="$CYAN"
+COLOR_FB="$BLUE"
+
+# Konfiguration
+ENABLE_YOUTUBE=true
+ENABLE_TWITCH=true
+ENABLE_TIKTOK=false    # Auskommentieren zum Aktivieren
+ENABLE_FACEBOOK=false  # Auskommentieren zum Aktivieren
+
+# Logging Konfiguration
+ENABLE_LOGGING=true
+LOG_PATH="${HOME}/Dokumente/chat-logs"
+# LOG_FILE="${LOG_PATH}/chat_$(date +%Y%m%d).csv"
+# Oder alles in eine Datei
+LOG_FILE="${LOG_PATH}/log_stream.csv"  # statt mit Datum
+
+# API Keys (aus Umgebungsvariablen oder hier eintragen)
+YT_API_KEY="${YT_API:-}"
+TW_OAUTH="${TW_OAUTH:-}"  # Optional für Twitch
+TT_API_KEY="${TT_KEY:-}"
+FB_API_KEY="${FB_KEY:-}"
+
+# Globale Variablen
+YOUTUBE_VIDEO_ID="Vtf1hIFDcaQ"
+TWITCH_CHANNEL="sergius1981"
+TIKTOK_STREAM_ID=""
+FACEBOOK_VIDEO_ID=""
+
+# Banner anzeigen
+show_banner() {
+    echo -e "${BOLD}${CYAN}╔══════════════════════════════════════╗${RESET}"
+    echo -e "${BOLD}${CYAN}║  Multi-Platform Chat Terminal Viewer ║${RESET}"
+    echo -e "${BOLD}${CYAN}╚══════════════════════════════════════╝${RESET}"
+    echo ""
+}
+
+# Logging initialisieren
+init_logging() {
+    if $ENABLE_LOGGING; then
+        # Log-Verzeichnis erstellen falls nicht vorhanden
+        mkdir -p "$LOG_PATH"
+
+        # CSV Header schreiben falls Datei neu ist
+        if [ ! -f "$LOG_FILE" ]; then
+            echo "timestamp,platform,channel,username,message" > "$LOG_FILE"
+            echo -e "${GREEN}✓ Log-Datei erstellt: $LOG_FILE${RESET}"
+        else
+            echo -e "${GREEN}✓ Verwende Log-Datei: $LOG_FILE${RESET}"
+        fi
+    fi
+}
+
+# Chat-Nachricht loggen
+log_message() {
+    if $ENABLE_LOGGING; then
+        local platform="$1"
+        local channel="$2"
+        local username="$3"
+        local message="$4"
+        local timestamp=$(date '+%Y-%m-%d %H:%M:%S')
+
+        # CSV-Format: Escape quotes und newlines
+        message=$(echo "$message" | sed 's/"/""/g' | tr '\n' ' ')
+        username=$(echo "$username" | sed 's/"/""/g')
+
+        echo "\"$timestamp\",\"$platform\",\"$channel\",\"$username\",\"$message\"" >> "$LOG_FILE"
+    fi
+}
+
+# Hilfe anzeigen
+show_help() {
+    echo "Usage: $0 [OPTIONS]"
+    echo ""
+    echo "Options:"
+    echo "  -y, --youtube VIDEO_ID     YouTube Video/Stream ID"
+    echo "  -t, --twitch CHANNEL       Twitch Channel Name"
+    echo "  -k, --tiktok STREAM_ID     TikTok Stream ID"
+    echo "  -f, --facebook VIDEO_ID    Facebook Video ID"
+    echo "  -h, --help                 Diese Hilfe anzeigen"
+    echo ""
+    echo "Beispiele:"
+    echo "  $0 -y dQw4w9WgXcQ -t shroud"
+    echo "  $0 --twitch xqc --youtube abc123"
+    exit 0
+}
+
+# YouTube Chat Handler
+youtube_chat() {
+    local video_id="$1"
+    local chat_id=""
+    local next_page=""
+    local interval=5
+
+    # Chat ID holen
+    chat_id=$(curl -s "https://www.googleapis.com/youtube/v3/videos?part=liveStreamingDetails&id=${video_id}&key=${YT_API_KEY}" |
+              jq -r '.items[0].liveStreamingDetails.activeLiveChatId')
+
+    if [ "$chat_id" == "null" ] || [ -z "$chat_id" ]; then
+        echo -e "${RED}[YouTube] Kein Live-Chat gefunden${RESET}"
+        return
+    fi
+
+    echo -e "${COLOR_YT}${ICON_YT} YouTube Chat aktiv${RESET}"
+
+    while true; do
+        local url="https://www.googleapis.com/youtube/v3/liveChat/messages?liveChatId=${chat_id}&part=snippet,authorDetails&key=${YT_API_KEY}"
+
+        if [ ! -z "$next_page" ]; then
+            url="${url}&pageToken=${next_page}"
+        fi
+
+        local response=$(curl -s "$url")
+        next_page=$(echo "$response" | jq -r '.nextPageToken')
+
+        while IFS='|||' read -r author message; do
+            echo -e "${COLOR_YT}${ICON_YT}${RESET} ${BOLD}${author}${RESET}: ${message}"
+            log_message "YouTube" "$video_id" "$author" "$message"
+        done < <(echo "$response" | jq -r '.items[] |
+            .authorDetails.displayName + "|||" + .snippet.displayMessage')
+
+        sleep "$interval"
+    done
+}
+
+# Twitch Chat Handler (IRC)
+twitch_chat() {
+    local channel="$1"
+    local irc_server="irc.chat.twitch.tv"
+    local irc_port="6667"
+    local nick="justinfan$(shuf -i 10000-99999 -n 1)"
+
+    echo -e "${COLOR_TW}${ICON_TW} Twitch Chat aktiv${RESET}"
+
+    # IRC Verbindung mit socat
+    {
+        echo "NICK $nick"
+        echo "USER $nick 8 * :$nick"
+        sleep 1
+        echo "JOIN #${channel}"
+
+        # Keepalive
+        while true; do
+            sleep 240
+            echo "PING :tmi.twitch.tv"
+        done
+    } | socat - TCP:${irc_server}:${irc_port} | while IFS= read -r line; do
+        # PING Response
+        if [[ $line == PING* ]]; then
+            echo "PONG ${line#PING }" | socat - TCP:${irc_server}:${irc_port} &
+            continue
+        fi
+
+        # Chat Messages parsen
+        if [[ $line == *"PRIVMSG #${channel}"* ]]; then
+            username=$(echo "$line" | sed -n 's/^:\([^!]*\)!.*/\1/p')
+            message=$(echo "$line" | sed -n "s/.*PRIVMSG #${channel} :\(.*\)/\1/p" | tr -d '\r')
+
+            if [[ ! -z "$username" && ! -z "$message" ]]; then
+                echo -e "${COLOR_TW}${ICON_TW}${RESET} ${BOLD}${username}${RESET}: ${message}"
+                log_message "Twitch" "$channel" "$username" "$message"
+            fi
+        fi
+    done
+}
+
+# TikTok Chat Handler (Placeholder)
+tiktok_chat() {
+    local stream_id="$1"
+    echo -e "${COLOR_TT}${ICON_TT} TikTok Chat (Coming Soon)${RESET}"
+
+    # TikTok API Integration würde hier implementiert
+    # Momentan nur Placeholder
+    while true; do
+        sleep 10
+        echo -e "${COLOR_TT}${ICON_TT}${RESET} ${BOLD}DemoUser${RESET}: TikTok Integration coming soon!"
+    done
+}
+
+# Facebook Chat Handler (Placeholder)
+facebook_chat() {
+    local video_id="$1"
+    echo -e "${COLOR_FB}${ICON_FB} Facebook Chat (Coming Soon)${RESET}"
+
+    # Facebook Graph API Integration würde hier implementiert
+    # Momentan nur Placeholder
+    while true; do
+        sleep 10
+        echo -e "${COLOR_FB}${ICON_FB}${RESET} ${BOLD}TestUser${RESET}: Facebook Integration coming soon!"
+    done
+}
+
+# Hauptfunktion
+main() {
+    show_banner
+    init_logging
+
+    # Argumente parsen
+    while [[ $# -gt 0 ]]; do
+        case $1 in
+            -y|--youtube)
+                YOUTUBE_VIDEO_ID="$2"
+                shift 2
+                ;;
+            -t|--twitch)
+                TWITCH_CHANNEL="$2"
+                shift 2
+                ;;
+            -k|--tiktok)
+                TIKTOK_STREAM_ID="$2"
+                shift 2
+                ;;
+            -f|--facebook)
+                FACEBOOK_VIDEO_ID="$2"
+                shift 2
+                ;;
+            -h|--help)
+                show_help
+                ;;
+            *)
+                echo "Unbekannte Option: $1"
+                show_help
+                ;;
+        esac
+    done
+
+    # Prüfen ob mindestens eine Platform gewählt wurde
+    if [[ -z "$YOUTUBE_VIDEO_ID" && -z "$TWITCH_CHANNEL" && -z "$TIKTOK_STREAM_ID" && -z "$FACEBOOK_VIDEO_ID" ]]; then
+        echo -e "${RED}Fehler: Keine Platform gewählt!${RESET}"
+        show_help
+    fi
+
+    # Benötigte Tools prüfen
+    for tool in curl jq socat; do
+        if ! command -v $tool &> /dev/null; then
+            echo -e "${RED}Fehler: $tool ist nicht installiert!${RESET}"
+            echo -e "${YELLOW}Installation: sudo apt install $tool${RESET}"
+            exit 1
+        fi
+    done
+
+    # API Key Status anzeigen
+    if [[ -n "$YOUTUBE_VIDEO_ID" ]] && $ENABLE_YOUTUBE; then
+        if [[ "$YT_API_KEY" == "$YT_PUBLIC_KEY" ]]; then
+            echo -e "${YELLOW}Hinweis: Nutze öffentlichen YouTube API Key${RESET}"
+            echo -e "${YELLOW}Für eigenen Key: export YT_API='dein_key'${RESET}"
+        else
+            echo -e "${GREEN}✓ Privater YouTube API Key gefunden${RESET}"
+        fi
+    fi
+
+    # Platform-Threads starten
+    pids=()
+
+    if [[ -n "$YOUTUBE_VIDEO_ID" ]] && $ENABLE_YOUTUBE; then
+        youtube_chat "$YOUTUBE_VIDEO_ID" &
+        pids+=($!)
+    fi
+
+    if [[ -n "$TWITCH_CHANNEL" ]] && $ENABLE_TWITCH; then
+        twitch_chat "$TWITCH_CHANNEL" &
+        pids+=($!)
+    fi
+
+    if [[ -n "$TIKTOK_STREAM_ID" ]] && $ENABLE_TIKTOK; then
+        tiktok_chat "$TIKTOK_STREAM_ID" &
+        pids+=($!)
+    fi
+
+    if [[ -n "$FACEBOOK_VIDEO_ID" ]] && $ENABLE_FACEBOOK; then
+        facebook_chat "$FACEBOOK_VIDEO_ID" &
+        pids+=($!)
+    fi
+
+    echo -e "${YELLOW}Drücke Ctrl+C zum Beenden${RESET}\n"
+
+    # Cleanup bei Exit
+    trap "kill ${pids[*]} 2>/dev/null; exit" INT TERM
+
+    # Warten
+    wait
+}
+
+# Skript starten
+main "$@"
