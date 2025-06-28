@@ -1,0 +1,296 @@
+#!/bin/bash
+## 2025-03-20 SARBS - NVIDIA GPU Version
+## 2025-03-20
+
+# Konfigurationsbereich - für einfache Anpassungen
+VIDEO_DIR="$HOME/Videos/scr"
+AUDIO_DIR="$HOME/Podcast/aufnahmen"
+VIDEO_FORMAT="mkv"
+AUDIO_FORMAT="flac"
+VIDEO_CODEC="h264_nvenc"		# h264_nvenc, hevc_nvenc oder av1_nvenc
+AUDIO_CODEC="flac"				# flac oder opus
+AUDIO_SAMPLERATE="44100"
+VIDEO_BITRATE="4M"
+VIDEO_MINRATE="2M"
+VIDEO_MAXRATE="9M"
+VIDEO_BUFSIZE="10M"
+AUDIO_BITRATE="256k"			# Nur für Nicht-FLAC-Codecs relevant
+NVENC_PRESET="medium"			# ultrafast, superfast, veryfast, faster, fast, medium, slow, slower, veryslow
+NVENC_TUNE="hq"					# hq (high quality), ll (low latency), ull (ultra low latency), lossless
+NVENC_CRF="23"					# Qualität (0-51, niedriger = besser)
+FRAMERATE="30"
+STATUSBAR="dwmblocks"
+
+# Zweiter Audio-Eingang für Reaction-Aufnahmen (System-Audio)
+# Ermitteln mit: pactl list sources | grep -E "Name:|Monitor of"
+# Beispiele:
+#   - Internes Audio: alsa_output.pci-0000_00_1f.3.analog-stereo.monitor
+#   - ThinkPad Dock: alsa_output.usb-Generic_ThinkPad_Dock_USB_Audio-00.analog-stereo.monitor
+#   - Bluetooth: bluez_output.9C_0D_AC_07_0A_4A.1.monitor
+SYSTEM_AUDIO="alsa_output.pci-0000_00_1f.3.analog-stereo.monitor"
+
+# Stellen Sie sicher, dass die Verzeichnisse existieren
+#mkdir -p "$VIDEO_DIR" "$AUDIO_DIR"
+
+notify() {
+    notify-send "dmenurecord" "$1"
+}
+
+updateicon() {
+    echo "$1" > /tmp/recordingicon
+    pkill -RTMIN+9 "${STATUSBAR}"
+}
+
+killrecording() {
+    if [ -f /tmp/recordingpid ]; then
+        local pid=$(cat /tmp/recordingpid)
+        if ps -p "$pid" > /dev/null; then
+            kill -SIGTERM "$pid" 2>/dev/null
+            notify "Aufnahme beendet"
+        else
+            notify "Kein aktiver Aufnahmeprozess gefunden"
+        fi
+        rm -f /tmp/recordingpid
+        updateicon ""
+    else
+        notify "Keine Aufnahme aktiv"
+    fi
+}
+
+# Funktion zum Ermitteln des Hauptmonitors und seiner Auflösung
+get_primary_monitor_resolution() {
+    xrandr --current | grep -w "primary" | grep -o '[0-9]*x[0-9]*' | head -n1
+}
+
+# Funktion zum Überprüfen der NVENC-Unterstützung
+check_nvenc_support() {
+    if ! ffmpeg -hide_banner -encoders 2>/dev/null | grep -q "$VIDEO_CODEC"; then
+        notify "NVIDIA-Encoder $VIDEO_CODEC nicht verfügbar"
+        notify "Fallback auf Software-Encoding (libx264)"
+        VIDEO_CODEC="libx264"
+        NVENC_PRESET="medium"  # x264 preset
+        NVENC_TUNE=""          # x264 hat andere tune-Optionen
+        NVENC_CRF="23"
+        return 1
+    fi
+    return 0
+}
+
+# Standardversion für Vollbild-Screencast
+screencast() {
+    local resolution=$(get_primary_monitor_resolution)
+    local out="$VIDEO_DIR/screencast-$(date '+%y%m%d-%H%M-%S').$VIDEO_FORMAT"
+
+    check_nvenc_support
+
+    local codec_params=""
+    if [[ "$VIDEO_CODEC" == *"nvenc"* ]]; then
+        codec_params="-preset $NVENC_PRESET -tune $NVENC_TUNE -crf $NVENC_CRF -b:v $VIDEO_BITRATE -minrate $VIDEO_MINRATE -maxrate $VIDEO_MAXRATE -bufsize $VIDEO_BUFSIZE"
+    else
+        codec_params="-preset $NVENC_PRESET -crf $NVENC_CRF -b:v $VIDEO_BITRATE -minrate $VIDEO_MINRATE -maxrate $VIDEO_MAXRATE -bufsize $VIDEO_BUFSIZE"
+    fi
+
+    nice -n -10 ffmpeg -y \
+        -itsoffset -0.225 \
+        -f x11grab -framerate "$FRAMERATE" -video_size "$resolution" -i "$DISPLAY" \
+        -probesize 10M -analyzeduration 10M \
+        -f pulse -sample_rate "$AUDIO_SAMPLERATE" -channels 2 -i default \
+        -af "aresample=$AUDIO_SAMPLERATE:async=1000" \
+        -c:v "$VIDEO_CODEC" $codec_params \
+        -c:a "$AUDIO_CODEC" -ar "$AUDIO_SAMPLERATE" \
+        "$out" &
+    echo $! > /tmp/recordingpid
+    updateicon "  "
+}
+
+# Screencast für einen ausgewählten Monitor
+screencast_monitor() {
+    # Monitor-Auswahl ohne Fehlermeldungen
+    local selected_monitor
+    selected_monitor="$(xrandr --listmonitors | tail -n +2 | awk '{print $4}' | dmenu -i -p "Monitor auswählen:")"
+
+    # Wenn kein Monitor ausgewählt wurde, breche ab
+    if [ -z "$selected_monitor" ]; then
+        notify "Keine Monitorauswahl getroffen, Aufnahme abgebrochen."
+        return 1
+    fi
+
+    # Auflösung und Offset für den ausgewählten Monitor ermitteln
+    local resolution offset
+    read -r resolution offset <<< $(xrandr | grep -w "$selected_monitor" | grep -o '[0-9]*x[0-9]*[+][0-9]*[+][0-9]*' | head -n1 | awk '{
+        match($0, /([0-9]+)x([0-9]+)([+][0-9]+[+][0-9]+)/, a);
+        print a[1]"x"a[2], a[3];
+    }')
+
+    local out="$VIDEO_DIR/screencast-${selected_monitor}-$(date '+%y%m%d-%H%M-%S').$VIDEO_FORMAT"
+
+    check_nvenc_support
+
+    local codec_params=""
+    if [[ "$VIDEO_CODEC" == *"nvenc"* ]]; then
+        codec_params="-preset $NVENC_PRESET -tune $NVENC_TUNE -crf $NVENC_CRF -b:v $VIDEO_BITRATE -minrate $VIDEO_MINRATE -maxrate $VIDEO_MAXRATE -bufsize $VIDEO_BUFSIZE"
+    else
+        codec_params="-preset $NVENC_PRESET -crf $NVENC_CRF -b:v $VIDEO_BITRATE -minrate $VIDEO_MINRATE -maxrate $VIDEO_MAXRATE -bufsize $VIDEO_BUFSIZE"
+    fi
+
+    nice -n -10 ffmpeg -y \
+        -itsoffset -0.225 \
+        -f x11grab -framerate "$FRAMERATE" -video_size "$resolution" -i "$DISPLAY$offset" \
+        -probesize 10M -analyzeduration 10M \
+        -f pulse -sample_rate "$AUDIO_SAMPLERATE" -channels 2 -i default \
+        -af "aresample=$AUDIO_SAMPLERATE:async=1000" \
+        -c:v "$VIDEO_CODEC" $codec_params \
+        -c:a "$AUDIO_CODEC" -ar "$AUDIO_SAMPLERATE" \
+        "$out" &
+    echo $! > /tmp/recordingpid
+    notify "Monitor-Aufnahme gestartet: $selected_monitor"
+    updateicon "  "
+}
+
+# Screencast mit zwei Audiospuren (Mikrofon + Systemsound)
+screencast_reaction() {
+    local resolution=$(get_primary_monitor_resolution)
+    local out="$VIDEO_DIR/reaction-$(date '+%y%m%d-%H%M-%S').$VIDEO_FORMAT"
+
+    # Prüfen, ob die System-Audio-Quelle existiert
+    if ! pactl list sources | grep -q "$SYSTEM_AUDIO"; then
+        notify "System-Audio-Quelle nicht gefunden: $SYSTEM_AUDIO"
+        notify "Bitte die SYSTEM_AUDIO Variable im Skript anpassen"
+        return 1
+    fi
+
+    # Sicherstellen, dass System-Audio aktiv ist
+    pactl set-source-mute "$SYSTEM_AUDIO" 0 2>/dev/null
+
+    check_nvenc_support
+
+    local codec_params=""
+    if [[ "$VIDEO_CODEC" == *"nvenc"* ]]; then
+        codec_params="-preset $NVENC_PRESET -tune $NVENC_TUNE -crf $NVENC_CRF -b:v $VIDEO_BITRATE -minrate $VIDEO_MINRATE -maxrate $VIDEO_MAXRATE -bufsize $VIDEO_BUFSIZE"
+    else
+        codec_params="-preset $NVENC_PRESET -crf $NVENC_CRF -b:v $VIDEO_BITRATE -minrate $VIDEO_MINRATE -maxrate $VIDEO_MAXRATE -bufsize $VIDEO_BUFSIZE"
+    fi
+
+    nice -n -10 ffmpeg -y \
+        -itsoffset -0.225 \
+        -f x11grab -framerate "$FRAMERATE" -video_size "$resolution" -i "$DISPLAY" \
+        -f pulse -sample_rate "$AUDIO_SAMPLERATE" -channels 2 -i default \
+        -f pulse -sample_rate "$AUDIO_SAMPLERATE" -channels 2 -i "$SYSTEM_AUDIO" \
+        -c:v "$VIDEO_CODEC" $codec_params \
+        -c:a "$AUDIO_CODEC" -ar "$AUDIO_SAMPLERATE" \
+        -map 0:v -map 1:a -map 2:a -disposition:a:0 default -disposition:a:1 0 \
+        "$out" &
+
+    local pid=$!
+    echo $pid > /tmp/recordingpid
+    notify "Reaction-Aufnahme gestartet mit Mikrofon und System-Audio"
+    updateicon "  "
+}
+
+# Audioaufnahme
+audio() {
+    local out="$AUDIO_DIR/audio-$(date '+%y%m%d-%H%M-%S').$AUDIO_FORMAT"
+    ffmpeg -f pulse -i default -c:a "$AUDIO_CODEC" "$out" &
+    echo $! > /tmp/recordingpid
+    notify "Audioaufnahme gestartet"
+    updateicon "  "
+}
+
+# Webcamaufnahme
+webcam() {
+    local out="$VIDEO_DIR/webcam-$(date '+%y%m%d-%H%M-%S').$VIDEO_FORMAT"
+
+    # Verfügbare Webcams auflisten
+    local devices=$(ls /dev/video* 2>/dev/null)
+    if [ -z "$devices" ]; then
+        notify "Keine Webcam gefunden"
+        return 1
+    fi
+
+    # Webcam auswählen, wenn mehrere vorhanden sind
+    local webcam
+    if [ $(echo "$devices" | wc -l) -gt 1 ]; then
+        webcam=$(echo "$devices" | dmenu -i -p "Webcam auswählen:")
+        if [ -z "$webcam" ]; then
+            notify "Keine Webcam ausgewählt"
+            return 1
+        fi
+    else
+        webcam="$devices"
+    fi
+
+    # Standard-Auflösung verwenden
+    local resolution="640x480"
+
+    check_nvenc_support
+
+    local codec_params=""
+    if [[ "$VIDEO_CODEC" == *"nvenc"* ]]; then
+        codec_params="-preset $NVENC_PRESET -tune $NVENC_TUNE -crf $NVENC_CRF -b:v 2M"
+    else
+        codec_params="-preset $NVENC_PRESET -crf $NVENC_CRF -b:v 2M"
+    fi
+
+    ffmpeg -y \
+        -f v4l2 -i "$webcam" -video_size "$resolution" \
+        -f pulse -sample_rate "$AUDIO_SAMPLERATE" -channels 2 -i default \
+        -c:v "$VIDEO_CODEC" $codec_params \
+        -c:a "$AUDIO_CODEC" -ar "$AUDIO_SAMPLERATE" \
+        "$out" &
+
+    echo $! > /tmp/recordingpid
+    notify "Webcamaufnahme gestartet"
+    updateicon "  "
+}
+
+# Aufnahme-Menü
+askrecording() {
+    local choice
+    choice="$(printf "Bildschirmaufnahme\nBildschirmaufnahme (Monitor)\nReaction\nAudio\nWebcam" \
+        | dmenu -i -p "Aufnahmestil wählen:")"
+    case "$choice" in
+        Bildschirmaufnahme) screencast ;;
+        "Bildschirmaufnahme (Monitor)") screencast_monitor ;;
+        Reaction) screencast_reaction ;;
+        Audio) audio ;;
+        Webcam) webcam ;;
+        *) notify "Keine Auswahl getroffen" ;;
+    esac
+}
+
+# Aufnahme beenden Dialog
+asktoend() {
+    local response
+    response="$(printf "Ja\nNein" | dmenu -i -p "Aufnahme läuft, beenden?")"
+    [ "$response" = "Ja" ] && killrecording
+}
+
+# Überprüfen, ob ffmpeg installiert ist
+if ! command -v ffmpeg &> /dev/null; then
+    notify "ffmpeg ist nicht installiert."
+    exit 1
+fi
+
+# Überprüfen, ob die Videoverzeichnisse existieren
+if [ ! -d "$VIDEO_DIR" ]; then
+    mkdir -p "$VIDEO_DIR"
+    notify "Video-Verzeichnis erstellt: $VIDEO_DIR"
+fi
+
+if [ ! -d "$AUDIO_DIR" ]; then
+    mkdir -p "$AUDIO_DIR"
+    notify "Audio-Verzeichnis erstellt: $AUDIO_DIR"
+fi
+
+# Hauptlogik
+case "$1" in
+    screencast) screencast ;;
+    screencast_monitor) screencast_monitor ;;
+    screencast_reaction) screencast_reaction ;;
+    audio) audio ;;
+    webcam) webcam ;;
+    kill) killrecording ;;
+    *)
+        ([ -f /tmp/recordingpid ] && asktoend) || askrecording
+        ;;
+esac
