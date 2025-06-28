@@ -7,17 +7,17 @@ VIDEO_DIR="$HOME/Videos/scr"
 AUDIO_DIR="$HOME/Podcast/aufnahmen"
 VIDEO_FORMAT="mkv"
 AUDIO_FORMAT="flac"
-VIDEO_CODEC="h264_nvenc"		# h264_nvenc, hevc_nvenc oder av1_nvenc
-AUDIO_CODEC="flac"				# flac oder opus
+VIDEO_CODEC="h264_nvenc"       # h264_nvenc, hevc_nvenc oder av1_nvenc
+AUDIO_CODEC="flac"             # flac oder opus
 AUDIO_SAMPLERATE="44100"
 VIDEO_BITRATE="4M"
 VIDEO_MINRATE="2M"
 VIDEO_MAXRATE="9M"
 VIDEO_BUFSIZE="10M"
-AUDIO_BITRATE="256k"			# Nur für Nicht-FLAC-Codecs relevant
-NVENC_PRESET="medium"			# ultrafast, superfast, veryfast, faster, fast, medium, slow, slower, veryslow
-NVENC_TUNE="hq"					# hq (high quality), ll (low latency), ull (ultra low latency), lossless
-NVENC_CRF="23"					# Qualität (0-51, niedriger = besser)
+AUDIO_BITRATE="256k"           # Nur für Nicht-FLAC-Codecs relevant
+NVENC_PRESET="medium"          # ultrafast, superfast, veryfast, faster, fast, medium, slow, slower, veryslow
+NVENC_TUNE="hq"               # hq (high quality), ll (low latency), ull (ultra low latency), lossless
+NVENC_CRF="23"                # Qualität (0-51, niedriger = besser)
 FRAMERATE="30"
 STATUSBAR="dwmblocks"
 
@@ -59,7 +59,29 @@ killrecording() {
 
 # Funktion zum Ermitteln des Hauptmonitors und seiner Auflösung
 get_primary_monitor_resolution() {
-    xrandr --current | grep -w "primary" | grep -o '[0-9]*x[0-9]*' | head -n1
+    local resolution
+
+    # Zuerst nach primary Monitor suchen
+    resolution=$(xrandr --current | grep -w "primary" | grep -oE '[0-9]+x[0-9]+' | head -n1)
+
+    # Falls kein primary gefunden, nimm den ersten connected Monitor
+    if [ -z "$resolution" ]; then
+        resolution=$(xrandr --current | grep " connected" | head -n1 | grep -oE '[0-9]+x[0-9]+\+[0-9]+\+[0-9]+' | cut -d'+' -f1)
+    fi
+
+    # Falls immer noch nichts, Fallback auf häufige Auflösungen
+    if [ -z "$resolution" ]; then
+        # Versuche die aktuelle Desktop-Auflösung zu ermitteln
+        resolution=$(xdpyinfo | grep dimensions | grep -oE '[0-9]+x[0-9]+' | head -n1)
+    fi
+
+    # Letzter Fallback
+    if [ -z "$resolution" ]; then
+        resolution="1920x1080"
+        notify "Warnung: Auflösung nicht ermittelt, verwende Fallback: $resolution"
+    fi
+
+    echo "$resolution"
 }
 
 # Funktion zum Überprüfen der NVENC-Unterstützung
@@ -117,10 +139,32 @@ screencast_monitor() {
 
     # Auflösung und Offset für den ausgewählten Monitor ermitteln
     local resolution offset
-    read -r resolution offset <<< $(xrandr | grep -w "$selected_monitor" | grep -o '[0-9]*x[0-9]*[+][0-9]*[+][0-9]*' | head -n1 | awk '{
-        match($0, /([0-9]+)x([0-9]+)([+][0-9]+[+][0-9]+)/, a);
-        print a[1]"x"a[2], a[3];
-    }')
+    local monitor_info=$(xrandr | grep -w "$selected_monitor" | grep " connected")
+
+    if [ -z "$monitor_info" ]; then
+        notify "Monitor $selected_monitor nicht gefunden oder nicht verbunden"
+        return 1
+    fi
+
+    # Extrahiere Auflösung und Offset aus Format: "1920x1080+0+0"
+    local full_geometry=$(echo "$monitor_info" | grep -oE '[0-9]+x[0-9]+\+[0-9]+\+[0-9]+' | head -n1)
+
+    if [ -n "$full_geometry" ]; then
+        resolution=$(echo "$full_geometry" | cut -d'+' -f1)
+        local x_offset=$(echo "$full_geometry" | cut -d'+' -f2)
+        local y_offset=$(echo "$full_geometry" | cut -d'+' -f3)
+        offset="+${x_offset}+${y_offset}"
+    else
+        # Fallback: nur Auflösung ohne Offset
+        resolution=$(echo "$monitor_info" | grep -oE '[0-9]+x[0-9]+' | head -n1)
+        offset=""
+        notify "Warnung: Offset nicht ermittelt, verwende Vollbild-Modus"
+    fi
+
+    if [ -z "$resolution" ]; then
+        notify "Fehler: Auflösung für Monitor $selected_monitor nicht ermittelt"
+        return 1
+    fi
 
     local out="$VIDEO_DIR/screencast-${selected_monitor}-$(date '+%y%m%d-%H%M-%S').$VIDEO_FORMAT"
 
