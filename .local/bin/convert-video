@@ -1,0 +1,48 @@
+#!/bin/bash
+# convert-video - Minimalistisches Video-Konvertierungsskript mit Hardware-Erkennung
+# Installiere in ~/.local/bin/convert-video
+
+set -e
+
+# Eingabedatei prüfen
+if [ -z "$1" ]; then
+    echo "Verwendung: $(basename "$0") <video-datei>"
+    exit 1
+fi
+
+input="$1"
+dir_name=$(dirname "$input")
+base_name=$(basename "$input")
+filename="${base_name%.*}"
+output="${dir_name}/${filename}-convertiert.mp4"
+
+echo "Konvertiere: $input"
+
+# Hardware-Encoder erkennen und verwenden
+if [ -e /dev/dri/renderD128 ] && command -v vainfo &> /dev/null; then
+    # VAAPI verfügbar
+    echo "Verwende VAAPI Hardware-Encoding..."
+    ffmpeg -vaapi_device /dev/dri/renderD128 -i "$input" \
+           -vf 'format=nv12,hwupload' \
+           -c:v hevc_vaapi -b:v 4M -maxrate 6M -bufsize 8M \
+			-c:a aac -b:a 320k \
+           "$output"
+
+elif command -v nvidia-smi &> /dev/null && nvidia-smi &> /dev/null; then
+    # NVIDIA verfügbar
+    echo "Verwende NVIDIA Hardware-Encoding..."
+    ffmpeg -hwaccel cuda -i "$input" \
+           -c:v hevc_nvenc -preset p4 -b:v 4M -maxrate 6M -bufsize 8M \
+			-c:a aac -b:a 320k \
+           "$output"
+
+else
+    # CPU Fallback
+    echo "Verwende CPU-Encoding (kann länger dauern)..."
+    ffmpeg -i "$input" \
+           -c:v libx265 -preset fast -crf 28 \
+			-c:a aac -b:a 320k \
+           "$output"
+fi
+
+echo "Fertig: $output"

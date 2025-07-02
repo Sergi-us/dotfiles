@@ -9,6 +9,7 @@ REMOTE_USER=""		# Optional: anderen User angeben
 # Zu synchronisierende Verzeichnisse
 SYNC_DIRS=(
     "$HOME/Dokumente"
+	# Weitere Verzeichnisse hier hinzufügen...
 )
 
 # Unison Umgebungsvariablen
@@ -104,6 +105,8 @@ for dir in "${SYNC_DIRS[@]}"; do
 done
 
 echo "Fertig."
+echo ""
+echo "Tipp: Bei Problemen prüfe ~/.cache/unison/sync-$REMOTE.log"
 
 ## BESCHREIBUNG:
 ##   Template für bidirektionale Datensynchronisation zwischen zwei Rechnern

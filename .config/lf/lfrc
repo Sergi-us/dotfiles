@@ -52,7 +52,7 @@ cmd convert_audio ${{
     set -f
     notify-send "Audio wird konvertiert..."
     for x in $fx; do
-        if ~/.local/bin/ffmpeg-davinci "$x"; then
+        if convert-audio "$x"; then
             lf -remote "send $id reload"
             notify-send "🎵 Erfolgreich" "Datei $x wurde konvertiert."
         else
@@ -68,22 +68,7 @@ cmd convert_video ${{
     set -f
     notify-send "Video wird konvertiert..."
     for x in $fx; do
-        # Extrahieren von Verzeichnis, Dateiname und Erweiterung
-        dir_name=$(dirname "$x")
-        base_name=$(basename "$x")
-        filename="${base_name%.*}"
-
-        # Ausgabedatei mit Präfix "konvertiert_"
-        output_file="${dir_name}/${filename}-convertiert.mp4"
-
-        echo "Konvertiere '$x' nach '$output_file'..."
-
-        # ffmpeg-Konvertierungsbefehl direkt ausführen
-        if ffmpeg -vaapi_device /dev/dri/renderD128 -i "$x" \
-           -vf 'format=nv12,hwupload' \
-           -c:v hevc_vaapi -b:v 4M -maxrate 6M -bufsize 8M \
-           -c:a libopus -b:a 96k \
-           "$output_file"; then
+        if convert-video "$x"; then
             lf -remote "send $id reload"
             notify-send "🎵 Erfolgreich" "Datei $x wurde konvertiert."
         else
