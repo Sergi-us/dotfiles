@@ -171,6 +171,22 @@ git clone https://github.com/Dein-Username/dotfiles.git ~/.dotfiles
 - **[st Build](https://github.com/Sergi-us/st)** - Terminal-Konfiguration
 - **[dmenu Build](https://github.com/Sergi-us/dmenu)** - Application Launcher
 
+### 🔄 Bidirektionale Synchronisation mit Unison
+
+Das Repository enthält ein vorkonfiguriertes Sync-Script für bidirektionale Datensynchronisation:
+
+- **`sync-sarbs`**: Template-Script für Unison-basierte Synchronisation
+- **Automatisches Setup**: Legt bei erster Ausführung alle benötigten Verzeichnisse an
+- **Flexibel erweiterbar**: Review-Modus für manuelle Kontrolle
+
+> **⚠️ Wichtig**: Benennene `sync-sarbs` für die eigenen Anwendungsfälle um (z.B. `sync-laptop`, `sync-nas`), um bei Updates des Repositories die eigene Konfiguration zu behalten!
+
+**Features:**
+- Peer-to-Peer Synchronisation ohne zentralen Server
+- Konfliktauflösung (bevorzugt neuere Dateien)
+- Interaktiver Review-Modus mit `--review` Flag
+- Automatische Archivierung der Sync-States
+
 ### Inspirationen & Credits
 
 - [Luke Smith](https://github.com/LukeSmithxyz) - Ursprüngliche LARBS-Inspiration

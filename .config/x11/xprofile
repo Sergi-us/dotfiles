@@ -5,8 +5,8 @@
 # Spezifisch für grafische Programme unter X11.
 
 # === DPI Einstellungen ===
-# xrandr --dpi 122    # 2560x1440
-xrandr --dpi 96     # 1920x1080
+xrandr --dpi 122    # 2560x1440
+# xrandr --dpi 96     # 1920x1080
 
 # === GDK Low Level Einstellungen ===
 # export GDK_SCALE=2							# Für GTK-Anwendungen
@@ -45,6 +45,11 @@ setbg &
 # TODO Trennen von Skalierung und Farben
 # wenn xrdb aktiviert, dann "~/.config/x11/xresources" beachten
 # xrdb ${XDG_CONFIG_HOME:-$HOME/.config}/x11/xresources & xrdbpid=$!
+
+# === für pamgnupg ===
+export GPG_TTY=$(tty)
+export SSH_AUTH_SOCK=$(gpgconf --list-dirs agent-ssh-socket)
+gpg-connect-agent updatestartuptty /bye >/dev/null
 
 # === Liste der automatisch zu startenden Programme ===
 autostart="mpd dunst unclutter pipewire remapd picom -d"

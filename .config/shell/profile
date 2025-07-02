@@ -71,7 +71,7 @@ export GOMODCACHE="$XDG_CACHE_HOME/go/mod"				# ok Go Modul-Cache
 export PYTHONSTARTUP="$XDG_CONFIG_HOME/python/pythonrc"	# ok Python Startdatei
 
 # === Data & Cache Directories ===
-export PASSWORD_STORE_DIR="$XDG_DATA_HOME/Passwörter"	# ok Passwortspeicher
+export PASSWORD_STORE_DIR="$XDG_DATA_HOME/Pass"			# Passwortspeicher für Pass
 export TMUX_TMPDIR="$XDG_RUNTIME_DIR"					# ok Tmux temp. Verzeichnis
 export ANDROID_SDK_HOME="$XDG_CONFIG_HOME/Handy"		# ok Android SDK Verzeichnis
 export WINEPREFIX="$XDG_DATA_HOME/wineprefixes/default"	# ok Wine (Windows) Präfix-Verzeichnis
@@ -96,7 +96,7 @@ export WTTRURL="wttr.in"
 
 # Aufräumen im Home-Verzeichnis:
 #export XAUTHORITY="$XDG_RUNTIME_DIR/Xauthority"		# ok Diese Zeile kann einige Desktop-Manager stören.
-# export GNUPGHOME="$XDG_DATA_HOME/gnupg"				# ok GnuPG Home-Verzeichnis
+export GNUPGHOME="$XDG_DATA_HOME/gnupg"					# ok GnuPG Home-Verzeichnis
 
 # === Less Viewer Programmeinstellungen ===
 export LESS="R"											# Less Pager Optionen

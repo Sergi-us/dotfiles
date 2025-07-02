@@ -1,21 +1,21 @@
 #!/usr/bin/env bash
 ## 2025-06-23   SARBS
-# sync-sarbs - Minimalistisches Sync-Script
-# abhängigkeiten: ssh rsync unison
+## sync-sarbs - Bidirektionales Sync-Script Template
 
 # === KONFIGURATION ===
-REMOTE="dell"  # Ziel-Rechner in der .ssh/config
+REMOTE="laptop"		# Ziel-Rechner
+REMOTE_USER=""		# Optional: anderen User angeben
 
 # Zu synchronisierende Verzeichnisse
 SYNC_DIRS=(
-    "$HOME/Davinci"
-    "$HOME/Videos"
+    "$HOME/Dokumente"
 )
 
-# Unison Umgebungsvariablen (werden automatisch erstellt, können gelöscht werden)
+# Unison Umgebungsvariablen
 export UNISON="$HOME/.config/unison"
 export UNISONBACKUPDIR="$HOME/.local/share/unison/backup"
-export UNISONLOCALHOSTNAME="T480"
+export UNISONLOCALHOSTNAME="Archlinux"
+
 
 # === SETUP (einmalig) ===
 setup_unison() {
@@ -37,14 +37,20 @@ sync_directory() {
     local local_dir="$1"
     local remote_dir="$1"  # Gleicher Pfad auf beiden Seiten
 
+    # Abfrage ob ein anderer Nutzername angegeben wurde
+    if [ -n "$REMOTE_USER" ]; then
+        remote_path="ssh://$REMOTE_USER@$REMOTE/$remote_dir"
+    else
+        remote_path="ssh://$REMOTE/$remote_dir"
+    fi
+
     echo "Synchronisiere: $local_dir"
 
-    # Unison direkt ausführen (ohne Profil-Datei)
+    # Unison direkt ausführen
     unison \
         "$local_dir" \
-        "ssh://$REMOTE/$remote_dir" \
-        -auto \
-        -batch \
+        "$remote_path" \
+        $UI_MODE \
         -prefer newer \
         -times \
         -rsync \
@@ -54,6 +60,22 @@ sync_directory() {
         -ignore "Name *.tmp" \
         -logfile "$HOME/.cache/unison/sync-$REMOTE.log"
 }
+
+# === PARAMETER AUSWERTUNG ===
+if [[ "$1" == "--review" ]] || [[ "$1" == "-r" ]]; then
+    echo "=== VORSCHAU MODUS ==="
+    UI_MODE="-ui text"
+elif [[ "$1" == "--help" ]] || [[ "$1" == "-h" ]]; then
+    echo "Verwendung: $0 [OPTION]"
+    echo "Optionen:"
+    echo "  --review, -r    Interaktiver Modus (manuell entscheiden)"
+    echo "  --help, -h      Diese Hilfe anzeigen"
+    echo ""
+    echo "Ohne Parameter: Automatische Synchronisation"
+    exit 0
+else
+    UI_MODE="-auto -batch"
+fi
 
 # === HAUPTPROGRAMM ===
 
@@ -82,3 +104,34 @@ for dir in "${SYNC_DIRS[@]}"; do
 done
 
 echo "Fertig."
+
+## BESCHREIBUNG:
+##   Template für bidirektionale Datensynchronisation zwischen zwei Rechnern
+##   mittels Unison. Unterstützt direkte Netzwerkverbindungen (Peer-to-Peer)
+##   sowie normale Netzwerkverbindungen.
+##
+## ABHÄNGIGKEITEN:
+##   - unison (wird von SARBS automatisch installiert)
+##   - ssh (für Remote-Verbindungen)
+##   - Funktionierende SSH-Key Authentifizierung zum Zielrechner
+##
+## SETUP:
+##   1. Script umbenennen für eigene Zwecke (z.B. sync-laptop)
+##   2. REMOTE Variable anpassen (Hostname oder IP)
+##   3. SYNC_DIRS Array mit gewünschten Verzeichnissen füllen
+##   4. SSH-Key einrichten: ssh-copy-id user@remote-host
+##   5. Script ausführbar machen: chmod +x sync-sarbs
+##
+## VERWENDUNG:
+##   ./sync-laptop          # Automatische Synchronisation
+##   ./sync-sarbs --review  # Interaktiver Modus (manuelle Entscheidung)
+##   ./sync-sarbs --help    # Diese Hilfe anzeigen
+##
+## HINWEISE:
+##   - Beim ersten Sync werden die Unison-Verzeichnisse automatisch angelegt
+##   - Archive werden in ~/.cache/unison gespeichert
+##   - Logs finden sich in ~/.cache/unison/sync-REMOTE.log
+##   - Bei Konflikten wird standardmäßig die neuere Datei bevorzugt
+##
+## AUTOR: Sergius
+## LIZENZ: MIT
