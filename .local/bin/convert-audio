@@ -1,0 +1,28 @@
+#!/bin/bash
+# convert-audio - Konvertiert Videos mit Opus-Audio für DaVinci Resolve
+# Installiere in ~/.local/bin/convert-audio
+
+set -e
+
+# Eingabedatei prüfen
+if [ -z "$1" ]; then
+    echo "Verwendung: $(basename "$0") <video-datei>"
+    exit 1
+fi
+
+input="$1"
+dir_name=$(dirname "$input")
+base_name=$(basename "$input")
+filename="${base_name%.*}"
+extension="${base_name##*.}"
+output="${dir_name}/${filename}-davinci.${extension}"
+
+echo "Konvertiere Audio-Spur in: $input"
+
+# Video kopieren, nur Audio neu kodieren
+ffmpeg -i "$input" \
+       -c:v copy \
+       -c:a aac -b:a 320k \
+       "$output"
+
+echo "Fertig: $output"
