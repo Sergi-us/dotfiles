@@ -5,19 +5,38 @@
 sudo pacman -S neomutt isync msmtp
 yay -S mutt-wizard-git
 }}}
-GPG einrichten
+GPG für Pass einrichten
 {{{class="brush: bash"
 gpg --full-generate-key
+User-ID			"Pass PGP-Schlüssel"
+Kommentar		"PGP Schlüssel für Pass-Passwortmanager"
+Passwort		"*******"
 }}}
+
 oder vorhandene Schlüssel importieren
 {{{class="brush: bash"
 gpg --import privat-key.asc
 gpg --import public-key.asc
 }}}
 
-Pass einrichten
+# Finde die Key-ID raus
+
+{{{
+gpg --list-secret-keys
+# Du siehst sowas wie: rsa4096/ABCD1234EFGH5678
+}}}
+
+== PGP Schlüssel Exportieren ==
+{{{
+gpg --armor --export-secret-keys DEINE-PGP-KEY-ID > pass-private.asc
+gpg --armor --export DEINE-PGP-KEY-ID > pass-public.asc
+# Später importieren mit
+gpg --import *.asc
+}}}
+
+Pass mit der erstellten oder importierten PGP Schlüssel Initiieren
 {{{class="brush: bash"
-pass init deine@e.mail
+pass init "DEINE-PGP-KEY-ID"
 }}}
 
 Mutt Wizzard
@@ -37,3 +56,18 @@ mw -a deine@e.mail
 Notice: SSLType is deprecated. Use TLSType instead.
 nvim ~/.config/mbsync/config
 alle *SSLType* gegen *TLSType* austauschen
+
+Namen der angezeigt werden soll, ändern
+{{{
+v /home/sergi/.config/mutt/accounts/name@posteo.de.muttrc
+set real_name = "Sergius"
+set from = "anderer-name@posteo.de"
+}}}
+
+== PamGnuPG einrichten ==
+Installieren der notwendigen Pakete (bei Sarbs bereits vorinstaliert)
+{{{
+sudo pacman -S pam-gnupg
+}}}
+
+
