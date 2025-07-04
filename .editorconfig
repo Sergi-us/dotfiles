@@ -108,6 +108,7 @@ indent_style = tab
 # Kommentar: Make erfordert Tabs für die Syntax
 # Markdown - spezielle Behandlung
 [*.{md,markdown}]
+end_of_line = crlf
 indent_style = tab
 indent_size = 4
 # Leerzeichen am Zeilenende erzeugen Zeilenumbrüche in Markdown

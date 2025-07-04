@@ -27,19 +27,19 @@ Dieses Repository enthält meine Dotfiles für SARBS - ein vollständig konfigur
 
 ```
 dotfiles/
-├── .config/							# XDG-konforme Anwendungskonfigurationen
-│   ├── nvim/							# Neovim-Konfiguration
-│   ├── zsh/							# Zsh-Konfigurationsdateien
-│   ├── lf/								# lf Dateimanager-Setup
-│   ├── newsboat/					# RSS Reader-Konfiguration
-│   └── ...								# Weitere App-Configs
-├── .local/								# Lokale Benutzerdateien
-│   ├── bin/							# Persönliche Skripte und Executables
-│   │   ├── cron/					# Cronjob-Skripte und -Verwaltung
-│   │   └── ...						# Weitere Skripte
-│   └── share/						# Lokale Daten und Ressourcen
-├── .x11/									# X11-bezogene Konfigurationen
-└── README.md							# Diese Datei
+├── .config/			# XDG-konforme Anwendungskonfigurationen
+│   ├── nvim/			# Neovim-Konfiguration
+│   ├── zsh/			# Zsh-Konfigurationsdateien
+│   ├── lf/				# lf Dateimanager-Setup
+│   ├── newsboat/		# RSS Reader-Konfiguration
+│   └── ...				# Weitere App-Configs
+├── .local/				# Lokale Benutzerdateien
+│   ├── bin/			# Persönliche Skripte und Executables
+│   │   ├── cron/		# Cronjob-Skripte und -Verwaltung
+│   │   └── ...			# Weitere Skripte
+│   └── share/			# Lokale Daten und Ressourcen
+├── .x11/				# X11-bezogene Konfigurationen
+└── README.md			# Diese Datei
 ```
 
 ## ⚡ Installation & Setup
@@ -90,6 +90,7 @@ NeoVim ist das Herzstück der Entwicklungsumgebung und erhält besondere Aufmerk
 - **📦 Lazy Plugin-Management**: Umfangreiche Plugin-Suite für Entwicklung, LSP-Integration und Workflow-Optimierung
 - **⚡ IDE-Features**: Code-Completion, Syntax-Highlighting, Git-Integration, Debugging-Support
 - **🎨 Konsistente Themes**: Integration mit dem systemweiten pywal-Farbschema
+- ** Weitere infos in der** [Dotfiles-README](https://github.com/Sergi-us/dotfiles/blob/main/.config/nvim/README.md)
 
 ## 🔧 Verwendete Tools & Software
 
