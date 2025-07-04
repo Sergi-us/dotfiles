@@ -37,3 +37,14 @@ opt.smartindent = true      -- Intelligente Einrückung
 opt.undofile = true         -- Persistente Undo-Historie
 opt.backup = false          -- Keine Backup-Dateien
 opt.writebackup = false     -- Keine temporären Backup-Dateien
+
+-- Whitespace Zeichen darstellung
+opt.list = true							-- Whitespace-Zeichen anzeigen
+opt.listchars = {
+  tab = "→ ",								-- Tab als Pfeil
+  space = "·",							-- Leerzeichen als Punkt (optional)
+-- trail = "•",							-- Trailing spaces
+  extends = "⟩",						-- Zeichen am Zeilenende
+  precedes = "⟨",						-- Zeichen am Zeilenanfang
+  nbsp = "␣",								-- Non-breaking space
+}

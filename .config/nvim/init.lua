@@ -1,5 +1,5 @@
 -- init.lua
--- ## 2025-03-30 SARBS
+-- ## 2025-07-04 SARBS
 
 --  === === === === === === === === === === === === === === === === === === ===
 -- ===                   SERGI Neovim-Konfiguration                          ===
@@ -271,11 +271,18 @@ lazy.setup({
   },
 }) -- Schließende Klammer für lazy.setup
 
--- Lade Benutzereinstellungen nach dem Lazy-Setup
+-- Lade Benutzereinstellungen VOR dem Theme-Setup
 pcall(require, "config.options")      -- Grundlegende Vim-Optionen
 pcall(require, "config.keymaps")      -- Tastenkombinationen
+
+-- DANN SARBS Grafische einstellungen
+local ok, sarbs = pcall(require, "config.sarbs")
+if ok and sarbs then
+  sarbs.setup()
+end
+
+-- Lade Benutzereinstellungen nach dem Lazy-Setup
 pcall(require, "config.autocmds")     -- Automatische Befehle
-pcall(require, "config.transparency") -- Schaltbare Transparenz mit <leader>ü
 pcall(require, "config.shortcuts")    -- Shortcurt integration der Tastenkürzel für vim
-pcall(require, "config.sarbs")        -- Meine Wiki zu CSV konvertieren...
 pcall(require, "config.zeiterfassung")  -- SumHours  addiert alle stunden in der Datei zusammen und gibt die Summenzeile aus
+
