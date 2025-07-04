@@ -4,9 +4,16 @@ return {
   dependencies = { "nvim-tree/nvim-web-devicons" },
   config = function()
     require("lualine").setup({
-      options = {
-        icons_enabled = true,
-        theme = "auto", -- Passt zu deinem Pywal-Theme
+        options = {
+            icons_enabled = true,
+            theme = function()
+            local current_theme = vim.g.colors_name
+            if current_theme == "pywal" then
+            return "pywal"  -- Oder "pywal-nvim" falls das existiert
+            else
+            return "auto"
+            end
+        end,
         -- nf pl divider
         -- component_separators = { left = "", right = "" },
         -- section_separators = { left = "", right = "" },
@@ -46,5 +53,8 @@ return {
       tabline = {},
       extensions = { "nvim-tree" } -- Integration mit nvim-tree
     })
+		vim.cmd([[
+  autocmd ColorScheme * lua require('lualine').setup()
+]])
   end,
 }

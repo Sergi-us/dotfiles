@@ -77,7 +77,7 @@ indent_size = 4
 ###############################################################################
 # Lua (NeoVim)
 [*.lua]
-indent_style = tab
+indent_style = space
 indent_size = 2
 # Kommentar: Für deine Neovim-Konfiguration und Lua-Skripte
 
@@ -106,10 +106,10 @@ indent_size = 2
 [{Makefile,makefile,*.mk}]
 indent_style = tab
 # Kommentar: Make erfordert Tabs für die Syntax
-
 # Markdown - spezielle Behandlung
 [*.{md,markdown}]
-indent_size = 2
+indent_style = tab
+indent_size = 4
 # Leerzeichen am Zeilenende erzeugen Zeilenumbrüche in Markdown
 trim_trailing_whitespace = false
 

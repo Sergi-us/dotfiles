@@ -37,6 +37,7 @@ return {
             enabled = true,
             ruler = false,   -- Position des Cursors ausblenden
             showcmd = false, -- Befehle nicht anzeigen
+            laststatus = 0,  -- Statusleiste komplett ausblenden
           },
           twilight = { enabled = false }, -- Dimmt nicht-aktiven Code
           gitsigns = { enabled = true },
@@ -49,7 +50,7 @@ return {
             breakindent = vim.opt.breakindent:get(),
             spell = vim.opt.spell:get(),
             cursorline = vim.opt.cursorline:get(),
-            cursorcolumn = vim.opt.cursorcolumn:get(), -- NEU
+            cursorcolumn = vim.opt.cursorcolumn:get(),
             showcmd = vim.opt.showcmd:get()
           }
 
@@ -59,16 +60,19 @@ return {
           vim.opt.breakindent = true  -- Einrückung nach Umbruch beibehalten
           vim.cmd("setlocal spell spelllang=de_de,en_us") -- Rechtschreibprüfung mit Deutsch und Englisch aktivieren
 
-          -- Schönere Farben im Schreibmodus
-          vim.cmd("highlight Normal guibg=#232136 guifg=#e0def4")
+          -- Schönere Farben im Schreibmodus (ohne Hintergrund für Transparenz)
+          vim.cmd("highlight Normal guifg=#e0def4")
           vim.cmd("highlight LineNr guifg=#444a73")
-          vim.cmd("highlight StatusLine guibg=#393552 guifg=#e0def4")
+          vim.cmd("highlight StatusLine guifg=#e0def4")
 
           -- Verwende die Transparenz-Funktion aus transparenz.lua, wenn verfügbar
-          local transparenz = require("config.transparenz")
-          if transparenz and transparenz.setup then
-            transparenz.setup()
-          end
+          -- WICHTIG: Nach dem Setzen der Farben, damit Transparenz erhalten bleibt
+          vim.defer_fn(function()
+						local ok, sarbs = pcall(require, "config.sarbs")
+						if ok and sarbs then
+							sarbs.zen_mode_on()  -- bzw. zen_mode_off()
+						end
+          end, 50)
 
           -- Klammern-Hervorhebung beibehalten
           if vim.fn.exists("*HighlightMatchParen") == 1 then
@@ -76,43 +80,45 @@ return {
           end
         end,
 
-      on_close = function()
-        -- Stelle die ursprünglichen Einstellungen wieder her
-        if _G.original_settings then
-          vim.opt.wrap = _G.original_settings.wrap
-          vim.opt.linebreak = _G.original_settings.linebreak
-          vim.opt.breakindent = _G.original_settings.breakindent
-          vim.opt.cursorline = _G.original_settings.cursorline     -- Stellt cursorline wieder her
-          vim.opt.cursorcolumn = _G.original_settings.cursorcolumn -- Stellt cursorcolumn wieder her (NEU)
+        on_close = function()
+          -- Stelle die ursprünglichen Einstellungen wieder her
+          if _G.original_settings then
+            vim.opt.wrap = _G.original_settings.wrap
+            vim.opt.linebreak = _G.original_settings.linebreak
+            vim.opt.breakindent = _G.original_settings.breakindent
+            vim.opt.cursorline = _G.original_settings.cursorline
+            vim.opt.cursorcolumn = _G.original_settings.cursorcolumn or false
+            vim.opt.showcmd = _G.original_settings.showcmd
 
-          if not _G.original_settings.spell then
+            if not _G.original_settings.spell then
+              vim.cmd("setlocal nospell")
+            end
+          else
+            -- Fallback, falls original_settings nicht verfügbar
+            vim.opt.wrap = false
+            vim.opt.linebreak = false
+            vim.opt.breakindent = false
+            vim.opt.cursorline = true
+            vim.opt.cursorcolumn = false
             vim.cmd("setlocal nospell")
           end
 
-          vim.opt.showcmd = _G.original_settings.showcmd
-        else
-          -- Fallback, falls original_settings nicht verfügbar
-          vim.opt.wrap = false
-          vim.opt.linebreak = false
-          vim.opt.breakindent = false
-          vim.opt.cursorline = true     -- Standardwert wiederherstellen
-          vim.opt.cursorcolumn = true   -- Standardwert wiederherstellen (NEU)
-          vim.cmd("setlocal nospell")
-        end
-
           -- Theme wiederherstellen
-          vim.cmd.colorscheme "pywal"
+          vim.cmd("colorscheme pywal")
 
           -- Verwende die Transparenz-Funktion aus transparenz.lua, wenn verfügbar
-          local transparenz = require("config.transparenz")
-          if transparenz and transparenz.setup then
-            transparenz.setup()
-          end
+          -- WICHTIG: Nach colorscheme, damit Transparenz wieder angewendet wird
+          vim.defer_fn(function()
+						local ok, sarbs = pcall(require, "config.sarbs")
+						if ok and sarbs then
+							sarbs.zen_mode_on()  -- bzw. zen_mode_off()
+						end
+          end, 50)
 
-        -- Klammern-Hervorhebung beibehalten
-        if vim.fn.exists("*HighlightMatchParen") == 1 then
-          vim.cmd("call HighlightMatchParen()")
-        end
+          -- Klammern-Hervorhebung beibehalten
+          if vim.fn.exists("*HighlightMatchParen") == 1 then
+            vim.cmd("call HighlightMatchParen()")
+          end
         end,
       })
     end,
