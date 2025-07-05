@@ -14,16 +14,16 @@ Diese Konfiguration basiert auf dem Prinzip der **modularen Trennung**:
 
 ```
 ~/.config/nvim/
-├── init.lua                    # Hauptkonfiguration & Lazy.nvim Bootstrap
+├── init.lua					# Hauptkonfiguration & Lazy.nvim Bootstrap
 ├── lua/
 │   ├── config/
-│   │   ├── sarbs.lua          # 🎨 Zentrale visuelle Steuerung
-│   │   ├── options.lua        # ⚙️  Editor-Einstellungen
-│   │   └── keymaps.lua        # ⌨️  Tastenkombinationen
+│   │   ├── sarbs.lua			# 🎨 Zentrale visuelle Steuerung
+│   │   ├── options.lua			# ⚙️  Editor-Einstellungen
+│   │   └── keymaps.lua			# ⌨️  Tastenkombinationen
 │   └── plugins/
-│       ├── themes.lua         # 🎭 Theme-Manager
-│       ├── zen-mode.lua       # 🧘 Ablenkungsfreies Schreiben
-│       └── lualine.lua        # 📊 Statusleiste
+│       ├── themes.lua			# 🎭 Theme-Manager
+│       ├── zen-mode.lua		# 🧘 Ablenkungsfreies Schreiben
+│       └── lualine.lua			# 📊 Statusleiste
 ```
 
 ## 🔑 Kernkonzepte
@@ -117,7 +117,7 @@ Die Transparenz funktioniert nur, wenn dein Terminal (wie st) bereits transparen
 
 ### Theme-Wechsel
 
-- **Schnell wechseln**: `<leader>tc` 
+- **Schnell wechseln**: `<leader>tc`
 - **Gezielt setzen**: `:ThemeSet gruvbox`
 - **Aktuelles Theme**: Wird in `~/.local/share/nvim/last_theme.txt` gespeichert
 

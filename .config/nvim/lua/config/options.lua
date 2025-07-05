@@ -5,7 +5,8 @@ local opt = vim.opt
 -- UI
 opt.number = true           -- Zeilennummern anzeigen
 opt.relativenumber = true   -- Relative Zeilennummern
-opt.wrap = false            -- Kein Zeilenumbruch
+opt.wrap = true             -- Kein Zeilenumbruch
+opt.textwidth = 120         -- Zeilenumbruch auf 120 Zeichen bescränken
 opt.showmode = false        -- Kein -- INSERT -- usw. (redundant mit Statusleiste)
 opt.cursorline = false      -- Aktuelle Zeile hervorheben
 opt.cursorcolumn = false    -- Aktuelle Spalte hervorheben (NEU)
@@ -39,12 +40,12 @@ opt.backup = false          -- Keine Backup-Dateien
 opt.writebackup = false     -- Keine temporären Backup-Dateien
 
 -- Whitespace Zeichen darstellung
-opt.list = true							-- Whitespace-Zeichen anzeigen
+opt.list = true             -- Whitespace-Zeichen anzeigen
 opt.listchars = {
-  tab = "→ ",								-- Tab als Pfeil
-  space = "·",							-- Leerzeichen als Punkt (optional)
--- trail = "•",							-- Trailing spaces
-  extends = "⟩",						-- Zeichen am Zeilenende
-  precedes = "⟨",						-- Zeichen am Zeilenanfang
-  nbsp = "␣",								-- Non-breaking space
+  tab = "→ ",               -- Tab als Pfeil
+--space = "·",              -- Leerzeichen als Punkt (optional)
+  trail = "•",              -- Trailing spaces
+  extends = "⟩",            -- Zeichen am Zeilenende
+  precedes = "⟨",           -- Zeichen am Zeilenanfang
+  nbsp = "␣",               -- Non-breaking space
 }
