@@ -80,17 +80,17 @@ Die gesamte Konfiguration ist darauf ausgelegt, individuell angepasst zu werden.
 - **Workflow-Optimierung**: Aliases, Funktionen, Automatisierungen
 - **Hardware-spezifische Einstellungen**: Monitor-Setup, Audio, etc.
 
-> 💡 **Tipp**: Für detaillierte Erklärungen zu spezifischen Konfigurationen besuchen Sie meinen [YouTube-Kanal](https://youtube.com/@SergiusYT) oder [kontaktieren Sie mich](https://github.com/Sergi-us) bei Fragen!
+> 💡 **Tipp**: Für detaillierte Erklärungen zu spezifischen Konfigurationen besuche meinen [YouTube-Kanal](https://youtube.com/@SergiusYT) oder [kontaktiere mich](https://github.com/Sergi-us) bei Fragen!
 
-### NeoVim Konfiguration 🚀
+### NeoVim 🚀
 
 NeoVim ist das Herzstück der Entwicklungsumgebung und erhält besondere Aufmerksamkeit:
 
-- **🔄 Lua-Konfiguration**: Kürzlich von VimScript auf Lua migriert für bessere Performance und Wartbarkeit
+- **🔄 Lua-Konfiguration**: Kürzlich von VimScript auf Lua migriert
 - **📦 Lazy Plugin-Management**: Umfangreiche Plugin-Suite für Entwicklung, LSP-Integration und Workflow-Optimierung
 - **⚡ IDE-Features**: Code-Completion, Syntax-Highlighting, Git-Integration, Debugging-Support
-- **🎨 Konsistente Themes**: Integration mit dem systemweiten pywal-Farbschema
-- ** Weitere infos in der** [Dotfiles-README](https://github.com/Sergi-us/dotfiles/blob/main/.config/nvim/README.md)
+- **🎨 Konsistente Themes**: Integration mit dem systemweiten pywal-Farbschema und Themeswitcher
+- **Detaillierte Anleitung**: Siehe [NeoVim README](.config/nvim/README.md)
 
 ## 🔧 Verwendete Tools & Software
 
