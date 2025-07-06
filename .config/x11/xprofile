@@ -13,17 +13,21 @@ xrandr --dpi 122    # 2560x1440
 # export GDK_DPI_SCALE=0.5					# Korrigiert die Schriftgrößen bei GDK_SCALE=2
 
 # === Themes und GUI ===
-export GTK_THEME=Arc-Dark
-export GTK2_RC_FILES="$XDG_CONFIG_HOME/gtk-2.0/gtkrc-3.0"	# ok GTK2-Konfigurationsdatei
-# export GTK2_RC_FILES="$XDG_CONFIG_HOME/gtk-2.0/gtkrc-2.0"	# ok GTK2-Konfigurationsdatei
-# export GTK_SCALE=2
+export GTK_THEME=Breeze-Dark
+export GTK2_RC_FILES="$XDG_CONFIG_HOME/gtk-2.0/gtkrc-2.0"		# GTK2-Konfigurationsdatei
+# export GTK2_RC_FILES="$XDG_CONFIG_HOME/gtk-2.0/gtkrc-3.0"		# GTK3-Konfigurationsdatei
+# export GTK_SCALE=2							# Skalierung für GTK Anwendungen
+# export GDK_SCALE=2							# Zusätzlich für bessere Konsistenz
+# export GDK_DPI_SCALE=0.5					# Verhindert zu große Schriften
 
-# export QT_QPA_PLATFORMTHEME="gtk2"		# ok QT soll gtk2-Thema verwenden
-export QT_QPA_PLATFORMTHEME="gtk3"		# QT soll gtk3-Thema verwenden
-# export QT_QPA_PLATFORMTHEME="qt5ct"		# qt5ct benötigt
-export QT_ENABLE_HIGHDPI_SCALING=1		# Testeinstellungen aus der Arch-Wiki
-export QT_AUTO_SCREEN_SCALE_FACTOR=1		# Testeinstellungen von Arch-Wiki
-# export QT_SCALE_FACTOR=1.25			# 1.5 Für Qt-Anwendungen
+# Qt Settings - nur eine Platform Theme Variable pro Qt-Version!
+export QT_QPA_PLATFORMTHEME=qt5ct           # Standard für Qt Apps
+export QT_QPA_PLATFORMTHEME_QT6=qt6ct
+
+# HiDPI Settings
+export QT_ENABLE_HIGHDPI_SCALING=1
+export QT_AUTO_SCREEN_SCALE_FACTOR=1
+# export QT_SCALE_FACTOR=1.25				# 1.5 Für Qt-Anwendungen
 # export QT_AUTO_SCREEN_SET_FACTOR=0
 # export QT_FONT_DPI=128#
 # export ELM_SCALE=1.5

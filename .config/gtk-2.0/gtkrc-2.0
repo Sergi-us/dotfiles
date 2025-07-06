@@ -2,7 +2,7 @@
 # Any customization should be done in ~/.gtkrc-2.0.mine instead.
 
 include "/home/sergi/.gtkrc-2.0.mine"
-gtk-theme-name="Arc-Dark"
+gtk-theme-name="Breeze-Dark"
 gtk-icon-theme-name="breeze-dark"
 gtk-font-name="Libertinus Sans 16"
 gtk-cursor-theme-size=0
