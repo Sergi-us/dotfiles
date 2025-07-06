@@ -1,0 +1,9 @@
+[General]
+theme=KvArcDark
+# Skalierung pro App!
+scale=1.25
+
+[Applications]
+# App-spezifische Overrides
+featherpad=KvArcDark
+pcmanfm-qt=KvArcDark#1.3  # Theme#Skalierung
