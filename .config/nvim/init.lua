@@ -282,7 +282,12 @@ if ok and sarbs then
 end
 
 -- Lade Benutzereinstellungen nach dem Lazy-Setup
-pcall(require, "config.autocmds")     -- Automatische Befehle
-pcall(require, "config.shortcuts")    -- Shortcurt integration der Tastenkürzel für vim
-pcall(require, "config.zeiterfassung")  -- SumHours  addiert alle stunden in der Datei zusammen und gibt die Summenzeile aus
+-- pcall(require, "config.autocmds")     -- Automatische Befehle
+-- pcall(require, "config.shortcuts")    -- Shortcurt integration der Tastenkürzel für vim
 
+-- Lade Benutzereinstellungen automatisch  (alle *.lua Dateien im config/ Ordner laden)
+local config_path = vim.fn.stdpath("config") .. "/lua/config"
+for _, file in ipairs(vim.fn.glob(config_path .. "/*.lua", false, true)) do
+  local module = "config." .. vim.fn.fnamemodify(file, ":t:r")
+  pcall(require, module)
+end
