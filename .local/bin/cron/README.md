@@ -22,6 +22,19 @@ sudo systemctl enable --now cronie
 systemctl status cronie
 ```
 
+### Alte Cronjobs wiederherstellen
+```
+crontab /mnt/usb/RESTORE/var/spool/cron/sergi
+```
+
+### Cronjobs editieren
+```
+crontab -e
+```
+
+
+oder neue Cronjobs erstellen
+
 ### 2. Syntax verstehen
 Crontab-Einträge haben folgendes Format:
 Minute Stunde Tag Monat Wochentag Befehl

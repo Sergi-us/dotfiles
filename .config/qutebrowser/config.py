@@ -1,5 +1,6 @@
 # QuteBrowser Konfiguration
 ## 2025-06-21   SARBS
+# TODO Scrollgeschwindigkeit regeln
 
 # Autoconfig laden (UI-Einstellungen werden übernommen)
 config.load_autoconfig(True)

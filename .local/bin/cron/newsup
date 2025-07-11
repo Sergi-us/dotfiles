@@ -1,5 +1,6 @@
 #!/bin/sh
 ## 2025-01-09 SARBS
+# TODO auf newsraft umstellen
 
 # Als Cron-Job einrichten, um nach neuen RSS-Einträgen für Newsboat zu suchen.
 # Wenn Newsboat geöffnet ist, sendet es den "R"-Tastendruck zum Aktualisieren.

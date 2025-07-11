@@ -11,7 +11,6 @@ vv		${XDG_VIDEOS_DIR:-$HOME/Videos}
 cac		${XDG_CACHE_HOME:-$HOME/.cache}
 cf		${XDG_CONFIG_HOME:-$HOME/.config}
 dt		${XDG_DATA_HOME:-$HOME/.local/share}
-rr		$HOME/.local/src
 h		$HOME
 mn		/mnt
 St		/mnt/stick

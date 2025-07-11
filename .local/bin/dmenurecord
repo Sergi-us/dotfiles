@@ -1,13 +1,13 @@
 #!/bin/bash
-## 2025-03-20 SARBS
-## 2025-03-20
+## 2025-07-09 SARBS Intel Encoder
+# TODO Sript universeller gestalten
 
 # Konfigurationsbereich - für einfache Anpassungen
 VIDEO_DIR="$HOME/Videos/scr"
 AUDIO_DIR="$HOME/Podcast/aufnahmen"
 VIDEO_FORMAT="mkv"
 AUDIO_FORMAT="flac"
-VIDEO_CODEC="vp9_vaapi"       # vp9_vaapi oder hevc_vaapi
+VIDEO_CODEC="hevc_vaapi"       # h264_vaapi vp9_vaapi oder hevc_vaapi
 AUDIO_CODEC="flac"            # flac oder opus
 AUDIO_SAMPLERATE="44100"
 VIDEO_BITRATE="4M"
@@ -18,6 +18,23 @@ AUDIO_BITRATE="256k"          # Nur für Nicht-FLAC-Codecs relevant
 VAAPI_DEVICE="/dev/dri/renderD128"
 FRAMERATE="30"
 STATUSBAR="dwmblocks"
+
+# === CODEC-ÜBERSICHT für Intel UHD 620 ===
+#
+# VERFÜGBARE VIDEO-CODECS (mit VAAPI Hardware-Beschleunigung):
+# - h264_vaapi:  ✓ Beste Kompatibilität, ✓ DaVinci Linux, ✗ proprietär
+# - hevc_vaapi:  ✓ Beste Kompression, ✓ DaVinci Linux, ✗ proprietär
+# - vp8_vaapi:   ✓ Frei/Open Source, ✗ DaVinci Linux, ✗ schlechtere Qualität
+# - mjpeg_vaapi: ✗ Riesige Dateien, nur für spezielle Fälle
+#
+# AUDIO-CODECS:
+# - flac: ✓ Verlustfrei, ✓ Open Source, ✓ DaVinci Linux
+# - opus: ✓ Beste Kompression, ✓ Open Source, ✗ DaVinci Linux
+#
+# nvidia nutz NVENC (TODO übersicht hinzufügen)
+# dafür sollte ein Separates Skript ertellt werden, die Settings sind zu unterschiedlich
+#
+# === ENDE CODEC-ÜBERSICHT ===
 
 # Zweiter Audio-Eingang für Reaction-Aufnahmen (System-Audio)
 # Ermitteln mit: pactl list sources | grep -E "Name:|Monitor of"
