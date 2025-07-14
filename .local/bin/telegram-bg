@@ -13,4 +13,4 @@ walogram -i "$BG_PATH" >/dev/null 2>&1
 # walogram -B -i "$BG_PATH" >/dev/null 2>&1
 
 # Startet Telegram
-telegram-desktop &
+Telegram &
