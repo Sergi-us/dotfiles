@@ -93,6 +93,7 @@ export DICS="/usr/share/stardict/dic/"					# ok Verzeichnis für Stardict-Wörte
 export FZF_DEFAULT_OPTS="--layout=reverse --height 40%"	# ok FZF Standardoptionen
 export CRYPTOURL="rate.sx"
 export WTTRURL="wttr.in"
+export QT_SCALE_FACTOR_ROUNDING_POLICY=PassThrough      # für Qutebrowser Scrollverhalten
 
 # Aufräumen im Home-Verzeichnis:
 #export XAUTHORITY="$XDG_RUNTIME_DIR/Xauthority"		# ok Diese Zeile kann einige Desktop-Manager stören.
