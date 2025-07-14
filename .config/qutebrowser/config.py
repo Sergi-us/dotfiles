@@ -153,9 +153,13 @@ c.content.headers.accept_language = 'de-DE,de;q=0.9,en-US;q=0.8,en;q=0.7'
     # Yeah it's not ublock origin, but if you want a minimal browser, this is a solution for the tradeoff.
     # You can also watch yt vids directly in mpv, see qutebrowser FAQ for how to do that.
     # If you want additional blocklists, you can get the python-adblock package, or you can uncomment the ublock lists here.
+    # https://greasyfork.org/de
+# https://update.greasyfork.org/scripts/504197/No%20Ads%20-%20YouTube%20AdBlocker%20%7C%20Ad%20Skipper%20%7C%20Free%20YouTube%20Music%20%7C%20Ad%20Remover%20%7C%20Remove%20Adblock%20Warning.user.js
+# https://update.greasyfork.org/scripts/504197/No%20Ads%20-%20YouTube%20AdBlocker%20%7C%20Ad%20Skipper%20%7C%20Free%20YouTube%20Music%20%7C%20Ad%20Remover%20%7C%20Remove%20Adblock%20Warning.user.js
 c.content.blocking.enabled = True
 c.content.blocking.method = 'hosts'  # Statt 'both'
 c.content.blocking.adblock.lists = [
+    'https://raw.githubusercontent.com/kbinani/adblock-youtube-ads/master/signed.txt',
     'https://easylist.to/easylist/easylist.txt',
     'https://easylist.to/easylist/easyprivacy.txt',
     'https://secure.fanboy.co.nz/fanboy-annoyance.txt',
@@ -211,7 +215,7 @@ c.content.prefers_reduced_motion = True                 # Animationen reduzieren
 c.downloads.location.directory = '~/Downloads'
 c.downloads.location.prompt = False  # Kein Nachfragen bei Downloads
 c.downloads.location.remember = True
-c.downloads.remove_finished = 120000  # Nach 2 Minuten aus der Liste entfernen
+c.downloads.remove_finished = 60000  # Nach 1ner Minute aus der Liste entfernen
 
 # URLs abkürzen
 c.url.searchengines = {

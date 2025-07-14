@@ -22,6 +22,11 @@ function zsh_add_file() {
     fi
 }
 
+# Tomb in deutsch starten
+tomb() {
+    TEXTDOMAIN=tomb TEXTDOMAINDIR=/usr/local/share/locale LANG=de_DE.UTF-8 command tomb "$@"
+}
+
 # Funktion für Container-Check
 function container_status() {
     [ -f /run/.containerenv ] && echo " "
