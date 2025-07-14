@@ -273,7 +273,6 @@ lazy.setup({
 
 -- Lade Benutzereinstellungen VOR dem Theme-Setup
 pcall(require, "config.options")      -- Grundlegende Vim-Optionen
-pcall(require, "config.keymaps")      -- Tastenkombinationen
 
 -- DANN SARBS Grafische einstellungen
 local ok, sarbs = pcall(require, "config.sarbs")
@@ -291,3 +290,5 @@ for _, file in ipairs(vim.fn.glob(config_path .. "/*.lua", false, true)) do
   local module = "config." .. vim.fn.fnamemodify(file, ":t:r")
   pcall(require, module)
 end
+
+pcall(require, "config.keymaps")      -- Tastenkombinationen

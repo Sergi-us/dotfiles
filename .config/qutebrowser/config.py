@@ -5,6 +5,8 @@
 # Autoconfig laden (UI-Einstellungen werden übernommen)
 config.load_autoconfig(True)
 
+c.scrolling.smooth = False
+
 # Browserverhalten
 c.auto_save.session = False
 
@@ -19,6 +21,7 @@ c.editor.command = ['st', '-e', 'nvim', '{}']
 # c.fonts.default_size = '16pt'
 c.fonts.tabs.selected = '16pt default_family'
 c.fonts.tabs.unselected = '12pt default_family'
+
 # Allgemeine UI-Schriftgröße
 c.fonts.statusbar = '14pt default_family'
 c.fonts.downloads = '14pt default_family'
@@ -36,6 +39,21 @@ c.tabs.title.format_pinned = '{audio}'
 c.tabs.padding = {'top': 4, 'bottom': 4, 'left': 8, 'right': 8}
 c.tabs.indicator.width = 1  # Ladesymbol deaktivieren
 c.tabs.favicons.show = 'always'
+
+# Schriftgröße für die Kommandozeile
+c.fonts.prompts = '14pt default_family'
+c.fonts.statusbar = '14pt default_family'
+c.fonts.completion.category = 'bold 16pt default_family'
+c.fonts.completion.entry = '14pt default_family'
+
+# Completion-Menü (das Dropdown beim Tippen)
+c.fonts.completion.category = 'bold 14pt default_family'
+c.fonts.completion.entry = '14pt default_family'
+
+# Messages/Fehlermeldungen
+c.fonts.messages.error = 'bold 16pt default_family'
+c.fonts.messages.info = '16pt default_family'
+c.fonts.messages.warning = '16pt default_family'
 
 # ================================================================================
 # DARK MODE EINSTELLUNGEN

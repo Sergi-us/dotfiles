@@ -16,18 +16,19 @@ xrandr --dpi 122    # 2560x1440
 export GTK_THEME=Breeze-Dark
 export GTK2_RC_FILES="$XDG_CONFIG_HOME/gtk-2.0/gtkrc-2.0"		# GTK2-Konfigurationsdatei
 # export GTK2_RC_FILES="$XDG_CONFIG_HOME/gtk-2.0/gtkrc-3.0"		# GTK3-Konfigurationsdatei
-# export GTK_SCALE=2							# Skalierung für GTK Anwendungen
-# export GDK_SCALE=2							# Zusätzlich für bessere Konsistenz
-# export GDK_DPI_SCALE=0.5					# Verhindert zu große Schriften
+# export GTK_SCALE=2                            # Skalierung für GTK Anwendungen
+# export GDK_SCALE=2                            # Zusätzlich für bessere Konsistenz
+# export GDK_DPI_SCALE=0.5                      # Verhindert zu große Schriften
 
 # Qt Settings - nur eine Platform Theme Variable pro Qt-Version!
-export QT_QPA_PLATFORMTHEME=qt5ct				# Standard für Qt Apps
-# export QT_QPA_PLATFORMTHEME_QT6=qt6ct
-export QT_STYLE_OVERRIDE=kvantum				# Stilüberschreibung für Kvantum
+export QT_QPA_PLATFORMTHEME=qt6ct               # für Qt6-Apps
+export QT5_QPA_PLATFORMTHEME=qt5ct              # für Qt5-Apps (falls noch welche da sind)
+export QT_STYLE_OVERRIDE=kvantum                # Stilüberschreibung für Kvantum
 
 # HiDPI Settings
 export QT_ENABLE_HIGHDPI_SCALING=1
 export QT_AUTO_SCREEN_SCALE_FACTOR=1
+export QT_SCALE_FACTOR_ROUNDING_POLICY=PassThrough
 # export QT_SCALE_FACTOR=1.25						# 1.5 Für Qt-Anwendungen
 # export QT_AUTO_SCREEN_SET_FACTOR=0
 # export QT_FONT_DPI=128#

@@ -1,8 +1,28 @@
 -- lua/config/keymaps.lua
--- ## 2025-03-30 SARBS
+-- ## 2025-07-13  SARBS
+
 local map = vim.keymap.set
 
--- Bessere Standardkombinationen
+-- q für quit/close Aktionen nutzen
+map('n', 'q', '<Nop>')  -- Erst mal deaktivieren
+map('n', 'qq', ':q<CR>', { desc = "Quit" })
+map('n', 'qa', ':qa<CR>', { desc = "Quit all" })
+map('n', 'qw', ':wq<CR>', { desc = "Write and quit" })
+map('n', 'qQ', ':q!<CR>', { desc = "Force quit" })
+
+-- Macros auf Leader-Kombinationen verschieben  m für "macro"
+-- map('n', '<leader>mr', 'q', { desc = "Macro record" })
+-- map('n', '<leader>mp', '@', { desc = "Macro play" })
+-- map('n', '<leader>m@', '@@', { desc = "Macro repeat last" })
+
+-- Split verhalten
+map('n', '<leader>-', ':split<CR>', { desc = "Split horizontal" })
+map('n', '<leader>_', ':vsplit<CR>', { desc = "Split vertikal" })
+
+-- Split schließen
+map("n", "Q", "<C-w>q", { desc = "Split schließen" })
+
+-- Split Navigation
 map("n", "<C-h>", "<C-w>h", { desc = "Fenster links" })
 map("n", "<C-j>", "<C-w>j", { desc = "Fenster unten" })
 map("n", "<C-k>", "<C-w>k", { desc = "Fenster oben" })
@@ -17,30 +37,30 @@ map("n", "<leader>bn", ":bnext<CR>", { desc = "Nächster Puffer" })
 map("n", "<leader>bp", ":bprevious<CR>", { desc = "Vorheriger Puffer" })
 
 -- Keybinding für nvim-tree
-vim.keymap.set("n", "<leader>n", ":NvimTreeToggle<CR>", { noremap = true, silent = true })
+map("n", "<leader>n", ":NvimTreeToggle<CR>", { noremap = true, silent = true })
 
 -- Persönliche Binding
-vim.keymap.set('n', '<leader>dt', ':put=strftime(\'## %Y-%m-%d\')<CR>', { noremap = true })
+map('n', '<leader>dt', ':put=strftime(\'## %Y-%m-%d\')<CR>', { noremap = true })
 
 -- Anpassungen für's Deutsche Tastaturlayout
-vim.keymap.set('n', 'YY', 'ZZ', { noremap = true })            -- Beenden mit Speichern
-vim.keymap.set('n', 'YQ', 'ZQ', { noremap = true })            -- Beenden ohne Speichern
-vim.keymap.set('n', '-', '/', { noremap = true })              -- Suche (macht "-" zur Suchtaste statt "/")
-vim.keymap.set('n', 'ök', '[s', { noremap = true })            -- Zum vorherigen Rechtschreibfehler springen
-vim.keymap.set('n', 'öj', ']s', { noremap = true })            -- Zum nächsten Rechtschreibfehler springen
-vim.keymap.set('n', 'z0', 'z=', { noremap = true })            -- Zeigt Wortvorschläge für Rechtschreibfehler
+map('n', 'YY', 'ZZ', { noremap = true })             -- Beenden mit Speichern
+map('n', 'YQ', 'ZQ', { noremap = true })             -- Beenden ohne Speichern
+map('n', '-', '/',   { noremap = true })             -- Suche (macht "-" zur Suchtaste statt "/")
+map('n', 'äs', '[s', { noremap = true })             -- Zum vorherigen Rechtschreibfehler springen
+map('n', 'ös', ']s', { noremap = true })             -- Zum nächsten Rechtschreibfehler springen
+map('n', 'z0', 'z=', { noremap = true })             -- Zeigt Wortvorschläge für Rechtschreibfehler
 
 -- === Funktionen ===
 -- vim.keymap.set('n', '<leader>t', ':term<CR>', { noremap = true })  -- Terminal öffnen (auskommentiert wegen zsh Problemen)
-vim.keymap.set('', '<leader>s', ':setlocal spell! spelllang=de_de,en_us<CR>', { noremap = true })     -- Rechtschreibprüfung ein/ausschalten
+map('', '<leader>s', ':setlocal spell! spelllang=de_de,en_us<CR>', { noremap = true })     -- Rechtschreibprüfung ein/ausschalten
 -- vim.keymap.set('', '<leader>o', ':!clear && shellcheck -x %<CR>', { noremap = true })              -- Shellskripte mit shellcheck analysieren
 -- vim.keymap.set('n', '<leader>h', ':call ToggleHiddenAll()<CR>', { noremap = true })                -- Versteckte Elemente ein-/ausblenden (benötigt die ToggleHiddenAll Funktion)
 
 -- Suchhervorhebung ausschalten mit Escape
-vim.keymap.set('n', '<Esc>', ':nohlsearch<CR>', { noremap = true, silent = true })
+map('n', '<Esc>', ':nohlsearch<CR>', { noremap = true, silent = true })
 
 -- Neuen Tab öffnen
-vim.keymap.set('n', '<leader>tn', ':tabnew<CR>', { noremap = true })
+map('n', '<leader>tn', ':tabnew<CR>', { noremap = true })
 
 -- === Tastenkombinationen ===
 -- Platzhalter-Navigation (bewegt zum nächsten <++> und löscht es)
@@ -52,8 +72,40 @@ vim.keymap.set('n', '<leader>tn', ':tabnew<CR>', { noremap = true })
 -- vim.keymap.set('', '<leader>r', ':vsp<space>$REFER<CR>', { noremap = true })     -- Öffnet Referenzdatei in vertikalem Split ($REFER muss definiert sein)
 
 -- Dokument-Workflow
--- vim.keymap.set('', '<leader>c', ':w! \\| !compiler "%:p"<CR>', { noremap = true })  -- Speichert und führt "compiler" mit aktuellem Dateipfad aus
--- vim.keymap.set('', '<leader>p', ':!opout "%:p"<CR>', { noremap = true })            -- Führt "opout" mit aktuellem Dateipfad aus (vermutlich zum Anzeigen des Outputs)
+map('', '<leader>c', ':w! \\| !compiler "%:p"<CR>', { noremap = true })             -- Speichert und führt "compiler" mit aktuellem Dateipfad aus
+-- vim.keymap.set('', '<leader>p', ':!opout "%:p"<CR>', { noremap = true })         -- Führt "opout" mit aktuellem Dateipfad aus (vermutlich zum Anzeigen des Outputs)
 
--- Terminal öffnen (funktionierendes Binding)
--- vim.keymap.set('n', '<leader>t', ':term<CR>', { noremap = true })
+-- Terminal (funktionierendes Binding) Plugin testen
+-- map('n', '<leader>t', ':split | resize 10 | term<CR>i', { desc = "Terminal unten öffnen" })
+-- map('n', '<leader>t', ':botright 15split | term<CR>i', { desc = "Terminal unten (15 Zeilen)" })
+-- map('t', '<C-q>', '<C-\\><C-n>', { desc = "Terminal-Mode verlassen" })
+map('n', '<leader>T', ':!cd %:p:h && st &<CR><CR>', { desc = "ST hier öffnen" })
+
+-- Git funktionalität
+-- Git-Root Terminal
+map('n', '<leader>gt', ':!cd "$(git rev-parse --show-toplevel 2>/dev/null || echo %:p:h)" && st &<CR><CR>', { desc = "ST im Git-Root" })
+
+-- Git Status im internen Terminal (schnell schauen)
+map('n', '<leader>gs', ':botright 12split | term git status<CR>', { desc = "Git Status" })
+
+-- Git Commands in externem ST (für längere Sessions)
+map('n', '<leader>gT', ':!cd "$(git rev-parse --show-toplevel 2>/dev/null || echo %:p:h)" && st -e sh -c "git status; $SHELL" &<CR><CR>', { desc = "ST mit Git Status" })
+
+-- Direkte Git-Befehle (ohne Terminal)
+map('n', '<leader>ga', ':!git add %<CR>', { desc = "Git add current file" })
+map('n', '<leader>gA', ':!git add -A<CR>', { desc = "Git add all" })
+map('n', '<leader>gc', ':!git commit<CR>', { desc = "Git commit (öffnet Editor)" })
+map('n', '<leader>gp', ':!git push<CR>', { desc = "Git push" })
+map('n', '<leader>gl', ':!git pull<CR>', { desc = "Git pull" })
+
+-- Git Diff Varianten
+map('n', '<leader>gd', ':!git diff %<CR>', { desc = "Git diff current file" })
+map('n', '<leader>gD', ':!git diff<CR>', { desc = "Git diff all" })
+
+-- Git Log schön formatiert
+map('n', '<leader>gL', ':botright 20split | term git log --oneline --graph --decorate -20<CR>', { desc = "Git log (letzte 20)" })
+
+-- Praktisch: Git-Befehle mit Fugitive-ähnlicher Syntax (wenn du kein Plugin willst)
+map('n', '<leader>gb', ':!git blame %<CR>', { desc = "Git blame current file" })
+map('n', '<leader>gh', ':!git log -p -1 %<CR>', { desc = "Git history current file" })
+map('n', '<leader>t', '<Cmd>ToggleTerm<CR>', { desc = "Toggle Terminal" })

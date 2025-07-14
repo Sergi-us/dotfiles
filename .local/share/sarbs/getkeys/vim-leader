@@ -5,26 +5,28 @@
   #  #    #    # ## #        #      #mmmmm  #  #  #    # #mmmmm #mmmm"
   "mm"    #    # "" #  """   #      #       #mm#  #    # #      #   "m
    ##   mm#mm  #    #        #mmmmm #mmmmm #    # #mmm"  #mmmmm #    "
-
+/home/user/.config/nvim/lua/config/keymaps.lua
 === Allgemein ===                       === Zeile ===                           === Dokument ===
-Leader = Leehrtaste = 
- s     Spellcheck
- o     Spellcheck für skripte
+Leader = Leehrtaste =                                                          YQ      Speichern und Beenden
+                                                                                YY      Beenden (ohne Speichern)
+ s     Spellcheck                                                              -       Suche (/ geht auch)
+    äs  nächster Fehler
+    ös  vorheriger Fehler                                                       bn      Nächster Buffer
+    z0  Wortvorschläge                                                          bp      Vorherige Buffer
+
+ o     Spellcheck für skripte                                                  Strg+w
  n     Nerdtree
  dt    Datum als Kommentar
  tn    neuer Tab (tab new)
- g     GoJo
+ g
  v     VimWiki
+ h     Verschteckte Elemente
  b
  r
- c
+ c     Compiler
  p
  h     hide bar
-
-
-
-
-
+ t     Terminal
 
 
 

@@ -27,7 +27,7 @@ trim_trailing_whitespace = true
 
 # Standard-Einrückungsstil: Leerzeichen statt Tabs
 # Optionen: space, tab
-indent_style = tab
+indent_style = space
 
 # Standard-Einrückungstiefe: 4 Leerzeichen
 indent_size = 4
