@@ -9,4 +9,5 @@
 [[Installation von SARBS|Installation]] im Detail
 [[hilfe|Hilfe]]
 [[Installation von SARBS|Weitergehende Installationsanleitung...]]
+[[Thinkpad]]
 [[index]] [[VimwikiAll2HTML Syntax|Syntax]]

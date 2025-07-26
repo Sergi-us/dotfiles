@@ -1,5 +1,5 @@
 # You can add comments to these files with #
-D		$$HOME/Downloads
+D		${XDG_DATA_HOME:-$HOME/Downloads}
 Fi		$HOME/Filme
 Se		$HOME/Serien
 Bü		$HOME/Bücher
