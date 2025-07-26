@@ -38,40 +38,55 @@ else
     echo "Audio: FLAC (verlustfrei komprimiert, ~50% kleiner als PCM)"
 fi
 
-# Hardware-Encoder erkennen und verwenden
-if [ -e /dev/dri/renderD128 ] && command -v vainfo &> /dev/null; then
-    # VAAPI verfügbar
-    echo "Video: VAAPI Hardware-Encoding (H.264 für beste Kompatibilität)..."
-    ffmpeg -hwaccel vaapi -hwaccel_device /dev/dri/renderD128 -hwaccel_output_format vaapi -i "$input" \
+# Hardware-Encoder Erkennung und Konvertierung
+converted=false
+
+# 1. Versuch: NVIDIA (RTX 5000 auf Dell Precision)
+if command -v nvidia-smi &> /dev/null && nvidia-smi &> /dev/null; then
+    echo "🎮 NVIDIA GPU erkannt - verwende NVENC Hardware-Encoding..."
+    if ffmpeg -hwaccel cuda -i "$input" \
+           -c:v h264_nvenc -preset p4 -b:v 10M -maxrate 15M -bufsize 20M \
+           $audio_codec \
+           -strict experimental \
+           -f mp4 \
+           -movflags +faststart \
+           "$output" 2>/dev/null; then
+        converted=true
+        echo "✅ NVIDIA Hardware-Encoding erfolgreich"
+    else
+        echo "⚠️  NVIDIA Encoding fehlgeschlagen, versuche Intel..."
+    fi
+fi
+
+# 2. Versuch: Intel VAAPI (UHD 630 auf T480)
+if [ "$converted" = false ] && [ -e /dev/dri/renderD128 ] && command -v vainfo &> /dev/null; then
+    echo "💻 Intel GPU erkannt - verwende VAAPI Hardware-Encoding..."
+    if ffmpeg -hwaccel vaapi -hwaccel_device /dev/dri/renderD128 -hwaccel_output_format vaapi -i "$input" \
            -vf 'scale_vaapi=format=nv12' \
            -c:v h264_vaapi -qp 23 \
            $audio_codec \
            -strict experimental \
            -f mp4 \
            -movflags +faststart \
-           "${output%.mp4}.mp4"
+           "$output" 2>/dev/null; then
+        converted=true
+        echo "✅ Intel VAAPI Hardware-Encoding erfolgreich"
+    else
+        echo "⚠️  Intel Encoding fehlgeschlagen, verwende CPU..."
+    fi
+fi
 
-elif command -v nvidia-smi &> /dev/null && nvidia-smi &> /dev/null; then
-    # NVIDIA verfügbar
-    echo "Video: NVIDIA Hardware-Encoding (H.264 für beste Kompatibilität)..."
-    ffmpeg -hwaccel cuda -i "$input" \
-           -c:v h264_nvenc -preset p4 -b:v 10M -maxrate 15M -bufsize 20M \
-           $audio_codec \
-           -strict experimental \
-           -f mp4 \
-           -movflags +faststart \
-           "${output%.mp4}.mp4"
-
-else
-    # CPU Fallback
-    echo "Video: CPU-Encoding (H.264 für beste Kompatibilität)..."
+# 3. Fallback: CPU (funktioniert immer)
+if [ "$converted" = false ]; then
+    echo "🖥️  Verwende CPU-Encoding (libx264)..."
     ffmpeg -i "$input" \
            -c:v libx264 -preset medium -crf 18 \
            $audio_codec \
            -strict experimental \
            -f mp4 \
            -movflags +faststart \
-           "${output%.mp4}.mp4"
+           "$output"
+    echo "✅ CPU-Encoding erfolgreich"
 fi
 
 # Größenvergleich
