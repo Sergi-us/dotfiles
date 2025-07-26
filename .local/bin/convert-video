@@ -1,5 +1,5 @@
 #!/bin/bash
-## 2025-07-26   SARBS
+## 2025-07-26   SARBS DEV
 # convert-video - Video-Konvertierung mit FLAC-Audio für DaVinci Resolve Linux
 # Installiere in ~/.local/bin/convert-video
 
@@ -27,6 +27,25 @@ filename="${base_name%.*}"
 output="${dir_name}/${filename}_video.mp4"
 
 echo "Konvertiere: $input"
+echo "Hardware-Erkennung läuft..."
+
+# Debug-Info
+if command -v nvidia-smi &> /dev/null; then
+    echo "  nvidia-smi gefunden ✓"
+    if nvidia-smi &> /dev/null; then
+        echo "  NVIDIA GPU aktiv ✓"
+    else
+        echo "  NVIDIA GPU nicht erreichbar ✗"
+    fi
+else
+    echo "  nvidia-smi nicht gefunden ✗"
+fi
+
+if [ -e /dev/dri/renderD128 ]; then
+    echo "  /dev/dri/renderD128 existiert ✓"
+else
+    echo "  /dev/dri/renderD128 existiert nicht ✗"
+fi
 
 # Audio-Codec auswählen
 if [ "$use_pcm" = true ]; then
