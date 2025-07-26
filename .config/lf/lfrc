@@ -47,6 +47,21 @@ cmd sync-to-dell ${{
     read dummy
 }}
 
+cmd convert_yt ${{
+    clear; tput cup $(($(tput lines)/3)); tput bold
+    set -f
+    notify-send "Video wird für YouTube konwertiert..."
+    for x in $fx; do
+        if convert-yt "$x"; then
+            lf -remote "send $id reload"
+            notify-send "🎵 Erfolgreich" "Datei $x wurde konvertiert."
+        else
+            notify-send "❌ Fehler" "Datei $x konnte nicht konvertiert werden."
+        fi
+    done
+    notify-send "✅ Verarbeitung abgeschlossen."
+}}
+
 cmd convert_audio ${{
     clear; tput cup $(($(tput lines)/3)); tput bold
     set -f
@@ -302,6 +317,7 @@ map Pk bild-80-komprimieren
 # === R Menu für Videobearbeitung ===
 map Rx convert_audio
 map Rv convert_video
+map Ry convert_yt
 
 # === Navigieren ===
 # <Strg+f> Dateisuche mit fzf

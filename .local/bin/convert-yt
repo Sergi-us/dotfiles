@@ -1,0 +1,144 @@
+#!/bin/bash
+## 2025-07-26   SARBS
+# convert-yt - Optimiert Videos für YouTube Upload (minimale Dateigröße)
+# Installiere in ~/.local/bin/convert-yt
+
+set -e
+
+# Eingabedatei prüfen
+if [ -z "$1" ]; then
+    echo "Verwendung: $(basename "$0") <video-datei> [--ultra für noch kleinere Dateien]"
+    exit 1
+fi
+
+input="$1"
+ultra_mode=false
+
+# Parameter prüfen
+if [ "$2" = "--ultra" ]; then
+    ultra_mode=true
+fi
+
+dir_name=$(dirname "$input")
+base_name=$(basename "$input")
+filename="${base_name%.*}"
+output="${dir_name}/${filename}_yt.mp4"
+
+echo "Optimiere für YouTube Upload: $input"
+
+# Eingangs-Info
+echo "Original-Info:"
+ffprobe -v error -select_streams v:0 -show_entries stream=width,height,r_frame_rate,bit_rate -of default=noprint_wrappers=1:nokey=1 "$input" | head -4
+
+# Videoqualität basierend auf Auflösung
+resolution=$(ffprobe -v error -select_streams v:0 -show_entries stream=height -of csv=s=x:p=0 "$input")
+
+# CRF und Preset je nach Modus
+if [ "$ultra_mode" = true ]; then
+    echo "Modus: Ultra-Kompression (kleinste Dateigröße)"
+    crf_1080=28
+    crf_720=26
+    preset="slow"  # veryslow macht bei Hardware-Encoding keinen Sinn
+    audio_bitrate="128k"
+else
+    echo "Modus: Standard (gute Balance)"
+    crf_1080=24
+    crf_720=23
+    preset="medium"
+    audio_bitrate="192k"
+fi
+
+# CRF basierend auf Auflösung wählen
+if [ "$resolution" -ge 1080 ]; then
+    crf=$crf_1080
+    echo "1080p erkannt - CRF: $crf"
+elif [ "$resolution" -ge 720 ]; then
+    crf=$crf_720
+    echo "720p erkannt - CRF: $crf"
+else
+    crf=22
+    echo "SD erkannt - CRF: 22"
+fi
+
+# YouTube-optimierte Einstellungen
+echo "Konvertiere mit x265 (HEVC), CRF: $crf, Preset: $preset"
+
+# Hardware-Encoder Erkennung und Konvertierung
+converted=false
+
+# 1. Versuch: NVIDIA (RTX 5000 auf Dell Precision)
+if command -v nvidia-smi &> /dev/null && nvidia-smi &> /dev/null; then
+    echo "🎮 NVIDIA GPU erkannt - verwende NVENC Hardware-Encoding..."
+    if ffmpeg -hwaccel cuda -i "$input" \
+           -c:v hevc_nvenc -preset $preset -rc vbr_hq -cq:v $crf -b:v 0 \
+           -pix_fmt yuv420p \
+           -tag:v hvc1 \
+           -movflags +faststart \
+           -c:a aac -b:a $audio_bitrate \
+           -map_metadata -1 \
+           -metadata title="${filename}" \
+           -metadata comment="Optimized for YouTube (NVENC)" \
+           "$output" 2>/dev/null; then
+        converted=true
+        echo "✅ NVIDIA Hardware-Encoding erfolgreich"
+    else
+        echo "⚠️  NVIDIA Encoding fehlgeschlagen, versuche Intel..."
+    fi
+fi
+
+# 2. Versuch: Intel (UHD 630 auf T480)
+if [ "$converted" = false ] && [ -e /dev/dri/renderD128 ]; then
+    echo "💻 Intel GPU erkannt - verwende QuickSync Hardware-Encoding..."
+    if ffmpeg -hwaccel qsv -i "$input" \
+           -c:v hevc_qsv -preset $preset -global_quality $((crf * 2)) \
+           -pix_fmt yuv420p \
+           -tag:v hvc1 \
+           -movflags +faststart \
+           -c:a aac -b:a $audio_bitrate \
+           -map_metadata -1 \
+           -metadata title="${filename}" \
+           -metadata comment="Optimized for YouTube (QuickSync)" \
+           "$output" 2>/dev/null; then
+        converted=true
+        echo "✅ Intel QuickSync Hardware-Encoding erfolgreich"
+    else
+        echo "⚠️  Intel Encoding fehlgeschlagen, verwende CPU..."
+    fi
+fi
+
+# 3. Fallback: CPU (funktioniert immer)
+if [ "$converted" = false ]; then
+    echo "🖥️  Verwende CPU-Encoding (libx265)..."
+    ffmpeg -i "$input" \
+           -c:v libx265 -preset $preset -crf $crf \
+           -pix_fmt yuv420p \
+           -tag:v hvc1 \
+           -movflags +faststart \
+           -c:a aac -b:a $audio_bitrate \
+           -map_metadata -1 \
+           -metadata title="${filename}" \
+           -metadata comment="Optimized for YouTube" \
+           "$output"
+    echo "✅ CPU-Encoding erfolgreich"
+fi
+
+# Größenvergleich und Ersparnis
+original_size=$(stat -c%s "$input" 2>/dev/null || stat -f%z "$input" 2>/dev/null)
+new_size=$(stat -c%s "$output" 2>/dev/null || stat -f%z "$output" 2>/dev/null)
+savings=$((100 - (new_size * 100 / original_size)))
+
+echo ""
+echo "=== Ergebnis ==="
+echo "Original: $(du -h "$input" | cut -f1)"
+echo "YouTube-optimiert: $(du -h "$output" | cut -f1)"
+echo "Ersparnis: ${savings}%"
+echo "Fertig: $output"
+
+# Tipps
+echo ""
+echo "💡 Tipp: YouTube Empfehlungen:"
+echo "   - Upload als 'Unlisted' zum Testen der Qualität"
+echo "   - Warte 30 Min nach Upload für beste Qualität (Processing)"
+if [ "$ultra_mode" = false ]; then
+    echo "   - Für noch kleinere Dateien: $(basename "$0") \"$input\" --ultra"
+fi
