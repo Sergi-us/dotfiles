@@ -102,3 +102,5 @@ alias vm-sarbs="virsh -c qemu:///system start archlinux && virt-viewer --attach 
 alias ref="shortcuts >/dev/null; source ${XDG_CONFIG_HOME:-$HOME/.config}/shell/shortcutrc ; source ${XDG_CONFIG_HOME:-$HOME/.config}/shell/zshnameddirrc"
 
 alias wetter="less -S ${XDG_CACHE_HOME:-$HOME/.cache}/weatherreport" \
+
+alias talk='vivaldi --app="https://meet.jit.si/linux-talk-3-RUNDE" --disable-web-security --disable-extensions --no-first-run --disable-default-apps'

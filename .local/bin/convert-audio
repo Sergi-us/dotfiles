@@ -1,5 +1,6 @@
 #!/bin/bash
-# convert-audio - Konvertiert Videos mit Opus-Audio für DaVinci Resolve
+## 2025-07-26   SARBS
+# convert-audio - Konvertiert Videos mit PCM-Audio für DaVinci Resolve Linux
 # Installiere in ~/.local/bin/convert-audio
 
 set -e
@@ -15,14 +16,37 @@ dir_name=$(dirname "$input")
 base_name=$(basename "$input")
 filename="${base_name%.*}"
 extension="${base_name##*.}"
-output="${dir_name}/${filename}-davinci.${extension}"
 
-echo "Konvertiere Audio-Spur in: $input"
+# Ausgabeformat festlegen - MP4 wenn VP9, sonst MOV
+if ffprobe -v error -select_streams v:0 -show_entries stream=codec_name -of default=noprint_wrappers=1:nokey=1 "$input" | grep -q "vp9"; then
+    output="${dir_name}/${filename}_audio.mp4"
+    container_note="(MP4 wegen VP9 Video)"
+else
+    output="${dir_name}/${filename}_audio.mov"
+    container_note="(MOV Container)"
+fi
 
-# Video kopieren, nur Audio neu kodieren
+echo "Konvertiere Audio-Spur für DaVinci Resolve Linux: $input"
+echo "Ausgabe: $output $container_note"
+
+# Audio-Info anzeigen
+echo "Original Audio-Info:"
+ffprobe -v error -select_streams a:0 -show_entries stream=codec_name,sample_rate,channels,bit_rate -of default=noprint_wrappers=1:nokey=1 "$input"
+
+# Video kopieren, Audio zu PCM konvertieren
+# PCM ist unkomprimiert aber kompatibel mit DaVinci Linux
 ffmpeg -i "$input" \
        -c:v copy \
-       -c:a aac -b:a 320k \
+       -c:a pcm_s16le \
+       -ar 48000 \
        "$output"
 
+# Dateigröße vergleichen
+original_size=$(du -h "$input" | cut -f1)
+new_size=$(du -h "$output" | cut -f1)
+echo ""
+echo "Original: $original_size"
+echo "Konvertiert: $new_size"
 echo "Fertig: $output"
+echo ""
+echo "Tipp: Verwende 'convert-video' für eine komprimierte Alternative mit FLAC-Audio"

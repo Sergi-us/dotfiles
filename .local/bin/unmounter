@@ -1,9 +1,8 @@
 #!/bin/sh
-## 2025-01-09 SARBS - Optimierte Version
+## 2025-07-17 SARBS - DEV
 # Unmount-Skript mit interaktiver Prozess-Behandlung, LUKS-Support und HDD-Poweroff
 # Optional für sudo-freie Nutzung:
 # %wheel ALL=(ALL:ALL) NOPASSWD: /usr/bin/cryptsetup,/usr/bin/hdparm
-# Beachrichtigungen anpaasen mit notify "critical" "normal" und "low"
 
 set -e
 
@@ -80,9 +79,19 @@ poweroff_hdd() {
 
     notify normal "💾 HDD wird heruntergefahren..." "/dev/$base"
 
+    # Erst hdparm versuchen
     if command -v hdparm >/dev/null 2>&1; then
         if sudo -A hdparm -Y "/dev/$base" 2>/dev/null; then
-            notify normal "✓ HDD heruntergefahren" "/dev/$base ist jetzt im Standby"
+            sleep 1
+            # Verify status
+            status=$(sudo hdparm -C "/dev/$base" 2>&1 | grep -o "standby\|active" || echo "unknown")
+            notify critical "💾 HDD Status: $status" "/dev/$base nach hdparm -Y"
+
+            # Falls noch active, versuche udisksctl
+            if [ "$status" = "active" ] && command -v udisksctl >/dev/null 2>&1; then
+                notify normal "🔄 Versuche udisksctl..." "Alternative Methode"
+                sudo -A udisksctl power-off -b "/dev/$base" 2>/dev/null || true
+            fi
         else
             notify critical "⚠️ HDD Poweroff fehlgeschlagen" "Konnte /dev/$base nicht herunterfahren"
         fi
@@ -104,7 +113,7 @@ $drives" | sed "/^$/d;s/ *$//")"
 
 # Prüfe ob es was zum Aushängen gibt
 if [ -z "$unmountable" ]; then
-    notify normal "Keine Laufwerke" "Es sind keine aushängbaren Laufwerke eingehängt"
+    notify critical "Keine Laufwerke" "Es sind keine aushängbaren Laufwerke eingehängt"
     exit 1
 fi
 
@@ -113,8 +122,11 @@ chosen="$(echo "$unmountable" | dmenu -i -p "Welches Laufwerk aushängen?")" || 
 chosen="${chosen%% *}"
 mountpoint="/${chosen#*/}"
 
-# Behandle blockierende Prozesse
+# Behandle blockierende Prozesse (inklusive cwd-Check)
 handle_processes "$mountpoint"
+
+# Extra-Check für Prozesse mit cwd im mountpoint
+cwd_pids=$(lsof +d "$mountpoint" 2>/dev/null | awk 'NR>1 {print $2}' | sort -u | grep -E '^[0-9]+
 
 # Synchronisiere Dateisystem
 notify normal "🔄 Synchronisiere..." "Stelle sicher, dass alle Daten geschrieben sind"
@@ -125,7 +137,7 @@ device_name=$(findmnt -n -o SOURCE "$mountpoint" 2>/dev/null | sed 's/.*\///' ||
 
 # Versuche auszuhängen (OHNE -l für sicheres LUKS schließen!)
 if sudo -A umount "$mountpoint" 2>/dev/null; then
-    notify normal "✓ Ausgehängt" "$mountpoint wurde erfolgreich ausgehängt"
+    notify critical "✓ Ausgehängt" "$mountpoint wurde erfolgreich ausgehängt"
 else
     notify critical "❌ Fehler beim Aushängen" "Konnte $mountpoint nicht aushängen"
     exit 1
@@ -138,7 +150,7 @@ if [ -n "$cryptdev" ] && [ -b "/dev/mapper/${cryptdev##*/}" ]; then
     sleep 1
 
     if sudo -A cryptsetup close "${cryptdev##*/}" 2>/dev/null; then
-        notify normal "🔒 Verschlüsselt" "LUKS-Container wurde sicher geschlossen"
+        notify critical "🔒 Verschlüsselt" "LUKS-Container wurde sicher geschlossen"
     else
         # Falls es nicht klappt, Hinweis für manuelles Schließen
         notify critical "⚠️ LUKS noch offen" "Manuell schließen: sudo cryptsetup close ${cryptdev##*/}"
@@ -153,4 +165,48 @@ if [ -n "$device_name" ] && is_rotating_disk "$device_name"; then
 fi
 
 # Finale Bestätigung
-notify low "✅ Fertig" "Das Gerät kann jetzt sicher entfernt werden"
+notify critical "✅ Fertig" "Das Gerät kann jetzt sicher entfernt werden" || true)
+if [ -n "$cwd_pids" ]; then
+    notify normal "📁 Prozesse mit Working Directory" "Diese Prozesse sind noch im Verzeichnis"
+    # Zeige die selbe Auswahl wie oben
+    handle_processes "$mountpoint"
+fi
+
+# Synchronisiere Dateisystem
+notify normal "🔄 Synchronisiere..." "Stelle sicher, dass alle Daten geschrieben sind"
+sync
+
+# Device-Name für spätere HDD/LUKS Checks ermitteln
+device_name=$(findmnt -n -o SOURCE "$mountpoint" 2>/dev/null | sed 's/.*\///' || true)
+
+# Versuche auszuhängen (OHNE -l für sicheres LUKS schließen!)
+if sudo -A umount "$mountpoint" 2>/dev/null; then
+    notify critical "✓ Ausgehängt" "$mountpoint wurde erfolgreich ausgehängt"
+else
+    notify critical "❌ Fehler beim Aushängen" "Konnte $mountpoint nicht aushängen"
+    exit 1
+fi
+
+# LUKS Container schließen falls verschlüsselt
+cryptdev="$(echo "$lsblk" | grep "$mountpoint$" | awk '{print $1}' || true)"
+if [ -n "$cryptdev" ] && [ -b "/dev/mapper/${cryptdev##*/}" ]; then
+    # Kurz warten damit Kernel alles freigibt
+    sleep 1
+
+    if sudo -A cryptsetup close "${cryptdev##*/}" 2>/dev/null; then
+        notify critical "🔒 Verschlüsselt" "LUKS-Container wurde sicher geschlossen"
+    else
+        # Falls es nicht klappt, Hinweis für manuelles Schließen
+        notify critical "⚠️ LUKS noch offen" "Manuell schließen: sudo cryptsetup close ${cryptdev##*/}"
+    fi
+fi
+
+# HDD herunterfahren falls es eine rotierende Disk ist
+if [ -n "$device_name" ] && is_rotating_disk "$device_name"; then
+    if echo -e "Ja\nNein" | dmenu -i -p "HDD herunterfahren?" | grep -q "Ja"; then
+        poweroff_hdd "$device_name"
+    fi
+fi
+
+# Finale Bestätigung
+notify critical "✅ Fertig" "Das Gerät kann jetzt sicher entfernt werden"

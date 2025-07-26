@@ -1,48 +1,90 @@
 #!/bin/bash
-# convert-video - Minimalistisches Video-Konvertierungsskript mit Hardware-Erkennung
+## 2025-07-26   SARBS
+# convert-video - Video-Konvertierung mit FLAC-Audio für DaVinci Resolve Linux
 # Installiere in ~/.local/bin/convert-video
 
 set -e
 
 # Eingabedatei prüfen
 if [ -z "$1" ]; then
-    echo "Verwendung: $(basename "$0") <video-datei>"
+    echo "Verwendung: $(basename "$0") <video-datei> [--pcm für unkomprimiertes Audio]"
     exit 1
 fi
 
 input="$1"
+use_pcm=false
+
+# Parameter prüfen
+if [ "$2" = "--pcm" ]; then
+    use_pcm=true
+fi
+
 dir_name=$(dirname "$input")
 base_name=$(basename "$input")
 filename="${base_name%.*}"
-output="${dir_name}/${filename}-convertiert.mp4"
+
+# Ausgabeformat - MP4 Container (FLAC in MOV funktioniert nicht)
+output="${dir_name}/${filename}_video.mp4"
 
 echo "Konvertiere: $input"
+
+# Audio-Codec auswählen
+if [ "$use_pcm" = true ]; then
+    audio_codec="-c:a pcm_s16le -ar 48000"
+    echo "Audio: PCM (unkomprimiert, maximale Kompatibilität)"
+else
+    # FLAC: Verlustfrei komprimiert, von DaVinci Linux unterstützt
+    audio_codec="-c:a flac -ar 48000 -sample_fmt s16 -compression_level 8"
+    echo "Audio: FLAC (verlustfrei komprimiert, ~50% kleiner als PCM)"
+fi
 
 # Hardware-Encoder erkennen und verwenden
 if [ -e /dev/dri/renderD128 ] && command -v vainfo &> /dev/null; then
     # VAAPI verfügbar
-    echo "Verwende VAAPI Hardware-Encoding..."
-    ffmpeg -vaapi_device /dev/dri/renderD128 -i "$input" \
-           -vf 'format=nv12,hwupload' \
-           -c:v hevc_vaapi -b:v 4M -maxrate 6M -bufsize 8M \
-			-c:a aac -b:a 320k \
-           "$output"
+    echo "Video: VAAPI Hardware-Encoding (H.264 für beste Kompatibilität)..."
+    ffmpeg -hwaccel vaapi -hwaccel_device /dev/dri/renderD128 -hwaccel_output_format vaapi -i "$input" \
+           -vf 'scale_vaapi=format=nv12' \
+           -c:v h264_vaapi -qp 23 \
+           $audio_codec \
+           -strict experimental \
+           -f mp4 \
+           -movflags +faststart \
+           "${output%.mp4}.mp4"
 
 elif command -v nvidia-smi &> /dev/null && nvidia-smi &> /dev/null; then
     # NVIDIA verfügbar
-    echo "Verwende NVIDIA Hardware-Encoding..."
+    echo "Video: NVIDIA Hardware-Encoding (H.264 für beste Kompatibilität)..."
     ffmpeg -hwaccel cuda -i "$input" \
-           -c:v hevc_nvenc -preset p4 -b:v 4M -maxrate 6M -bufsize 8M \
-			-c:a aac -b:a 320k \
-           "$output"
+           -c:v h264_nvenc -preset p4 -b:v 10M -maxrate 15M -bufsize 20M \
+           $audio_codec \
+           -strict experimental \
+           -f mp4 \
+           -movflags +faststart \
+           "${output%.mp4}.mp4"
 
 else
     # CPU Fallback
-    echo "Verwende CPU-Encoding (kann länger dauern)..."
+    echo "Video: CPU-Encoding (H.264 für beste Kompatibilität)..."
     ffmpeg -i "$input" \
-           -c:v libx265 -preset fast -crf 28 \
-			-c:a aac -b:a 320k \
-           "$output"
+           -c:v libx264 -preset medium -crf 18 \
+           $audio_codec \
+           -strict experimental \
+           -f mp4 \
+           -movflags +faststart \
+           "${output%.mp4}.mp4"
 fi
 
+# Größenvergleich
+original_size=$(du -h "$input" | cut -f1)
+new_size=$(du -h "$output" | cut -f1)
+echo ""
+echo "Original: $original_size"
+echo "Konvertiert: $new_size"
 echo "Fertig: $output"
+
+# Hilfreiche Infos
+if [ "$use_pcm" = false ]; then
+    echo ""
+    echo "Hinweis: Falls DaVinci Probleme mit FLAC hat, verwende:"
+    echo "  $(basename "$0") \"$input\" --pcm"
+fi

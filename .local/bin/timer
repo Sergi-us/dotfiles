@@ -9,7 +9,7 @@
 # export TT_KEY="dein_tiktok_key"    # Auskommentiert
 
 # Konfiguration:
-START_ZEIT="19:00"                              # Wann der eigentliche Stream beginnt (HH:MM)
+START_ZEIT="19:30"                              # Wann der eigentliche Stream beginnt (HH:MM)
 INTRO_DATEI="/home/sergi/Videos/Linux Talk/Linux-Talk-Intro.mp4"
 SCHRIFT_GROSE="160"                              # Größe der Countdown-Schrift
 SCHRIFT_FARBE="white"                           # Schriftfarbe
