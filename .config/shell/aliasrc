@@ -103,11 +103,7 @@ alias ref="shortcuts >/dev/null; source ${XDG_CONFIG_HOME:-$HOME/.config}/shell/
 
 alias wetter="less -S ${XDG_CACHE_HOME:-$HOME/.cache}/weatherreport" \
 
-alias talk='vivaldi --app="https://meet.jit.si/linux-talk-3-RUNDE" \
-  --disable-web-security \
-  --disable-extensions \
-  --no-first-run \
-  --disable-default-apps \
-  --disable-features=AudioServiceOutOfProcess \
-  --audio-buffer-size=2048 \
-  --enable-exclusive-audio'
+alias talk='env \
+  MOZ_DISABLE_CONTENT_SANDBOX=0 \
+  MOZ_WEBRTC_AUTO_GAIN_CONTROL=0 \
+  firefox --new-window --kiosk "https://meet.jit.si/linux-talk-3-RUNDE" 2>/dev/null'
