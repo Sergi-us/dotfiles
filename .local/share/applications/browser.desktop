@@ -1,12 +1,12 @@
 [Desktop Entry]
 Version=1.0
 Type=Application
-Name=Librewolf Browser
+Name=Qutebrowser
 GenericName=Webbrowser
-Comment=Datenschutzorientierter Webbrowser basierend auf Firefox
-Exec=librewolf %u
+Comment=Ein tastaturgesteuerter, vim-ähnlicher Browser basierend auf Python und Qt
+Exec=qutebrowser %u
 Terminal=false
-Icon=librewolf
+Icon=qutebrowser
 Categories=Network;WebBrowser;
 MimeType=text/html;text/xml;application/xhtml+xml;application/xml;x-scheme-handler/http;x-scheme-handler/https;
 StartupNotify=true
