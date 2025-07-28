@@ -3,7 +3,8 @@
 # YouTube-Statusbar-Modul für DWM
 
 # Konfiguration
-YT_STATS_FILE="$HOME/.local/share/yt-stats/yt_stats.json"
+CONFIG_DIR="$HOME/.local/share/yt"
+YT_STATS_FILE="$CONFIG_DIR/yt_stats.json"
 YT_STATS_SCRIPT="$HOME/.local/bin/yt-stats"
 
 # Aktualisieren der Statistiken
@@ -21,7 +22,7 @@ update_stats() {
 # Anzeige der Statistiken
 display_stats() {
     if [ ! -f "$YT_STATS_FILE" ]; then
-        echo " Keine Daten"
+        echo " "
         return
     fi
 
@@ -46,7 +47,7 @@ echo "[$SUBS  $COMMENTS]"
 
 # Titel auf maximal 40 Zeichen kürzen
 truncate_title() {
-    if [ ${#1} -gt 40 ]; then
+    if [ ${#1} -gt 20 ]; then
         echo "${1:0:17}..."
     else
         echo "$1"
@@ -67,7 +68,9 @@ show_details() {
     VIDEOS=$(jq -r '.channel.video_count' "$YT_STATS_FILE")
     UPDATE=$(jq -r '.channel.timestamp' "$YT_STATS_FILE")
     COMMENTS=$(jq -r '.channel.comment_count' "$YT_STATS_FILE")
-    LIKES=$(jq -r '.channel.like_count' "$YT_STATS_FILE")
+
+    # Gesamte Likes berechnen (Summe aller Video-Likes)
+    TOTAL_LIKES=$(jq '[.videos[].like_count] | add // 0' "$YT_STATS_FILE")
 
     # Top-Video Informationen
     TOP_VIDEO_TITLE=$(jq -r '.videos[0].title' "$YT_STATS_FILE")
@@ -80,13 +83,13 @@ show_details() {
 
     # Formatierte Benachrichtigung senden
     notify-send "$CHANNEL - YouTube Statistiken" "\
-  $SUBS          $COMMENTS     $VIEWS
-  $VIDEOS           $LIKES
-  $UPDATE
+ $SUBS         $COMMENTS     $VIEWS
+ $VIDEOS            $TOTAL_LIKES
+ $UPDATE
 
 🏆 Top Video:
 $SHORTENED_TITLE
-󰛐 $TOP_VIDEO_VIEWS       $TOP_VIDEO_LIKES       $TOP_VIDEO_COMMENTS" -t 10000
+󰛐 $TOP_VIDEO_VIEWS       $TOP_VIDEO_LIKES      $TOP_VIDEO_COMMENTS" -t 10000
 }
 
 # Öffne die Statistik-Datei im bevorzugten Editor
@@ -94,17 +97,44 @@ edit_stats_file() {
     setsid -f "$TERMINAL" -e "$EDITOR" "$YT_STATS_FILE"
 }
 
+# Öffne das Konfigurationsverzeichnis
+open_config_dir() {
+    setsid -f "$TERMINAL" -e sh -c "cd $CONFIG_DIR && $SHELL"
+}
+
+# Setup-Funktion für Erstkonfiguration
+run_setup() {
+    setsid -f "$TERMINAL" -e "$YT_STATS_SCRIPT" setup
+}
+
+# Prüfe ob Konfiguration vorhanden ist
+check_config() {
+    if [ ! -f "$CONFIG_DIR/api_key" ] || [ ! -f "$CONFIG_DIR/channel_id" ]; then
+        notify-send "YouTube Statistiken" "Konfiguration fehlt! Führe Setup aus..." -u critical
+        run_setup
+        return 1
+    fi
+    return 0
+}
+
 # Button-Actions für dwmblocks
 case $BLOCK_BUTTON in
-    1) update_stats; pkill -RTMIN+28 "${STATUSBAR:-dwmblocks}" ;;
+    1)
+        if check_config; then
+            update_stats
+            pkill -RTMIN+28 "${STATUSBAR:-dwmblocks}"
+        fi
+        ;;
     2) show_details; pkill -RTMIN+28 "${STATUSBAR:-dwmblocks}" ;;
-    3) notify-send " YouTube-Modul" "\- L-󰍽 YouTube übersicht anzeigen
-- M-󰍽 Statistiken aktualisieren
-- R-󰍽 Hilfe anzeigen" ;;
+    3) notify-send " YouTube-Modul" "\- L-󰍽 YouTube Statistiken aktualisieren
+- M-󰍽 Detaillierte Übersicht anzeigen
+- R-󰍽 Hilfe anzeigen
+- S+L-󰍽 Setup/Konfiguration
+- S+R-󰍽 Statistik-Datei öffnen" ;;
     4) ;; # Scroll hoch (unbelegt)
     5) ;; # Scroll runter
     6) edit_stats_file ;; # Shift+Rechtsklick: Statistik-Datei öffnen
-    7) ;; # Reserviert für Globale funktionen (bitte nicht belegen)
+    7) run_setup ;; # Shift+Linksklick: Setup ausführen
 esac
 
 # Standardausgabe für die Statusbar

@@ -9,6 +9,12 @@
 # Variablen setzen - hier deine Keys eintragen:
 # export YT_API="dein_youtube_key"
 
+# Globale Variablen
+YOUTUBE_VIDEO_ID="Yo_CbhIrMbY"
+TWITCH_CHANNEL="sergius1981"
+TIKTOK_STREAM_ID=""
+FACEBOOK_VIDEO_ID=""
+
 # Terminal-Farben
 RESET="\033[0m"
 BOLD="\033[1m"
@@ -46,22 +52,16 @@ LOG_PATH="${HOME}/Dokumente/chat-logs"
 LOG_FILE="${LOG_PATH}/log_stream.csv"  # statt mit Datum
 
 # API Keys (aus Umgebungsvariablen oder hier eintragen)
-YT_API_KEY="${YT_API:-}"
+YT_API_KEY=$(cat "$HOME/.local/share/yt/api_key" 2>/dev/null || echo "${YT_API:-}")
 TW_OAUTH="${TW_OAUTH:-}"  # Optional für Twitch
 TT_API_KEY="${TT_KEY:-}"
 FB_API_KEY="${FB_KEY:-}"
 
-# Globale Variablen
-YOUTUBE_VIDEO_ID="Yo_CbhIrMbY"
-TWITCH_CHANNEL="sergius1981"
-TIKTOK_STREAM_ID=""
-FACEBOOK_VIDEO_ID=""
-
 # Banner anzeigen
 show_banner() {
-    echo -e "${BOLD}${CYAN}╔══════════════════════════════════════╗${RESET}"
-    echo -e "${BOLD}${CYAN}║  Multi-Platform Chat Terminal Viewer ║${RESET}"
-    echo -e "${BOLD}${CYAN}╚══════════════════════════════════════╝${RESET}"
+    echo -e "${BOLD}${CYAN}╔═════════════════════════════╗${RESET}"
+    echo -e "${BOLD}${CYAN}║  Multi-Platform Chat Viewer ║${RESET}"
+    echo -e "${BOLD}${CYAN}╚═════════════════════════════╝${RESET}"
     echo ""
 }
 
