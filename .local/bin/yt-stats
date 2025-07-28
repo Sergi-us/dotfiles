@@ -12,14 +12,107 @@
 # täglich (jeden Tag um 3:00 Uhr nachts aus)
 # 0 3 * * * $HOME/.local/bin/yt-stats > /dev/null 2>&1
 #
+# estelle eine
 
-# === VARIABLEN / KONFIGURATION ===
-API_KEY="hier einfügen"
-CHANNEL_ID="hier einfügen"
-OUTPUT_DIR="$HOME/.local/share/yt-stats"
+# === KONFIGURATIONSVERZEICHNIS ===
+CONFIG_DIR="$HOME/.local/share/yt"
 OUTPUT_FILE="yt_stats.json"
-FULL_OUTPUT_PATH="$OUTPUT_DIR/$OUTPUT_FILE"
+FULL_OUTPUT_PATH="$CONFIG_DIR/$OUTPUT_FILE"
 MAX_VIDEOS_PER_REQUEST=50
+
+# === FUNKTIONEN ZUM LESEN DER KONFIGURATION ===
+read_config() {
+    # Erstelle Konfigurationsverzeichnis falls es nicht existiert
+    mkdir -p "$CONFIG_DIR"
+
+    # API Key lesen
+    if [ -f "$CONFIG_DIR/api_key" ]; then
+        API_KEY=$(cat "$CONFIG_DIR/api_key")
+    else
+        echo "Fehler: API Key Datei nicht gefunden: $CONFIG_DIR/api_key"
+        echo "Bitte erstelle die Datei mit: echo 'DEIN_API_KEY' > $CONFIG_DIR/api_key"
+        exit 1
+    fi
+
+    # Channel ID lesen
+    if [ -f "$CONFIG_DIR/channel_id" ]; then
+        CHANNEL_ID=$(cat "$CONFIG_DIR/channel_id")
+    else
+        echo "Fehler: Channel ID Datei nicht gefunden: $CONFIG_DIR/channel_id"
+        echo "Bitte erstelle die Datei mit: echo 'DEINE_CHANNEL_ID' > $CONFIG_DIR/channel_id"
+        exit 1
+    fi
+
+    # Optional: Weitere Konfigurationen aus config-Datei lesen
+    if [ -f "$CONFIG_DIR/config" ]; then
+        source "$CONFIG_DIR/config"
+    fi
+
+    # Validierung
+    if [ -z "$API_KEY" ] || [ "$API_KEY" = "hier einfügen" ]; then
+        echo "Fehler: Bitte gültigen API Key in $CONFIG_DIR/api_key eintragen"
+        exit 1
+    fi
+
+    if [ -z "$CHANNEL_ID" ] || [ "$CHANNEL_ID" = "hier einfügen" ]; then
+        echo "Fehler: Bitte gültige Channel ID in $CONFIG_DIR/channel_id eintragen"
+        exit 1
+    fi
+}
+
+# === SETUP FUNKTION FÜR ERSTMALIGE EINRICHTUNG ===
+setup_config() {
+    echo "YouTube Stats Setup"
+    echo "=================="
+
+    mkdir -p "$CONFIG_DIR"
+
+    # API Key Setup
+    if [ ! -f "$CONFIG_DIR/api_key" ]; then
+        echo -n "Bitte YouTube API Key eingeben: "
+        read -r api_key_input
+        echo "$api_key_input" > "$CONFIG_DIR/api_key"
+        chmod 600 "$CONFIG_DIR/api_key"  # Nur für Benutzer lesbar
+        echo "API Key gespeichert in $CONFIG_DIR/api_key"
+    else
+        echo "API Key bereits vorhanden"
+    fi
+
+    # Channel ID Setup
+    if [ ! -f "$CONFIG_DIR/channel_id" ]; then
+        echo -n "Bitte YouTube Channel ID eingeben: "
+        read -r channel_id_input
+        echo "$channel_id_input" > "$CONFIG_DIR/channel_id"
+        chmod 600 "$CONFIG_DIR/channel_id"
+        echo "Channel ID gespeichert in $CONFIG_DIR/channel_id"
+    else
+        echo "Channel ID bereits vorhanden"
+    fi
+
+    # Optionale config-Datei erstellen
+    if [ ! -f "$CONFIG_DIR/config" ]; then
+        cat > "$CONFIG_DIR/config" << EOF
+# YouTube Stats Konfiguration
+# Diese Datei kann für zusätzliche Einstellungen verwendet werden
+
+# Maximale Videos pro API-Request (Standard: 50)
+# MAX_VIDEOS_PER_REQUEST=50
+
+# Debug-Modus (0=aus, 1=an)
+# DEBUG=0
+
+# Weitere Optionen können hier hinzugefügt werden
+EOF
+        echo "Konfigurationsdatei erstellt in $CONFIG_DIR/config"
+    fi
+
+    echo ""
+    echo "Setup abgeschlossen!"
+    echo "Du kannst die Konfiguration jederzeit ändern in:"
+    echo "  - $CONFIG_DIR/api_key"
+    echo "  - $CONFIG_DIR/channel_id"
+    echo "  - $CONFIG_DIR/config"
+}
 
 # Temporäres Verzeichnis für die Zwischenspeicherung von Daten
 TEMP_DIR=$(mktemp -d)
@@ -284,7 +377,7 @@ compile_and_save_stats() {
     head -c 1000 "$TEMP_DIR/final_stats.json"
 
     # Erstelle Ausgabeverzeichnis, falls es nicht existiert
-    mkdir -p "$OUTPUT_DIR"
+    mkdir -p "$CONFIG_DIR"
 
     # Speichere die Statistiken in der Ausgabedatei
     cp "$TEMP_DIR/final_stats.json" "$FULL_OUTPUT_PATH"
@@ -294,7 +387,16 @@ compile_and_save_stats() {
 
 # Hauptfunktion
 main() {
+    # Prüfe ob Setup-Modus
+    if [ "$1" = "setup" ] || [ "$1" = "--setup" ]; then
+        setup_config
+        exit 0
+    fi
+
     echo "Starte YouTube-Statistikabfrage..."
+
+    # Konfiguration laden
+    read_config
 
     # Kanalstatistiken abrufen
     get_channel_stats
@@ -312,4 +414,4 @@ main() {
 }
 
 # Programm starten
-main
+main "$@"
