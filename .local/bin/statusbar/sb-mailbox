@@ -6,7 +6,7 @@
 # Bei Klick wird `neomutt` geöffnet, Rechtsklick zeigt detaillierte Mailbox-Informationen
 
 case $BLOCK_BUTTON in
-	1) setsid -f mw -Y >/dev/null; notify-send -u low "Mails werden aktualisiert"; pkill -RTMIN+20 "${STATUSBAR:-dwmblocks}"
+	1) setsid -f mailsync >/dev/null; notify-send -u low "Mails werden aktualisiert"; pkill -RTMIN+20 "${STATUSBAR:-dwmblocks}"
 		# Temporäre häufige Aktualisierung während Mail-Sync (im Hintergrund)
 		{
 			for i in $(seq 1 60); do  # 12 mal alle 5 Sekunden = 60 Sekunden

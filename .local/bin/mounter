@@ -40,7 +40,7 @@ unopenedluks="$(for drive in $allluks; do
     [ -n "$decrypted" ] && for open in $decrypted; do
         [ "$uuid" = "$open" ] && break 1
     done && continue 1
-    echo "🔒 $drive"
+    echo " $drive"
 done | filter)"
 
 # Alle normalen, nicht verschlüsselten oder entschlüsselten Partitionen abrufen, die nicht gemountet sind.
@@ -73,7 +73,7 @@ attemptmount() {
     # Versuch, ohne Mountpunkt zu mounten, um zu sehen, ob das Laufwerk in fstab ist.
     echo "Versuche, $chosen ohne spezifischen Mountpunkt zu mounten..." | tee -a /tmp/mount.log
     if sudo -A mount "$chosen"; then
-        notify-send "💾Laufwerk gemountet." "$chosen gemountet."
+        notify-send "󱊟 Laufwerk gemountet." "$chosen gemountet."
         echo "$chosen erfolgreich gemountet." | tee -a /tmp/mount.log
         exit
     else
@@ -83,7 +83,7 @@ attemptmount() {
 }
 
 case "$chosen" in
-    💾*)
+    󱊟*)
         chosen="${chosen%% *}"
         chosen="${chosen:1}"  # Dies ist ein Bashismus.
         if attemptmount; then
@@ -100,7 +100,7 @@ case "$chosen" in
         fi
         ;;
 
-    🔒*)
+    *)
         chosen="${chosen%% *}"
         chosen="${chosen:1}"  # Dies ist ein Bashismus.
         num=0  # Initialisiere die Variable num
@@ -128,13 +128,13 @@ case "$chosen" in
         echo "Entschlüsseltes Laufwerk $chosen zu /mnt/usb erfolgreich gemountet." | tee -a /tmp/mount.log
         ;;
 
-    📱*)
+    *)
         notify-send "❗Hinweis" "Erlaube jetzt den Dateizugriff auf deinem Handy."
         getmount
         number="${chosen%%:*}"
         number="${chosen:1}"  # Dies ist ein Bashismus.
         sudo -A simple-mtpfs -o allow_other -o fsname="simple-mtpfs-$(escape "$chosen")" --device "$number" "$mp"
-        notify-send "🤖 Android gemountet." "Android-Gerät zu $mp gemountet."
+        notify-send " Android gemountet." "Android-Gerät zu $mp gemountet."
         echo "Android-Gerät $chosen zu $mp erfolgreich gemountet." | tee -a /tmp/mount.log
         ;;
 esac
