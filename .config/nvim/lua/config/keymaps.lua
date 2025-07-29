@@ -29,8 +29,11 @@ map("n", "<C-k>", "<C-w>k", { desc = "Fenster oben" })
 map("n", "<C-l>", "<C-w>l", { desc = "Fenster rechts" })
 
 -- Zeilen bewegen
-map("n", "<A-j>", ":m .+1<CR>==", { desc = "Zeile nach unten bewegen" })
-map("n", "<A-k>", ":m .-2<CR>==", { desc = "Zeile nach oben bewegen" })
+map("n", "<C-j>", ":m .+1<CR>==", { desc = "Zeile nach unten bewegen" })
+map("n", "<C-k>", ":m .-2<CR>==", { desc = "Zeile nach oben bewegen" })
+
+-- S für substitute im ganzen Dokument
+map("n", "S", ":%s//g<Left><Left>", { desc = "Substitute in ganzer Datei" })
 
 -- Puffer wechseln
 map("n", "<leader>bn", ":bnext<CR>", { desc = "Nächster Puffer" })
@@ -39,7 +42,7 @@ map("n", "<leader>bp", ":bprevious<CR>", { desc = "Vorheriger Puffer" })
 -- Keybinding für nvim-tree
 map("n", "<leader>n", ":NvimTreeToggle<CR>", { noremap = true, silent = true })
 
--- Persönliche Binding
+-- Datumstempel
 map('n', '<leader>dt', ':put=strftime(\'## %Y-%m-%d\')<CR>', { noremap = true })
 
 -- Anpassungen für's Deutsche Tastaturlayout
@@ -53,8 +56,8 @@ map('n', 'z0', 'z=', { noremap = true })             -- Zeigt Wortvorschläge f�
 -- === Funktionen ===
 -- vim.keymap.set('n', '<leader>t', ':term<CR>', { noremap = true })  -- Terminal öffnen (auskommentiert wegen zsh Problemen)
 map('', '<leader>s', ':setlocal spell! spelllang=de_de,en_us<CR>', { noremap = true })     -- Rechtschreibprüfung ein/ausschalten
--- vim.keymap.set('', '<leader>o', ':!clear && shellcheck -x %<CR>', { noremap = true })              -- Shellskripte mit shellcheck analysieren
--- vim.keymap.set('n', '<leader>h', ':call ToggleHiddenAll()<CR>', { noremap = true })                -- Versteckte Elemente ein-/ausblenden (benötigt die ToggleHiddenAll Funktion)
+map('', '<leader>o', ':!clear && shellcheck -x %<CR>', { noremap = true })              -- Shellskripte mit shellcheck analysieren
+-- map('n', '<leader>h', ':call ToggleHiddenAll()<CR>', { noremap = true })                -- Versteckte Elemente ein-/ausblenden (benötigt die ToggleHiddenAll Funktion)
 
 -- Suchhervorhebung ausschalten mit Escape
 map('n', '<Esc>', ':nohlsearch<CR>', { noremap = true, silent = true })
