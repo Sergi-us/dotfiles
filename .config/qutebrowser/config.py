@@ -18,22 +18,22 @@ c.editor.command = ['st', '-e', 'nvim', '{}']
 # ================================================================================
 
 # Schriftgrößen für HiDPI-Display
-# c.fonts.default_size = '16pt'
-c.fonts.tabs.selected = '16pt default_family'
-c.fonts.tabs.unselected = '12pt default_family'
+# c.fonts.default_size = '12pt'
+c.fonts.tabs.selected = '10pt default_family'
+c.fonts.tabs.unselected = '8pt default_family'
 
 # Allgemeine UI-Schriftgröße
-c.fonts.statusbar = '14pt default_family'
-c.fonts.downloads = '14pt default_family'
-c.fonts.prompts = '14pt default_family'
-c.fonts.hints = 'bold 14pt default_family'
+c.fonts.statusbar = '10pt default_family'
+c.fonts.downloads = '10pt default_family'
+c.fonts.prompts = '10pt default_family'
+c.fonts.hints = 'bold 10pt default_family'
 
 # Zoom-Faktor für Webseiten
-c.zoom.default = '150%'
+c.zoom.default = '100%'
 
 # Tabs-Einstellungen
 c.tabs.position = 'top'
-c.tabs.show = 'always'
+c.tabs.show = 'multiple'    # 'multiple' 'always' 'never' 'switching'
 c.tabs.title.format = '{audio}{current_title}'
 c.tabs.title.format_pinned = '{audio}'
 c.tabs.padding = {'top': 4, 'bottom': 4, 'left': 8, 'right': 8}
@@ -41,19 +41,19 @@ c.tabs.indicator.width = 1  # Ladesymbol deaktivieren
 c.tabs.favicons.show = 'always'
 
 # Schriftgröße für die Kommandozeile
-c.fonts.prompts = '14pt default_family'
-c.fonts.statusbar = '14pt default_family'
-c.fonts.completion.category = 'bold 16pt default_family'
-c.fonts.completion.entry = '14pt default_family'
+c.fonts.prompts = '10pt default_family'
+c.fonts.statusbar = '10pt default_family'
+c.fonts.completion.category = 'bold 12pt default_family'
+c.fonts.completion.entry = '10pt default_family'
 
 # Completion-Menü (das Dropdown beim Tippen)
-c.fonts.completion.category = 'bold 14pt default_family'
-c.fonts.completion.entry = '14pt default_family'
+c.fonts.completion.category = 'bold 10pt default_family'
+c.fonts.completion.entry = '10pt default_family'
 
 # Messages/Fehlermeldungen
-c.fonts.messages.error = 'bold 16pt default_family'
-c.fonts.messages.info = '16pt default_family'
-c.fonts.messages.warning = '16pt default_family'
+c.fonts.messages.error = 'bold 12pt default_family'
+c.fonts.messages.info = '12pt default_family'
+c.fonts.messages.warning = '12pt default_family'
 
 # ================================================================================
 # DARK MODE EINSTELLUNGEN
@@ -63,37 +63,147 @@ c.fonts.messages.warning = '16pt default_family'
 c.colors.webpage.darkmode.enabled = True
 
 # Dark Mode Algorithmus wählen (kann lightness-cielab, lightness-hsl, brightness-rgb  sein)
-c.colors.webpage.darkmode.algorithm = 'lightness-cielab'
+# c.colors.webpage.darkmode.algorithm = 'lightness-cielab'
 
 # Bilder im Dark Mode nicht invertieren
-c.colors.webpage.darkmode.policy.images = 'never'
+# c.colors.webpage.darkmode.policy.images = 'never'
 
 # Dark Mode für alle Seiten erzwingen, auch für solche mit eigenem Dark Mode
-c.colors.webpage.darkmode.policy.page = 'always'
+# c.colors.webpage.darkmode.policy.page = 'always'
 
-# Grundfarben für die Benutzeroberfläche
-c.colors.completion.fg = ['#9cc4ff', 'white', 'white']
-c.colors.completion.odd.bg = '#1c1f24'
-c.colors.completion.even.bg = '#232429'
-c.colors.completion.category.bg = '#29303d'
-c.colors.completion.category.fg = '#f0f0f0'
-c.colors.completion.category.border.top = '#29303d'
-c.colors.completion.category.border.bottom = '#29303d'
-c.colors.completion.item.selected.bg = '#4491ed'
-c.colors.completion.item.selected.fg = '#f0f0f0'
-c.colors.completion.item.selected.border.top = '#4491ed'
-c.colors.completion.item.selected.border.bottom = '#4491ed'
-c.colors.statusbar.normal.bg = '#1c1f24'
-c.colors.statusbar.normal.fg = '#f0f0f0'
-c.colors.statusbar.command.bg = '#1c1f24'
-c.colors.statusbar.command.fg = '#f0f0f0'
-c.colors.tabs.bar.bg = '#1c1f24'
-c.colors.tabs.selected.odd.bg = '#323842'
-c.colors.tabs.selected.odd.fg = '#f0f0f0'
-c.colors.tabs.odd.bg = '#232429'
-c.colors.tabs.odd.fg = '#d0d0d0'
-c.colors.tabs.even.bg = '#1c1f24'
-c.colors.tabs.even.fg = '#d0d0d0'
+# ================================================================================
+# PYWALL FARBEN LADEN FALLS MÖGLICH
+# ================================================================================
+
+import os
+import json
+
+# Pywal colors laden wenn vorhanden
+try:
+    with open(os.path.expanduser('~/.cache/wal/colors.json')) as f:
+        pywal = json.load(f)
+
+    # Farben extrahieren
+    bg = pywal['special']['background']
+    fg = pywal['special']['foreground']
+    colors = [pywal['colors'][f'color{i}'] for i in range(16)]
+
+    # Qutebrowser theme
+    # Completion (Dropdown beim Tippen)
+    c.colors.completion.fg = [colors[7], fg, fg]
+    c.colors.completion.odd.bg = colors[0]
+    c.colors.completion.even.bg = bg
+    c.colors.completion.category.bg = colors[8]
+    c.colors.completion.category.fg = fg
+    c.colors.completion.category.border.top = colors[8]
+    c.colors.completion.category.border.bottom = colors[8]
+    c.colors.completion.item.selected.bg = colors[4]
+    c.colors.completion.item.selected.fg = bg
+    c.colors.completion.item.selected.border.top = colors[4]
+    c.colors.completion.item.selected.border.bottom = colors[4]
+
+    # Statusbar - bleibt dunkel wie deine dmenu bar
+    c.colors.statusbar.normal.bg = bg  # Dunkler Hintergrund
+    c.colors.statusbar.normal.fg = fg  # Heller Text
+    c.colors.statusbar.command.bg = bg
+    c.colors.statusbar.command.fg = fg
+    c.colors.statusbar.insert.bg = colors[2]
+    c.colors.statusbar.insert.fg = bg
+    c.colors.statusbar.passthrough.bg = colors[4]
+    c.colors.statusbar.passthrough.fg = bg
+    c.colors.statusbar.private.bg = colors[5]
+    c.colors.statusbar.private.fg = bg
+
+    # Tabs - EINHEITLICHE FARBEN!
+    c.colors.tabs.bar.bg = bg  # Tab-Leiste wie Statusbar
+
+    # Ausgewählte Tabs - Orange wie in deinem Screenshot
+    c.colors.tabs.selected.odd.bg = colors[3]   # Orange (meist color3)
+    c.colors.tabs.selected.odd.fg = bg          # Dunkler Text
+    c.colors.tabs.selected.even.bg = colors[3]  # GLEICHE Farbe!
+    c.colors.tabs.selected.even.fg = bg
+
+    # Nicht ausgewählte Tabs - etwas heller als Hintergrund
+    c.colors.tabs.odd.bg = colors[8]   # Mittleres Grau
+    c.colors.tabs.odd.fg = fg          # Normaler Text
+    c.colors.tabs.even.bg = colors[8]  # GLEICHE Farbe für Einheitlichkeit!
+    c.colors.tabs.even.fg = fg
+
+    # Tab-Indikatoren
+    c.colors.tabs.indicator.start = colors[4]
+    c.colors.tabs.indicator.stop = colors[2]
+    c.colors.tabs.indicator.error = colors[1]
+
+    # Pinned tabs - optional anders
+    c.colors.tabs.pinned.selected.odd.bg = colors[3]
+    c.colors.tabs.pinned.selected.odd.fg = bg
+    c.colors.tabs.pinned.selected.even.bg = colors[3]
+    c.colors.tabs.pinned.selected.even.fg = bg
+    c.colors.tabs.pinned.odd.bg = colors[0]
+    c.colors.tabs.pinned.odd.fg = colors[7]
+    c.colors.tabs.pinned.even.bg = colors[0]
+    c.colors.tabs.pinned.even.fg = colors[7]
+
+    # Downloads
+    c.colors.downloads.bar.bg = bg
+    c.colors.downloads.start.bg = colors[4]
+    c.colors.downloads.start.fg = bg
+    c.colors.downloads.stop.bg = colors[2]
+    c.colors.downloads.stop.fg = bg
+    c.colors.downloads.error.bg = colors[1]
+    c.colors.downloads.error.fg = fg
+
+    # Hints
+    c.colors.hints.bg = colors[3]
+    c.colors.hints.fg = bg
+    c.colors.hints.match.fg = colors[1]
+
+    # Messages
+    c.colors.messages.info.bg = colors[4]
+    c.colors.messages.info.fg = bg
+    c.colors.messages.warning.bg = colors[3]
+    c.colors.messages.warning.fg = bg
+    c.colors.messages.error.bg = colors[1]
+    c.colors.messages.error.fg = fg
+
+    # Prompts
+    c.colors.prompts.bg = bg
+    c.colors.prompts.fg = fg
+    c.colors.prompts.border = colors[8]
+    c.colors.prompts.selected.bg = colors[4]
+    c.colors.prompts.selected.fg = bg
+
+    print("✓ Pywal Farben erfolgreich geladen!")
+
+except (FileNotFoundError, KeyError, json.JSONDecodeError) as e:
+    print(f"✗ Fehler beim Laden der Pywal-Farben: {e}")
+    # Fallback-Farben...
+
+    # Fallback-Farben hier...
+
+    # Grundfarben für die Benutzeroberfläche (FALLBACK)
+    c.colors.completion.fg = ['#9cc4ff', 'white', 'white']
+    c.colors.completion.odd.bg = '#1c1f24'
+    c.colors.completion.even.bg = '#232429'
+    c.colors.completion.category.bg = '#29303d'
+    c.colors.completion.category.fg = '#f0f0f0'
+    c.colors.completion.category.border.top = '#29303d'
+    c.colors.completion.category.border.bottom = '#29303d'
+    c.colors.completion.item.selected.bg = '#4491ed'
+    c.colors.completion.item.selected.fg = '#f0f0f0'
+    c.colors.completion.item.selected.border.top = '#4491ed'
+    c.colors.completion.item.selected.border.bottom = '#4491ed'
+    c.colors.statusbar.normal.bg = '#1c1f24'
+    c.colors.statusbar.normal.fg = '#f0f0f0'
+    c.colors.statusbar.command.bg = '#1c1f24'
+    c.colors.statusbar.command.fg = '#f0f0f0'
+    c.colors.tabs.bar.bg = '#1c1f24'
+    c.colors.tabs.selected.odd.bg = '#323842'
+    c.colors.tabs.selected.odd.fg = '#f0f0f0'
+    c.colors.tabs.odd.bg = '#232429'
+    c.colors.tabs.odd.fg = '#d0d0d0'
+    c.colors.tabs.even.bg = '#1c1f24'
+    c.colors.tabs.even.fg = '#d0d0d0'
 
 # ================================================================================
 # SICHERHEITSEINSTELLUNGEN
