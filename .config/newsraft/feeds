@@ -1,0 +1,28 @@
+## 2025-01-10 SARBS"
+@"=== YouTube ==="
+https://www.youtube.com/feeds/videos.xml?channel_id=UC3UmA3JI7pSZZ7v4O3wNiDA "~Sergi-tec"
+https://www.youtube.com/feeds/videos.xml?channel_id=UC2eYFnH61tmytImy1mTYvhA "~Luke Smith"
+https://www.youtube.com/feeds/videos.xml?channel_id=UCwHwDuNd9lCdA7chyyquDXw "~Bread on Penguins"
+https://www.youtube.com/feeds/videos.xml?channel_id=UC2TXq_t06Hjdr2g_KdKpHQg "~media.ccc.de"
+@"=== Mastodon ==="
+https://openrss.org/mastodon.social/@sergius_m
+@"=== WEBSEITEN ==="
+https://suckless.org/atom.xml
+https://grapheneos.org/releases.atom
+https://www.cccs.de/atom.xml
+https://nginx.org/index.rss
+https://vkc.sh/feed/
+https://artixlinux.org/feed.php "Artix"
+https://www.archlinux.org/feeds/news/ "Arch"
+https://delta.chat/feed.xml "Delta-Chat News"
+https://mailcow.email/de/index.xml "MailCou"
+https://www.fsf.org/static/fsforg/rss/news.xml
+https://neomutt.org/feed.xml
+@"=== GitHub ==="
+https://github.com/Sergi-us/SARBS/commits/main.atom                    "SARBS"
+https://github.com/Sergi-us/dotfiles/commits/main.atom                    "SARBS dotfiles"
+https://github.com/LukeSmithxyz/voidrice/commits/master.atom                "LARBS dotfiles"
+https://github.com/LukeSmithxyz/LARBS/commits/master.atom
+https://github.com/BreadOnPenguins/scripts/commits/master.atom
+@"=== ODYSEE ==="
+https://odysee.com/$/rss/@Luke/70                                               "lukesmith"
