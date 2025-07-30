@@ -1,17 +1,20 @@
 #!/bin/sh
-## 2025-01-09 SARBS
-# TODO auf newsraft umstellen
+## 2025-01-09 SARBS - Angepasst für Newsraft
 
-# Als Cron-Job einrichten, um nach neuen RSS-Einträgen für Newsboat zu suchen.
-# Wenn Newsboat geöffnet ist, sendet es den "R"-Tastendruck zum Aktualisieren.
+# Als Cron-Job einrichten, um nach neuen RSS-Einträgen für Newsraft zu suchen.
+# Wenn Newsraft geöffnet ist, sendet es den "R"-Tastendruck zum Aktualisieren.
 
 /usr/bin/notify-send "󰑬 Aktualisiere RSS-Feeds..."
 
-pgrep -f newsboat$ && /usr/bin/xdotool key --window "$(/usr/bin/xdotool search --name "^newsboat$")" R && exit
+# Prüfe ob newsraft läuft und sende "R" für reload-all
+pgrep -f newsraft$ && /usr/bin/xdotool key --window "$(/usr/bin/xdotool search --name "^newsraft$")" R && exit
 
-echo 🔃 > /tmp/newsupdate
-pkill -RTMIN+6 "${STATUSBAR:-dwmblocks}"
-/usr/bin/newsboat -x reload
+echo 󰁪 > /tmp/newsupdate
+pkill -RTMIN+8 "${STATUSBAR:-dwmblocks}"
+
+# Newsraft verwendet -e reload-all für das Neuladen aller Feeds
+/usr/bin/newsraft -e reload-all
+
 rm -f /tmp/newsupdate
 pkill -RTMIN+8 "${STATUSBAR:-dwmblocks}"
 /usr/bin/notify-send "󰑬 RSS-Feed-Aktualisierung abgeschlossen."
