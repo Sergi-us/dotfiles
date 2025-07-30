@@ -1,19 +1,26 @@
 #!/bin/sh
-## 2025-03-07 SARBS
+## 2025-03-07 SARBS - Angepasst für newsraft
 
 # Zeigt die Anzahl ungelesener Nachrichten an und ein Lade-Symbol, falls ein Update durchgeführt wird.
-# Beim Klicken wird `newsboat` geöffnet.
+# Beim Klicken wird `newsraft` geöffnet.
 
 case $BLOCK_BUTTON in
-    1) setsid -f newsup >/dev/null && exit ;;
-    2) setsid "$TERMINAL" -e newsboat ;;
-    3) notify-send " RSS News-Modul" "\- Zeigt ungelesene Nachrichten an
+    1) setsid -f newsup >/dev/null
+       # Temporäre häufige Aktualisierung während News-Sync (im Hintergrund)
+       {
+           for i in $(seq 1 60); do  # 60 mal jede Sekunde = 60 Sekunden
+               sleep 1
+               pkill -RTMIN+8 "${STATUSBAR:-dwmblocks}"
+           done
+       } & ;;
+    2) setsid "$TERMINAL" -e newsraft ;;
+    3) notify-send " RSS News-Modul" "\- Zeigt ungelesene Nachrichten an
 - L-󰍽 synchronisiert RSS-Feeds
-- M-󰍽 öffnet newsboat
-<b>Hinweis:</b> Es darf jeweils nur eine Instanz von newsboat (einschließlich Updates) laufen." ;;
+- M-󰍽 öffnet newsraft" ;;
     4) ;;
     5) ;;
     6) setsid -f "$TERMINAL" -e "$EDITOR" "$0" ;; # Öffne das Skript im Editor
 esac
 
-cat /tmp/newsupdate 2>/dev/null || echo "$(newsboat -x print-unread | awk '{ if($1>0) print $1}')$(cat "${XDG_CONFIG_HOME:-$HOME/.config}"/newsboat/.update 2>/dev/null)"
+# Zeige Update-Indikator oder Anzahl ungelesener Nachrichten
+cat /tmp/newsupdate 2>/dev/null || echo "$(newsraft -e print-unread-items-count | awk '{ if($1>0) print $1}')$(cat "${XDG_CONFIG_HOME:-$HOME/.config}"/newsraft/.update 2>/dev/null)"

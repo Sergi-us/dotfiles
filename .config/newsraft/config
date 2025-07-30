@@ -18,6 +18,7 @@ list-entry-date-format "%d.%m.%Y"
 # bind o open-in-browser
 bind m exec mpv "%l"
 bind f exec feh "%l"
+bind ? exec man newsraft
 
 # User-Agent Header (optional)
 # send-user-agent-header false
