@@ -12,14 +12,14 @@ if crontab -l >/dev/null 2>&1 && [ "$(crontab -l 2>/dev/null | wc -l)" -gt 0 ]; 
     # Cronjobs sind aktiv - deaktivieren und speichern
     crontab -l > "$CRONSAVED_FILE" 2>/dev/null \
         && crontab -r \
-        && notify-send "🕓 Cronjobs gespeichert und deaktiviert." \
-        || notify-send "❌ Fehler beim Deaktivieren der Cronjobs."
+        && notify-send "󰁯 Cronjobs gespeichert und deaktiviert." \
+        || notify-send " Fehler beim Deaktivieren der Cronjobs."
 elif [ -f "$CRONSAVED_FILE" ]; then
     # Cronjobs sind inaktiv aber Backup existiert - wiederherstellen
     crontab - < "$CRONSAVED_FILE" \
-        && notify-send "🕓 Cronjobs wieder aktiviert." \
-        || notify-send "❌ Fehler beim Aktivieren der Cronjobs."
+        && notify-send "󰁯 Cronjobs wieder aktiviert." \
+        || notify-send " Fehler beim Aktivieren der Cronjobs."
 else
     # Keine aktiven Cronjobs und kein Backup
-    notify-send "⚠️ Keine Cronjobs gefunden und kein Backup vorhanden."
+    notify-send " Keine Cronjobs gefunden und kein Backup vorhanden."
 fi

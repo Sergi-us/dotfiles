@@ -49,6 +49,21 @@ vim.cmd([[
   autocmd BufWritePost ~/.local/src/dwmblocks/config.h !cd ~/.local/src/dwmblocks/; sudo make install && { killall -q dwmblocks;setsid -f dwmblocks }
 ]])
 
+-- ST auto-compile
+vim.cmd([[
+  autocmd BufWritePost ~/.local/src/st/config.h !cd ~/.config/src/st/; sudo make install
+]])
+
+-- DWM auto-compile (mit Neustart)
+vim.cmd([[
+  autocmd BufWritePost ~/.local/src/dwm/config.h !cd ~/.config/src/dwm/; sudo make install && { killall -q dwm; setsid -f dwm }
+]])
+
+-- DMENU auto-compile
+vim.cmd([[
+  autocmd BufWritePost ~/.local/src/dmenu/config.h !cd ~/.config/src/dmenu/; sudo make install
+]])
+
 -- aktualisiert shortcust nach dem ändern von bm-files und bm-dirs
 vim.cmd([[
   autocmd BufWritePost bm-files,bm-dirs !shortcuts

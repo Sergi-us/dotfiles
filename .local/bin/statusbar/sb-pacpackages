@@ -20,17 +20,5 @@ pacman -Qu | grep -Fcv "[ignored]" | sed "s/^0$//g"
 
 # Nur anzeigen wenn Updates verfügbar sind
 if [ "$updates" -gt 0 ]; then
-	# Verschiedene Möglichkeiten - teste welche funktioniert:
-
-	# Option 1: Nerd Font Symbol (funktioniert meist)
 	echo "󰏖 $updates X"
-
-	# Option 2: Falls Option 1 nicht klappt, probiere:
-	# echo "📦 $updates"
-
-	# Option 3: Einfaches ASCII-Symbol:
-	# echo "[A] $updates"
-
-	# Option 4: Hex-Darstellung (manchmal nötig):
-	# printf "\uE0A0 %s\n" "$updates"
 fi
