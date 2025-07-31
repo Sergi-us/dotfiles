@@ -2,6 +2,28 @@
 ## 2025-02-25 SARBS
 # TODO Vorschau für alben ergänzen... So wie für bilder und videos
 
+# Git-Status Check (NEU)
+if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    git_status=$(git status --porcelain "$1" 2>/dev/null | cut -c1-2)
+    if [ -n "$git_status" ]; then
+        case "$git_status" in
+            " M"|"MM")
+                echo -e "\033[33m[Git: Modified]\033[0m"
+                ;;
+            "??")
+                echo -e "\033[90m[Git: Untracked]\033[0m"
+                ;;
+            "A ")
+                echo -e "\033[32m[Git: Added]\033[0m"
+                ;;
+            "D ")
+                echo -e "\033[31m[Git: Deleted]\033[0m"
+                ;;
+        esac
+        echo "---"
+    fi
+fi
+
 # File preview handler for lf.
 
 set -C -f

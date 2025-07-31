@@ -22,16 +22,227 @@
 
 ## 2025-01-08   funktion für Bildkomprimierung hinzugefügt (bild-80-komprimieren) benötigt 'imagemagick' Trigger 'Pk'
 
-# ==== Grundlegende Einstellungen ====
-	set shellopts '-eu'     # Shell-Optionen: e=exit on error, u=error on undefined variables
-	set ifs "\n"            # Internal Field Separator auf Newline setzen
-	set scrolloff 10        # 10 Zeilen Abstand beim Scrollen zum Rand beibehalten
-	set icons               # Aktiviert die Anzeige von Icons
-	set period 1            # Aktualisierungsintervall in Sekunden
-	set hiddenfiles ".*:*.aux:*.log:*.bbl:*.bcf:*.blg:*.run.xml"
-	set cleaner '~/.config/lf/cleaner'
-	set previewer '~/.config/lf/scope'
-	set autoquit true       # Beendet lf automatisch beim Öffnen einer Datei
+# ==== Git Integration ====
+# Custom prompt mit Git-Info (mit alternativen Symbolen)
+cmd on-cd &{{
+    # Git branch und Status
+    if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+        branch=$(git branch --show-current 2>/dev/null)
+
+        # Hole Git-Status
+        status=$(git status --porcelain 2>/dev/null)
+
+        # Einfache Prüfung ob es Änderungen gibt
+        if [ -n "$status" ]; then
+            # Rot mit * wenn uncommitted changes
+            git_status=" \033[31m ${branch} \033[0m"
+        else
+            # Grün wenn alles sauber
+            git_status=" \033[32m ${branch} \033[0m"
+        fi
+    else
+        git_status=""
+    fi
+
+    # Update prompt
+    lf -remote "send $id set promptfmt \"\033[32;1m%u@%h\033[0m:\033[34;1m%d\033[0m$git_status\033[1m%f\033[0m\""
+}}
+
+# Git Status Befehl (ohne Nerd Fonts)
+cmd git-status ${{
+    clear
+    if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+        echo -e "\033[33m=== Git Repository Status ===\033[0m"
+        echo ""
+        echo -e "Branch: \033[36m$(git branch --show-current)\033[0m"
+
+        # Remote Status
+        remote=$(git remote -v | head -1 | awk '{print $2}')
+        [ -n "$remote" ] && echo -e "Remote: \033[34m$remote\033[0m"
+
+        # Letzter Commit
+        last_commit=$(git log -1 --pretty=format:"%h %s" 2>/dev/null)
+        [ -n "$last_commit" ] && echo -e "Letzter Commit: \033[35m$last_commit\033[0m"
+
+        echo ""
+        echo -e "\033[33mDateistatus:\033[0m"
+
+        # Status mit einfachen Symbolen
+        git status -s | while read -r line; do
+            status="${line:0:2}"
+            file="${line:3}"
+
+            case "$status" in
+                "??") echo -e "[?] \033[90m$file\033[0m";;      # Untracked
+                " M") echo -e "[M] \033[33m$file\033[0m";;      # Modified
+                "M ") echo -e "[+] \033[32m$file\033[0m";;      # Staged
+                "MM") echo -e "[±] \033[33m$file\033[0m";;      # Modified + Staged
+                "A ") echo -e "[A] \033[32m$file\033[0m";;      # Added
+                "D ") echo -e "[D] \033[31m$file\033[0m";;      # Deleted
+                "R ") echo -e "[R] \033[34m$file\033[0m";;      # Renamed
+                *) echo -e "    $line";;
+            esac
+        done
+
+        # Stash Info
+        stash_count=$(git stash list 2>/dev/null | wc -l)
+        [ "$stash_count" -gt 0 ] && echo -e "\nStashes: \033[33m$stash_count\033[0m"
+
+    else
+        echo "Kein Git-Repository"
+    fi
+    echo ""
+    read -p "Enter drücken zum Fortfahren..."
+}}
+
+# Git Log mit Graph
+cmd git-log ${{
+    clear
+    if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+        git log --graph --pretty=format:'%C(yellow)%h%C(reset) %C(cyan)%d%C(reset) %s %C(green)(%cr) %C(blue)<%an>%C(reset)' --abbrev-commit -20 | less -R
+    else
+        echo "Kein Git-Repository"
+        read -p "Enter drücken..."
+    fi
+}}
+
+# Git Diff für aktuelle Datei
+cmd git-diff ${{
+    if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+        git diff --color=always "$f" | less -R
+    else
+        echo "Kein Git-Repository"
+        read -p "Enter drücken..."
+    fi
+}}
+
+# Git Add mit Feedback
+cmd git-add ${{
+    if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+        if [ -n "$f" ]; then
+            git add "$f"
+            lf -remote "send $id echo \"[Git] Hinzugefügt: $(basename $f)\""
+            lf -remote "send $id reload"
+        else
+            echo "Keine Datei ausgewählt"
+            read -p "Enter drücken..."
+        fi
+    else
+        echo "Kein Git-Repository"
+        read -p "Enter drücken..."
+    fi
+}}
+
+# Git Reset mit Feedback
+cmd git-reset ${{
+    if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+        if [ -n "$f" ]; then
+            git reset HEAD "$f"
+            lf -remote "send $id echo \"[Git] Zurückgesetzt: $(basename $f)\""
+            lf -remote "send $id reload"
+        else
+            echo "Keine Datei ausgewählt"
+            read -p "Enter drücken..."
+        fi
+    else
+        echo "Kein Git-Repository"
+        read -p "Enter drücken..."
+    fi
+}}
+
+# Git Commit mit Editor
+cmd git-commit ${{
+    if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+        # Prüfe ob es staged changes gibt
+        if [ -n "$(git diff --cached --name-only)" ]; then
+            git commit
+            lf -remote "send $id reload"
+        else
+            echo "Keine Änderungen zum Committen (nichts staged)"
+            echo ""
+            echo "Nutze 'öa' um Dateien zu stagen"
+            read -p "Enter drücken..."
+        fi
+    else
+        echo "Kein Git-Repository"
+        read -p "Enter drücken..."
+    fi
+}}
+
+# Git Push mit Status
+cmd git-push ${{
+    if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+        echo "Pushe zu Remote..."
+        if git push 2>&1; then
+            lf -remote "send $id echo \"[Git] Erfolgreich gepusht\""
+        else
+            echo ""
+            echo "Push fehlgeschlagen. Möglicherweise musst du erst pullen."
+            read -p "Enter drücken..."
+        fi
+    else
+        echo "Kein Git-Repository"
+        read -p "Enter drücken..."
+    fi
+}}
+
+# Git Pull mit Status
+cmd git-pull ${{
+    if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+        echo "Pulle von Remote..."
+        if git pull 2>&1; then
+            lf -remote "send $id echo \"[Git] Erfolgreich gepullt\""
+            lf -remote "send $id reload"
+        else
+            echo ""
+            echo "Pull fehlgeschlagen"
+            read -p "Enter drücken..."
+        fi
+    else
+        echo "Kein Git-Repository"
+        read -p "Enter drücken..."
+    fi
+}}
+
+# Magit Integration
+cmd git-magit ${{
+    if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+        nvim -c MagitOnly
+    else
+        echo "Kein Git-Repository"
+        read -p "Enter drücken..."
+    fi
+}}
+
+# Git Add All (alle Änderungen)
+cmd git-add-all ${{
+    if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+        git add -A
+        lf -remote "send $id echo \"[Git] Alle Änderungen hinzugefügt\""
+        lf -remote "send $id reload"
+    else
+        echo "Kein Git-Repository"
+        read -p "Enter drücken..."
+    fi
+}}
+
+cmd git-add-interactive ${{
+    if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+        # Zeige alle untracked und modified files zur Auswahl
+        files=$(git status -s | grep -E "^\?\?| M" | cut -c4- | fzf -m --prompt="Dateien zum Stagen> ")
+        if [ -n "$files" ]; then
+            echo "$files" | while IFS= read -r file; do
+                git add "$file"
+                echo "Hinzugefügt: $file"
+            done
+            read -p "Enter drücken..."
+            lf -remote "send $id reload"
+        fi
+    else
+        echo "Kein Git-Repository"
+        read -p "Enter drücken..."
+    fi
+}}
 
 # === Hauptbefehle/Funktionen ===
 # Sync zum Dell - Mirror-Modus (löscht nicht vorhandene Dateien)
@@ -299,6 +510,29 @@ cmd Handy-Downloads ${{
 	done
 }}
 
+# Testversionen für die Taste o und O
+cmd mimeopen_default &{{
+    mimeopen "$f"
+}}
+
+cmd mimeopen_ask ${{
+    mimeopen --ask "$f"
+}}
+
+# Führe on-cd beim Start aus
+on-cd
+
+# === Grundlegende Einstellungen ===
+	set shellopts '-eu'     # Shell-Optionen: e=exit on error, u=error on undefined variables
+	set ifs "\n"            # Internal Field Separator auf Newline setzen
+	set scrolloff 10        # 10 Zeilen Abstand beim Scrollen zum Rand beibehalten
+	set icons               # Aktiviert die Anzeige von Icons
+	set period 1            # Aktualisierungsintervall in Sekunden
+	set hiddenfiles ".*:*.aux:*.log:*.bbl:*.bcf:*.blg:*.run.xml"
+	set cleaner '~/.config/lf/cleaner'
+	set previewer '~/.config/lf/scope'
+	set autoquit true       # Beendet lf automatisch beim Öffnen einer Datei
+
 # ===TASTENBELEGUNGEN ===
 # === s menu (Selektion) ===
 map sc clear
@@ -343,14 +577,6 @@ map <c-s> set hidden!       # <Strg+s> = Versteckte Dateien An/Aus-blenden
 map B bulkrename            # <B> = Startet die Massenumbenennung für mehrere ausgewählte Dateien.
 map b $setbg $f             # <b> = Setzt die ausgewähltes Bild als Hintergrund.
 
-# Testversionen für die Taste o und O
-cmd mimeopen_default &{{
-    mimeopen "$f"
-}}
-
-cmd mimeopen_ask ${{
-    mimeopen --ask "$f"
-}}
 
 
 # === Dateibearbeitung ===
@@ -383,6 +609,19 @@ map u $printf "%s" "$fx" | sed 's/.*\///' | xclip -selection clipboard	# u: Nur 
 # (Größer-als-Zeichen): Ähnlich wie der vorherige Befehl, aber für Piped (eine alternative YouTube-Frontend) URLs
 map <gt> $printf "%s" "$fx" | sed -E 's/^.+\[/https:\/\/piped.video\/watch?v=/' | sed -E 's/\]\..+//' | xclip -selection clipboard
 map <c-l> unselect          # <Strg+l> Hebt die Auswahl aller ausgewählten Dateien auf
+
+# === Git Befehle (g Menü) ===
+map ös git-status           # ös = Git Status (ausführlich)
+map öl git-log              # öl = Git Log mit Graph
+map öd git-diff             # öd = Git Diff für aktuelle Datei
+map öa git-add              # öa = Git Add aktuelle Datei
+map öA git-add-all          # öA = Git Add alle Änderungen
+map ör git-reset            # ör = Git Reset aktuelle Datei
+map öc git-commit           # öc = Git Commit
+map öp git-push             # öp = Git Push
+map öP git-pull             # öP = Git Pull
+map öm git-magit            # öm = Magit öffnen
+map öi git-add-interactive  # öi = Interaktives Git Add mit fzf
 
 # Lesezeichen einbinden
 source "~/.config/lf/shortcutrc"
