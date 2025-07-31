@@ -74,7 +74,7 @@ case $BLOCK_BUTTON in
        notify-send "$icon $name Modul" "\- <b>Exakter Preis: \$$(cat "$pricefile")</b>
 - M-󰍽 für Preisverlauf
 - L-󰍽 zum Aktualisieren
-- Zeigt 🔃 während der Aktualisierung
+- Zeigt  während der Aktualisierung
 - <b>Letzte Aktualisierung:
     $uptime</b>" ;;
     4) ;;

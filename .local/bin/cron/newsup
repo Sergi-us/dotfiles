@@ -4,7 +4,7 @@
 # Als Cron-Job einrichten, um nach neuen RSS-Einträgen für Newsraft zu suchen.
 # Wenn Newsraft geöffnet ist, sendet es den "R"-Tastendruck zum Aktualisieren.
 
-/usr/bin/notify-send "󰑬 Aktualisiere RSS-Feeds..."
+notify-send "󰑬 Aktualisiere RSS-Feeds..."
 
 # Prüfe ob newsraft läuft und sende "R" für reload-all
 pgrep -f newsraft$ && /usr/bin/xdotool key --window "$(/usr/bin/xdotool search --name "^newsraft$")" R && exit
@@ -12,9 +12,8 @@ pgrep -f newsraft$ && /usr/bin/xdotool key --window "$(/usr/bin/xdotool search -
 echo 󰁪 > /tmp/newsupdate
 pkill -RTMIN+8 "${STATUSBAR:-dwmblocks}"
 
-# Newsraft verwendet -e reload-all für das Neuladen aller Feeds
-/usr/bin/newsraft -e reload-all
+newsraft -e reload-all
 
 rm -f /tmp/newsupdate
 pkill -RTMIN+8 "${STATUSBAR:-dwmblocks}"
-/usr/bin/notify-send "󰑬 RSS-Feed-Aktualisierung abgeschlossen."
+notify-send "󰑬 RSS-Feed-Aktualisierung abgeschlossen."
