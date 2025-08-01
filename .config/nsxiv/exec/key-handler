@@ -4,14 +4,14 @@ do
         case "$1" in
         "w") setbg "$file" & ;;
         "c")
-		[ -z "$destdir" ] && destdir="$(sed "s/#.*$//;/^\s*$/d" ${XDG_CONFIG_HOME:-$HOME/.config}/shell/bm-dirs | awk '{print $2}' | dmenu -l 20 -i -p "Copy file(s) to where?" | sed "s|~|$HOME|g")"
-		[ ! -d "$destdir" ] && notify-send "$destdir is not a directory, cancelled." && exit
-		cp "$file" "$destdir" && notify-send -i "$(readlink -f "$file")" "$file copied to $destdir." &
+            [ -z "$destdir" ] && destdir="$(sed "s/#.*$//;/^\s*$/d" ${XDG_CONFIG_HOME:-$HOME/.config}/shell/bm-dirs | awk '{print $2}' | dmenu -l 20 -i -p "Kopiere Datei(en) wohin?" | sed "s|~|$HOME|g")"
+		[ ! -d "$destdir" ] && notify-send "$destdir ist kein Verzeichniss, abbruch." && exit
+		cp "$file" "$destdir" && notify-send -i "$(readlink -f "$file")" "$file verschoben nach $destdir." &
 		;;
         "m")
-		[ -z "$destdir" ] && destdir="$(sed "s/#.*$//;/^\s*$/d" ${XDG_CONFIG_HOME:-$HOME/.config}/shell/bm-dirs | awk '{print $2}' | dmenu -l 20 -i -p "Move file(s) to where?" | sed "s|~|$HOME|g")"
-		[ ! -d "$destdir" ] && notify-send "$destdir is not a directory, cancelled." && exit
-		mv "$file" "$destdir" && notify-send -i "$(readlink -f "$file")" "$file moved to $destdir." &
+		[ -z "$destdir" ] && destdir="$(sed "s/#.*$//;/^\s*$/d" ${XDG_CONFIG_HOME:-$HOME/.config}/shell/bm-dirs | awk '{print $2}' | dmenu -l 20 -i -p "Verschiebe Datei(en) wohin?" | sed "s|~|$HOME|g")"
+		[ ! -d "$destdir" ] && notify-send "$destdir ist kein Verzeichniss, abbruch." && exit
+		mv "$file" "$destdir" && notify-send -i "$(readlink -f "$file")" "$file verschoben nach $destdir." &
 		;;
 	"r")
 		convert -rotate 90 "$file" "$file" ;;
@@ -21,13 +21,13 @@ do
 		convert -flop "$file" "$file" ;;
 	"y")
 		printf "%s" "$file" | tr -d '\n' | xclip -selection clipboard &&
-		notify-send "$file copied to clipboard" & ;;
+		notify-send "$file in Zwischenablage kopiert" & ;;
 	"Y")
 		readlink -f "$file" | tr -d '\n' | xclip -selection clipboard &&
-			notify-send "$(readlink -f "$file") copied to clipboard" & ;;
+			notify-send "$(readlink -f "$file") in Zwischenablage kopiert" & ;;
 	"d")
-		[ "$(printf "No\\nYes" | dmenu -i -p "Really delete $file?")" = "Yes" ] && rm "$file" && notify-send "$file deleted." ;;
+		[ "$(printf "Nein\\nJa" | dmenu -i -p "$file wirklich löschen?")" = "Ja" ] && rm "$file" && notify-send "$file gelöscht." ;;
 	"g")	ifinstalled gimp && setsid -f gimp "$file" ;;
-	"i")	notify-send "File information" "$(mediainfo "$file" | sed "s/[ ]\+:/:/g;s/: /: <b>/;s/$/<\/b>/" | grep "<b>")" ;;
+	"i")	notify-send "Information" "$(mediainfo "$file" | sed "s/[ ]\+:/:/g;s/: /: <b>/;s/$/<\/b>/" | grep "<b>")" ;;
         esac
 done
