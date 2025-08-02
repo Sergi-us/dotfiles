@@ -7,22 +7,32 @@ https://www.youtube.com/feeds/videos.xml?channel_id=UC2TXq_t06Hjdr2g_KdKpHQg "~m
 @"=== Mastodon ==="
 https://openrss.org/mastodon.social/@sergius_m
 @"=== WEBSEITEN ==="
-https://suckless.org/atom.xml
-https://grapheneos.org/releases.atom
-https://www.cccs.de/atom.xml
-https://nginx.org/index.rss
-https://vkc.sh/feed/
+https://suckless.org/atom.xml       "Suckless"
+https://grapheneos.org/releases.atom    "GrapheneOS"
+https://www.cccs.de/atom.xml    "CCC Stuttgart"
+https://nginx.org/index.rss     "Nginx"
+https://vkc.sh/feed/    "Veronica Explain"
 https://artixlinux.org/feed.php "Artix"
 https://www.archlinux.org/feeds/news/ "Arch"
 https://delta.chat/feed.xml "Delta-Chat News"
 https://mailcow.email/de/index.xml "MailCou"
-https://www.fsf.org/static/fsforg/rss/news.xml
-https://neomutt.org/feed.xml
+https://www.fsf.org/static/fsforg/rss/news.xml  "Free Software Foundation"
+https://neomutt.org/feed.xml        "NeoMutt"
 @"=== GitHub ==="
-https://github.com/Sergi-us/SARBS/commits/main.atom                    "SARBS"
-https://github.com/Sergi-us/dotfiles/commits/main.atom                    "SARBS dotfiles"
-https://github.com/LukeSmithxyz/voidrice/commits/master.atom                "LARBS dotfiles"
-https://github.com/LukeSmithxyz/LARBS/commits/master.atom
-https://github.com/BreadOnPenguins/scripts/commits/master.atom
+https://github.com/Sergi-us/SARBS/commits/main.atom                 "SARBS"
+https://github.com/Sergi-us/dotfiles/commits/main.atom              "SARBS dotfiles"
+https://github.com/Sergi-us/dwm/commits/main.atom                   "DWM"
+https://github.com/Sergi-us/dmenu/commits/main.atom                 "dmenu"
+https://github.com/NikitaIvanovV/dmenu-translate/commits/master.atom "Dmenu Translate"
+https://github.com/Sergi-us/dwmblocks/commits/main.atom             "dwmblocks"
+https://github.com/Sergi-us/st/commits/main.atom                    "ST"
+https://github.com/Sergi-us/surf/commits/main.atom                  "Surf"
+https://github.com/Sergi-us/tabbed/commits/main.atom                "tabbed für surf"
+https://github.com/danihek/hellwal/commits/main.atom                "Hellwal"
+https://github.com/Sergi-us/mutt-wizzad-de/commits/main.atom        "Mutt Wizzard DE"
+https://github.com/Sergi-us/emailwiz/commits/main.atom              "Emailwizz"
+https://github.com/BreadOnPenguins/scripts/commits/master.atom      "Bread Skripte"
+https://github.com/zap-zsh/zap/commits/master.atom                  "zap ZSH Plugin manager"
+https://github.com/angristan/wireguard-install/commits/master.atom  "Wireguard Installationsskript"
 @"=== ODYSEE ==="
-https://odysee.com/$/rss/@Luke/70                                               "lukesmith"
+https://odysee.com/$/rss/@Luke/70                                   "lukesmith"

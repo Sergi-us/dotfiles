@@ -245,19 +245,6 @@ cmd git-add-interactive ${{
 }}
 
 # === Hauptbefehle/Funktionen ===
-# Sync zum Dell - Mirror-Modus (löscht nicht vorhandene Dateien)
-cmd sync-to-dell ${{
-	clear; tput cup $(($(tput lines)/3)); tput bold
-	set -f
-	clear; echo "Sync zu Dell..."
-    for item in $fx; do
-        echo "→ $(basename "$item")"
-        rsync -avzP --delete --relative "$item" dell:~/
-    done
-    echo "Fertig!"
-    read dummy
-}}
-
 cmd convert_yt ${{
     clear; tput cup $(($(tput lines)/3)); tput bold
     set -f
@@ -430,7 +417,7 @@ cmd moveto ${{
 	for x in $fx; do
 		eval mv -iv \"$x\" \"$dest\"
 	done &&
-	notify-send "🚚 Datei(en) verschoben." "Datei(en) wurden nach $dest verschoben."
+	notify-send "  Datei(en) verschoben." "Datei(en) wurden nach $dest verschoben."
 }}
 
 # Bilder in der Größe reduzieren und mit Präfix speichern
@@ -444,10 +431,10 @@ cmd bild-80-komprimieren ${{
         if magick "$x" -quality 80 "$output"; then
             notify-send " Erfolgreich" "Bild $x wurde als $output gespeichert."
         else
-            notify-send "❌Fehler" "Bild $x konnte nicht verarbeitet werden."
+            notify-send " Fehler" "Bild $x konnte nicht verarbeitet werden."
         fi
     done
-    notify-send "✅ Verarbeitung abgeschlossen." "Alle ausgewählten Bilder wurden bearbeitet."
+    notify-send " Verarbeitung abgeschlossen." "Alle ausgewählten Bilder wurden bearbeitet."
 }}
 
 # Dateien kopieren mit fzf-Zielauswahl
@@ -510,10 +497,6 @@ cmd Handy-Downloads ${{
 	done
 }}
 
-# Testversionen für die Taste o und O
-cmd mimeopen_default &{{mimeopen "$f"}}
-cmd mimeopen_ask ${{mimeopen --ask "$f"}}
-
 # Führe on-cd beim Start aus
 on-cd
 
@@ -532,9 +515,6 @@ on-cd
 # === s menu (Selektion) ===
 map sc clear
 # und weitere Sortierfunktionen
-
-# === Sync funktionen für ssh verbundene Rechner ===
-map Sd sync-to-dell
 
 # === A Menu für Kopieraktionen mit ADB-Push auf ein Android Handy (Entwickleroptionen und ADB) ===
 map Ad Handy-Downloads
@@ -578,8 +558,6 @@ map X !$f                   # <X> Führt Datei als Befehl aus und wartet auf Bee
 map T $nsxiv -t "$(pwd)"    # <T> öffnet den Thumbnailmodus für Bilder
 map o &mimeopen "$f"        # <o> Öffnet die Datei mit dem Standard-Programm.
 map O $mimeopen --ask "$f"  # <O> Fragt, mit welchem Programm die Datei geöffnet werden soll.
-## map o mimeopen_default   # <o> Öffnet die Datei mit dem Standard-Programm in einem neuen Terminal
-## map O mimeopen_ask       # <O> Fragt, mit welchem Programm die Datei geöffnet werden soll
 map V push :!nvim<space>    # <V> Öffnet vim im aktuellen Verzeichnis
 map W $setsid -f $TERMINAL >/dev/null 2>&1	# W = Öffnet ein neues Terminal-Fenster im aktuellen Verzeichnis
     # <Strg+y> Ausführungsrechte für ausgewählte Dateien entziehen
