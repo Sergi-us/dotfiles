@@ -655,7 +655,7 @@
  nf fa cc_amazon_pay
  nf fa cc_apple_pay
  nf fa cc_diners_club
- nf fa check_circle_o
+ nf fa check_circle_o sarbs
  nf fa check_square_o
  nf fa check_to_slot
  nf fa chevron_circle_down
@@ -7031,7 +7031,7 @@
  nf oct file_diff
  nf oct file_directory
  nf oct file_media
- nf oct file_moved
+ nf oct file_moved sarbs
  nf oct file_removed
  nf oct file_submodule
  nf oct file_symlink_file
