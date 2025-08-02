@@ -8,16 +8,16 @@ if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
     if [ -n "$git_status" ]; then
         case "$git_status" in
             " M"|"MM")
-                echo -e "\033[33m[Git: Modified]\033[0m"
+                echo -e "\033[33m[󰊢 Modified]\033[0m"
                 ;;
             "??")
-                echo -e "\033[90m[Git: Untracked]\033[0m"
+                echo -e "\033[90m[󰊢 Untracked]\033[0m"
                 ;;
             "A ")
-                echo -e "\033[32m[Git: Added]\033[0m"
+                echo -e "\033[32m[󰊢 Added]\033[0m"
                 ;;
             "D ")
-                echo -e "\033[31m[Git: Deleted]\033[0m"
+                echo -e "\033[31m[󰊢 Deleted]\033[0m"
                 ;;
         esac
         echo "---"

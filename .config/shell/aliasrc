@@ -1,5 +1,5 @@
 #!/bin/sh
-# SARBS 17.12.2024
+## 2025-08-02   SARBS
 
 # === Standard-Programm Überschreibungen ===
 
@@ -107,3 +107,6 @@ alias talk='env \
   MOZ_DISABLE_CONTENT_SANDBOX=0 \
   MOZ_WEBRTC_AUTO_GAIN_CONTROL=0 \
   firefox --new-window --kiosk "https://meet.jit.si/linux-talk-3-RUNDE" 2>/dev/null'
+
+# rsync promt um daten von usenet zu verschieben und verzeichnisse zu löschen
+alias usenet="rsync -av --chown=sergi:wheel --chmod=Du=rwx,Dg=rwx,Do= --chmod=Fu=rw,Fg=rw,Fo= /var/lib/sabnzbd/Downloads/complete/ /home/sergi/Downloads/.usenext/  && sudo rm -r /var/lib/sabnzbd/Downloads/complete"
