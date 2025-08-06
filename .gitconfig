@@ -1,0 +1,7 @@
+[core]
+    quotePath = false
+    precomposeUnicode = true
+[user]
+    name = "Sergius"
+    email = "anderer-name@posteo.de"
+# weitere Konfigurationen...
