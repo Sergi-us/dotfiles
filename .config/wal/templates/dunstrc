@@ -4,16 +4,16 @@
     follow = keyboard
 
     # Größe und Position
-    width = 500
+    width = 300
     height = (0, 300)
-    offset = (15, 60)
+    offset = (15, 25)
     notification_limit = 20
 
     # Aussehen
-    font = JetBrains Mono Nerd Font 13
+    font = JetBrains Mono Nerd Font 8
     line_height = 4
     frame_width = 2
-    corner_radius = 10
+    corner_radius = 8
     separator_height = 2
     separator_color = frame
 

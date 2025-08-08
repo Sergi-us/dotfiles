@@ -18,7 +18,7 @@ write() {
   notification=$(echo \"$multiline\") ;}
 
 sel() {
-  selection=$(tac "$histfile" | dmenu  -b -l 15 -i -fn "JetBrainsMono NF ExtraLight-18" -p "Zwischenablage:")
+  selection=$(tac "$histfile" | dmenu  -b -l 15 -i -p "Zwischenablage:")
   [ -n "$selection" ] && echo "$selection" | sed "s/$placeholder/\n/g" | xclip -i -selection clipboard && notification="Copied to clipboard!" ;}
 
 case "$1" in

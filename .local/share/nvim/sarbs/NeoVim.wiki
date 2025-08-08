@@ -8,6 +8,17 @@ https://www.nerdbude.com/m_vim.html
 == Vim-Magic ==
 === EX-Kommandos ===
 * `Substitude`
+
+* Löscht alle Zeilen die begrif1, begriff2 usw in der zeile enthalten
+{{{class="brush: Vim"
+:g/begriff1.*begriff2/d
+}}}
+
+* Doppelte einträge entfernen, eins behalten
+{{{class="brush: Vim"
+%!awk '{lines[NR] = $0; content[$0] = NR} END {for (i = 1; i <= NR; i++) if (content[lines[i]] == i) print lines[i]}'
+}}}
+
 * Wort-Ersetzung Tastenkonbi `Shift+S`
 {{{class="brush: bash"
 %s/\<altes-wort\>/neues-wort/g
