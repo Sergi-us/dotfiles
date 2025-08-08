@@ -51,17 +51,17 @@ vim.cmd([[
 
 -- ST auto-compile
 vim.cmd([[
-  autocmd BufWritePost ~/.local/src/st/config.h !cd ~/.config/src/st/; sudo make install
+  autocmd BufWritePost ~/.local/src/st/config.h !cd ~/.local/src/st/; sudo make install
 ]])
 
 -- DWM auto-compile (mit Neustart)
 vim.cmd([[
-  autocmd BufWritePost ~/.local/src/dwm/config.h !cd ~/.config/src/dwm/; sudo make install
-])
+  autocmd BufWritePost ~/.local/src/dwm/config.h !cd ~/.local/src/dwm/; sudo make install
+]])
 
 -- DMENU auto-compile
 vim.cmd([[
-  autocmd BufWritePost ~/.local/src/dmenu/config.h !cd ~/.config/src/dmenu/; sudo make install
+  autocmd BufWritePost ~/.local/src/dmenu/config.h !cd ~/.local/src/dmenu/; sudo make install
 ]])
 
 -- aktualisiert shortcust nach dem ändern von bm-files und bm-dirs

@@ -8,10 +8,6 @@
 
 set -e
 
-# Farben für dmenu (optional, falls dein dmenu das unterstützt)
-DMENU_NORMAL="#ebdbb2"
-DMENU_SELECT="#458588"
-
 # Funktion für kritische Benachrichtigungen
 notify_critical() {
     notify-send -u critical "$@"

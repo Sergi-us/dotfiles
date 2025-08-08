@@ -1,58 +1,57 @@
 #!/bin/sh
-## 2025-01-09 SARBS
+## 2025-08-07   SARBS
 # X11-spezifische Umgebungsvariablen und Konfigurationen.
 # Wirkt nur in grafischen X11-Sitzungen.
 # Spezifisch für grafische Programme unter X11.
 
 # === DPI Einstellungen ===
-xrandr --dpi 122    # 2560x1440
-# xrandr --dpi 96     # 1920x1080
+xrandr --dpi 192        # 2560x1440 bei 14"
+# xrandr --dpi 162
+# xrandr --dpi 122
+# xrandr --dpi 96
+
+# HiDPI Settings
+# export QT_ENABLE_HIGHDPI_SCALING=1
+# export QT_AUTO_SCREEN_SCALE_FACTOR=1
+# export QT_SCALE_FACTOR_ROUNDING_POLICY=PassThrough
+# export QT_SCALE_FACTOR=1.5
+# export QT_AUTO_SCREEN_SET_FACTOR=0
+# export QT_FONT_DPI=122
+# export ELM_SCALE=1.5
 
 # === GDK Low Level Einstellungen ===
-# export GDK_SCALE=2							# Für GTK-Anwendungen
-# export GDK_DPI_SCALE=0.5					# Korrigiert die Schriftgrößen bei GDK_SCALE=2
+# export GDK_SCALE=1                                  # Für GTK-Anwendungen
+# export GDK_DPI_SCALE=0.5                            # Korrigiert die Schriftgrößen bei GDK_SCALE=2
 
 # === Themes und GUI ===
 export GTK_THEME=Breeze-Dark
-export GTK2_RC_FILES="$XDG_CONFIG_HOME/gtk-2.0/gtkrc-2.0"		# GTK2-Konfigurationsdatei
-# export GTK2_RC_FILES="$XDG_CONFIG_HOME/gtk-2.0/gtkrc-3.0"		# GTK3-Konfigurationsdatei
-# export GTK_SCALE=2                            # Skalierung für GTK Anwendungen
-# export GDK_SCALE=2                            # Zusätzlich für bessere Konsistenz
-# export GDK_DPI_SCALE=0.5                      # Verhindert zu große Schriften
+# export GTK2_RC_FILES="$XDG_CONFIG_HOME/gtk-2.0/gtkrc-2.0"       # GTK3-Konfigurationsdatei
+export GTK3_RC_FILES="$XDG_CONFIG_HOME/gtk-3.0/settings.ini"    # GTK3-Konfigurationsdatei
+# export GTK_SCALE=2       #(redundant)                         # Skalierung für GTK Anwendungen
 
 # Qt Settings - nur eine Platform Theme Variable pro Qt-Version!
 export QT_QPA_PLATFORMTHEME=qt6ct               # für Qt6-Apps
 export QT5_QPA_PLATFORMTHEME=qt5ct              # für Qt5-Apps (falls noch welche da sind)
 export QT_STYLE_OVERRIDE=kvantum                # Stilüberschreibung für Kvantum
 
-# HiDPI Settings
-export QT_ENABLE_HIGHDPI_SCALING=1
-export QT_AUTO_SCREEN_SCALE_FACTOR=1
-export QT_SCALE_FACTOR_ROUNDING_POLICY=PassThrough
-# export QT_SCALE_FACTOR=1.5						# 1.5 Für Qt-Anwendungen
-# export QT_AUTO_SCREEN_SET_FACTOR=0
-# export QT_FONT_DPI=122
-# export ELM_SCALE=1.5
-
-# === Bildschirm (kann mit Surep+Löschen beinflusst werden) ===
-xset s off							# Bildschirmschoner deaktivieren
-xset -dpms							# Energiesparmodus deaktivieren
-xset s noblank						# Kein automatisches Bildschirm-Blanking
+# === Bildschirm (kann mit MOD+Löschen beinflusst werden) ===
+xset s off          # Bildschirmschoner deaktivieren
+xset -dpms          # Energiesparmodus deaktivieren
+xset s noblank      # Kein automatisches Bildschirm-Blanking
+setbg &             # Setzt den Hintergrund mit dem `setbg` Skript
 
 # === Verhalten von Eingabegeräten ===
 # Aktiviert Natural Scrolling (Mac-like)
 # xinput set-prop 10 "libinput Natural Scrolling Enabled" 1
-# xbanish &									# Hide mouse when typing
+xbanish &           # Mauszeiger beim Tippen ausblenden
 
-# Setzt den Hintergrund mit dem `setbg` Skript
-setbg &
 
 # Lädt Xresources Farben/Einstellungen beim Start
 # TODO Trennen von Skalierung und Farben
 # wenn xrdb aktiviert, dann "~/.config/x11/xresources" beachten
 # xrdb ${XDG_CONFIG_HOME:-$HOME/.config}/x11/xresources & xrdbpid=$!
 
-# === für pamgnupg ===
+# === pamgnupg ===
 export GPG_TTY=$(tty)
 export SSH_AUTH_SOCK=$(gpgconf --list-dirs agent-ssh-socket)
 gpg-connect-agent updatestartuptty /bye >/dev/null
@@ -64,5 +63,5 @@ for program in $autostart; do
 	pidof -sx "$program" || "$program" &
 done >/dev/null 2>&1
 
-# Stellt sicher, dass xrdb fertig ist, bevor der Window Manager / Desktop Environment gestartet wird
+# Stellt sicher, dass xrdb fertig ist, bevor DWM gestartet wird
 [ -n "$xrdbpid" ] && wait "$xrdbpid"

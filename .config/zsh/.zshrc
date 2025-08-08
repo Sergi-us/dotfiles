@@ -78,8 +78,28 @@ setopt interactive_comments
 HISTSIZE=10000000
 SAVEHIST=10000000
 HISTFILE="${XDG_CONFIG_HOME:-$HOME/}/zsh/history"
-setopt HIST_IGNORE_SPACE
-setopt inc_append_history
+setopt HIST_IGNORE_ALL_DUPS     # Alle Duplikate ignorieren
+setopt HIST_SAVE_NO_DUPS        # Keine Duplikate speichern
+setopt HIST_IGNORE_SPACE        # Befehle mit führendem Leerzeichen ignorieren
+setopt inc_append_history       # Sofort schreiben
+HISTORY_IGNORE="(man *|ls|ls *|cd|cd *|ytt|ytt *|yt|yt *|tomb|tomb *|pwd|exit|clear|history|history *)"
+
+##   zshaddhistory() {
+##       local line=${1%%$'\n'}
+##       local cmd=${line%% *}
+##
+##       # Diese Befehle nicht speichern
+##       [[ $cmd == "man" ]] && return 1
+##       [[ $cmd == "ls" ]] && return 1
+##       [[ $cmd == "cd" ]] && return 1
+##       [[ $cmd == "pwd" ]] && return 1
+##       [[ $cmd == "clear" ]] && return 1
+##       [[ $cmd == "tomb" ]] && return 1
+##       [[ $cmd == "yt" ]] && return 1
+##       [[ $cmd == "ytt" ]] && return 1
+##
+##       return 0
+##   }
 
 # Alias und Verknüpfungen laden, falls vorhanden
 [ -f "${XDG_CONFIG_HOME:-$HOME/.config}/shell/shortcutrc" ] && source "${XDG_CONFIG_HOME:-$HOME/.config}/shell/shortcutrc"
