@@ -1,0 +1,16 @@
+#!/bin/sh
+
+# Berechne DPI für beliebige Displays
+echo "Gib Breite in Pixel ein:"; read px_w
+echo "Gib Höhe in Pixel ein:"; read px_h
+echo "Gib Diagonale in Zoll ein:"; read diag
+
+# Berechnung
+w_inch=$(echo "scale=2; $diag * 16 / sqrt(337)" | bc)
+h_inch=$(echo "scale=2; $diag * 9 / sqrt(337)" | bc)
+dpi_h=$(echo "scale=0; $px_w / $w_inch" | bc)
+dpi_v=$(echo "scale=0; $px_h / $h_inch" | bc)
+
+echo "Physische Größe: ${w_inch}\" × ${h_inch}\""
+echo "DPI: $dpi_h (horizontal) × $dpi_v (vertikal)"
+echo "Empfohlene Werte: 96, 144, 168, 192"
