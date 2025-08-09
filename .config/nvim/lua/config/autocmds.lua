@@ -75,87 +75,25 @@ vim.cmd([[
 ]])
 
 -- DPI Synchronisation zwischen xprofile und GTK3 settings.ini
--- TODO TESTVERSION
-local dpi_sync_group = vim.api.nvim_create_augroup("DPISync", { clear = true })
-
--- Funktion zum Updaten der GTK3 settings.ini
-local function update_gtk3_dpi(dpi_value)
-    local gtk3_settings = vim.fn.expand("~/.config/gtk-3.0/settings.ini")
-
-    -- Prüfe ob die Datei existiert
-    if vim.fn.filereadable(gtk3_settings) == 0 then
-        vim.notify("GTK3 settings.ini nicht gefunden!", vim.log.levels.WARN)
-        return
-    end
-
-    -- Berechne den GTK3 DPI Wert (DPI * 1024)
-    local gtk_dpi = dpi_value * 1024
-
-    -- Lese die Datei
-    local lines = vim.fn.readfile(gtk3_settings)
-    local updated = false
-
-    -- Suche und ersetze die gtk-xft-dpi Zeile
-    for i, line in ipairs(lines) do
-        if line:match("^gtk%-xft%-dpi=") then
-            lines[i] = string.format("gtk-xft-dpi=%d  # Das ist %d * 1024 (GTK3's komische DPI-Berechnung)",
-                                    gtk_dpi, dpi_value)
-            updated = true
-            break
-        end
-    end
-
-    -- Falls die Zeile nicht existiert, füge sie nach [Settings] hinzu
-    if not updated then
-        for i, line in ipairs(lines) do
-            if line:match("^%[Settings%]") then
-                table.insert(lines, i + 1, string.format("gtk-xft-dpi=%d  # Das ist %d * 1024 (GTK3's komische DPI-Berechnung)",
-                                                        gtk_dpi, dpi_value))
-                updated = true
-                break
-            end
-        end
-    end
-
-    -- Schreibe die Datei zurück
-    if updated then
-        vim.fn.writefile(lines, gtk3_settings)
-        vim.notify(string.format("GTK3 DPI updated: %d (xrandr) → %d (gtk)", dpi_value, gtk_dpi), vim.log.levels.INFO)
-    end
-end
-
--- Autocommand für xprofile Änderungen
-vim.api.nvim_create_autocmd({"BufWritePost"}, {
-    group = dpi_sync_group,
-    pattern = {"**/x11/xprofile", "**/.xprofile"},
+-- Berechnet automatisch gtk-xft-dpi = xrandr_dpi * 1024
+vim.api.nvim_create_autocmd("BufWritePost", {
+    -- Nur die aktiven Config-Dateien, nicht die in Dotfiles
+    pattern = {
+        vim.fn.expand("~/.xprofile"),
+        vim.fn.expand("~/.config/x11/xprofile"),
+    },
     callback = function()
-        local filename = vim.fn.expand("%:p")
-        local lines = vim.fn.readfile(filename)
+        -- Extrahiere DPI-Wert aus xrandr --dpi XXX Zeile
+        local dpi = tonumber(vim.fn.system("grep 'xrandr --dpi' " .. vim.fn.expand("%:p") .. " | grep -o '[0-9]*'"))
 
-        -- Suche nach der xrandr --dpi Zeile
-        for _, line in ipairs(lines) do
-            -- Matche verschiedene Formate: "xrandr --dpi 192" oder "xrandr --dpi=192"
-            local dpi = line:match("^%s*xrandr%s+%-%-dpi%s+(%d+)")
-            if not dpi then
-                dpi = line:match("^%s*xrandr%s+%-%-dpi=(%d+)")
-            end
-
-            if dpi then
-                dpi = tonumber(dpi)
-                if dpi and dpi > 0 and dpi < 1000 then  -- Sanity check
-                    update_gtk3_dpi(dpi)
-
-                    -- Optional: Zeige Info über die Änderung
-                    vim.defer_fn(function()
-                        vim.notify(string.format(
-                            "DPI Sync: xprofile (%d) → GTK3 settings.ini (%d)",
-                            dpi, dpi * 1024
-                        ), vim.log.levels.INFO)
-                    end, 100)
-                end
-                break
-            end
+        -- Nur weitermachen wenn gültiger DPI-Wert gefunden
+        if dpi and dpi > 0 then
+            -- Update GTK3 settings.ini mit berechnetem Wert (DPI * 1024) + Kommentar
+            vim.fn.system(string.format(
+                "sed -i 's/^gtk-xft-dpi=.*/gtk-xft-dpi=%d  # Auto-generiert: %d * 1024 (xprofile DPI)/' ~/.config/gtk-3.0/settings.ini",
+                dpi * 1024, dpi
+            ))
+            vim.notify("DPI synced: " .. dpi .. " → GTK3: " .. (dpi * 1024))
         end
-    end,
-    desc = "Syncronisiere DPI von xprofile to GTK3 settings.ini"
+    end
 })

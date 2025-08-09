@@ -6,12 +6,12 @@
 
 # === DPI Einstellungen ===
 # hier einen der Werte eintragen, je größer der DPI wert desto kleiner die Schrift
-# 96 122 162 192
-xrandr --dpi 192
-
-# xrandr --dpi 162
-# xrandr --dpi 122
-# xrandr --dpi 96
+# Praktische DPI-Optionen:
+#   96  = 1.0× (Standard, alles winzig)
+#   144 = 1.5× (gut lesbar, fractional scaling)
+#   168 = 1.75× (größer, manche Apps haben Probleme)
+#   192 = 2.0× (integer scaling, beste Kompatibilität)
+xrandr --dpi 96
 
 # HiDPI Settings
 # export QT_ENABLE_HIGHDPI_SCALING=1
