@@ -5,7 +5,10 @@
 # Spezifisch für grafische Programme unter X11.
 
 # === DPI Einstellungen ===
-xrandr --dpi 192        # 2560x1440 bei 14"
+# hier einen der Werte eintragen, je größer der DPI wert desto kleiner die Schrift
+# 96 122 162 192
+xrandr --dpi 192
+
 # xrandr --dpi 162
 # xrandr --dpi 122
 # xrandr --dpi 96
