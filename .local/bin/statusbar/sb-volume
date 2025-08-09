@@ -39,7 +39,7 @@ case $BLOCK_BUTTON in
 - L 󰍽 Stumm
 - M 󰍽 Pulsmixer
 - 󱕒 Lautstärke ändern
-- HIDE_PERCENTAGE=$HIDE_PERCENTAGE im Skript ändern um Prozentanzeige zu verstecken" ;;
+" ;;
     4) wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%+; pkill -RTMIN+21 "${STATUSBAR:-dwmblocks}" ;;
     5) wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-; pkill -RTMIN+21 "${STATUSBAR:-dwmblocks}" ;;
     6) setsid -f "$TERMINAL" -e "$EDITOR" "$0" ;;

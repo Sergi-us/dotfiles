@@ -3,4 +3,4 @@
 # Dieses Skript ist die SUDO_ASKPASS-Variable, was bedeutet, dass es als
 # Passwortabfrage verwendet wird, wenn nötig.
 
-dmenu -fn Monospace-20 -P -p "$1" <&- && echo
+dmenu -fn Monospace-16 -P -p "$1" <&- && echo
