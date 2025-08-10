@@ -53,9 +53,17 @@ Die Dotfiles werden automatisch mit dem [SARBS-Installationsskript](https://gith
 Für manuelle Updates oder Installation auf bereits bestehenden Systemen:
 
 ```bash
-git clone https://github.com/Sergi-us/dotfiles.git ~/.dotfiles
-cd ~/.dotfiles
+cd ~/.local/src
+git clone https://github.com/Sergi-us/dotfiles.git
+cd ~/dotfiles
 ./dotfiles-home  # erstellt Hardlinks zu $HOME (ich nutze kein Stow)
+```
+Für Updates (ignoriert deine Änderungen) wenn du mit Git nicht vertraut bist)
+```bash
+cd ~/.local/src/dotfiles
+git pull --force
+cd dotfiles
+dotfiles-home
 ```
 
 Das `dotfiles-home` Skript erstellt Hardlinks der Konfigurationsdateien in's Home-Verzeichnis und überschreibt die bestehende Konfigurationsdateien.

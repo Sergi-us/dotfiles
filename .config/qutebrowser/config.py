@@ -18,18 +18,18 @@ c.editor.command = ['st', '-e', 'nvim', '{}']
 # ================================================================================
 
 # Schriftgrößen für HiDPI-Display
-c.fonts.default_size = '14pt'
-c.fonts.tabs.selected = '14pt default_family'
-c.fonts.tabs.unselected = '12pt default_family'
+c.fonts.default_size = '8pt'
+c.fonts.tabs.selected = '8pt default_family'
+c.fonts.tabs.unselected = '10pt default_family'
 
 # Allgemeine UI-Schriftgröße
-c.fonts.statusbar = '14pt default_family'
-c.fonts.downloads = '14pt default_family'
-c.fonts.prompts = '14pt default_family'
-c.fonts.hints = 'bold 14pt default_family'
+c.fonts.statusbar = '8pt default_family'
+c.fonts.downloads = '8pt default_family'
+c.fonts.prompts = '8pt default_family'
+c.fonts.hints = 'bold 8pt default_family'
 
 # Zoom-Faktor für Webseiten
-c.zoom.default = '150%'
+c.zoom.default = '80%'
 
 # Tabs-Einstellungen
 c.tabs.position = 'top'
@@ -41,19 +41,19 @@ c.tabs.indicator.width = 1  # Ladesymbol deaktivieren
 c.tabs.favicons.show = 'always'
 
 # Schriftgröße für die Kommandozeile
-c.fonts.prompts = '14pt default_family'
-c.fonts.statusbar = '14pt default_family'
-c.fonts.completion.category = 'bold 16pt default_family'
-c.fonts.completion.entry = '14pt default_family'
+c.fonts.prompts = '8pt default_family'
+c.fonts.statusbar = '8pt default_family'
+c.fonts.completion.category = 'bold 10pt default_family'
+c.fonts.completion.entry = '8pt default_family'
 
 # Completion-Menü (das Dropdown beim Tippen)
-c.fonts.completion.category = 'bold 14pt default_family'
-c.fonts.completion.entry = '14pt default_family'
+c.fonts.completion.category = 'bold 8pt default_family'
+c.fonts.completion.entry = '8pt default_family'
 
 # Messages/Fehlermeldungen
-c.fonts.messages.error = 'bold 16pt default_family'
-c.fonts.messages.info = '16pt default_family'
-c.fonts.messages.warning = '16pt default_family'
+c.fonts.messages.error = 'bold 10pt default_family'
+c.fonts.messages.info = '10pt default_family'
+c.fonts.messages.warning = '10pt default_family'
 
 # ================================================================================
 # DARK MODE EINSTELLUNGEN

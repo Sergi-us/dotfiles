@@ -7,13 +7,11 @@
 # https://specifications.freedesktop.org/basedir-spec/latest/#referencing
 
 # === USER skripte in ~/.local/bin können überall ausgeführt werden
-export PATH="$PATH:$(find ~/.local/bin -type d | paste -sd ':' -)"
-# Dynamische PATH-Erweiterung ist flexibel, aber kann auf großen Verzeichnissen langsam sein.
-# Alternativ: Direkte Erweiterung für Standardverwendung.
+export PATH="$HOME/.local/bin:$(find ~/.local/bin -mindepth 1 -type d | paste -sd ':' -):$PATH"
+# export PATH="$HOME/.local/bin:$PATH"
 # export PATH="$PATH:$HOME/.local/bin"
 
 # === ZSH USER Option um '%' zu entfernen
-# TODO: Gehört eher in die Zsh-Konfiguration, wie .zshrc oder $ZDOTDIR/zshrc.
 unsetopt PROMPT_SP 2>/dev/null
 
 # Priorität 1
@@ -37,7 +35,7 @@ export XDG_CACHE_HOME="$HOME/.cache"			# ok
 # export XDG_DATA_DIRS="/usr/local/share:/usr/share"
 # export XDG_CONFIG_DIRS="/etc/xdg"
 
-# === Nttzerverzeichnisse ===
+# === Nutzerverzeichnisse ===
 # export XDG_PICTURES_DIR="$HOME/Bilder"
 
 # === Programmspezifische Konfigurationen ===
@@ -51,18 +49,6 @@ export INPUTRC="$XDG_CONFIG_HOME/shell/inputrc"		# ok Shell-Konfigurationsdatei
 export ZDOTDIR="$XDG_CONFIG_HOME/zsh"				# ok Zsh-Konfigurationsverzeichnis
 export HISTFILE="$XDG_DATA_HOME/history"			# ok Historien-Datei
 export SUDO_ASKPASS="$HOME/.local/bin/dmenupass"	# ok Sudo Passwortabfrageprogramm
-
-## === GUI & Skalierung ===
-## TODO: Sollte alles über die .xprofile geregelt werden.
-export GTK2_RC_FILES="$XDG_CONFIG_HOME/gtk-2.0/gtkrc-2.0"	# ok GTK2-Konfigurationsdatei
-export QT_QPA_PLATFORMTHEME="gtk2"					# ok QT soll gtk2-Thema verwenden
-## export QT_QPA_PLATFORMTHEME="gtk3"				# QT soll gtk3-Thema verwenden
-## export QT_QPA_PLATFORMTHEME="qt5ct"				# qt5ct benötigt
-export QT_AUTO_SCREEN_SCALE_FACTOR=1				# Testeinstellungen von Arch-Wiki
-## export QT_SCALE_FACTOR=1.5						# Für Qt-Anwendungen
-## export GDK_SCALE=2								# Für GTK-Anwendungen
-## export GDK_DPI_SCALE=0.5							# Korrigiert die Schriftgrößen bei GDK_SCALE=2
-export QT_ENABLE_HIGHDPI_SCALING=1					# Testeinstellungen aus der Arch-Wiki
 
 # === Entwicklung (Optional) ===
 export CARGO_HOME="$XDG_DATA_HOME/cargo"				# ok Rust Cargo Verzeichnis
@@ -93,7 +79,6 @@ export DICS="/usr/share/stardict/dic/"					# ok Verzeichnis für Stardict-Wörte
 export FZF_DEFAULT_OPTS="--layout=reverse --height 40%"	# ok FZF Standardoptionen
 export CRYPTOURL="rate.sx"
 export WTTRURL="wttr.in"
-export QT_SCALE_FACTOR_ROUNDING_POLICY=PassThrough      # für Qutebrowser Scrollverhalten
 
 # Aufräumen im Home-Verzeichnis:
 #export XAUTHORITY="$XDG_RUNTIME_DIR/Xauthority"		# ok Diese Zeile kann einige Desktop-Manager stören.

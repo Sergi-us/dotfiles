@@ -4,7 +4,7 @@
 include "/home/sergi/.gtkrc-2.0.mine"
 gtk-theme-name="Breeze-Dark"
 gtk-icon-theme-name="breeze-dark"
-gtk-font-name="Libertinus Sans 16"
+gtk-font-name="Libertinus Sans 10"
 gtk-cursor-theme-size=0
 gtk-toolbar-style=GTK_TOOLBAR_BOTH
 gtk-toolbar-icon-size=GTK_ICON_SIZE_MENU

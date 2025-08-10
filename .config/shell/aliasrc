@@ -74,7 +74,6 @@ alias \
 
 
 # Befehle mit Farbausgabe (wenn möglich)
-
     alias fzf='fzf --preview "bat --color=always --style=numbers --line-range=:500 {}"'
     alias grep="grep --color=auto"
 #    alias diff="diff --color=auto"
@@ -94,10 +93,6 @@ alias \
     sdn="shutdown -h now" \
     z="zathura" \
     wm="wikiman"
-
-
-alias vm-sarbs="virsh -c qemu:///system start archlinux && virt-viewer --attach --connect qemu:///system archlinux"
-
 
 alias ref="shortcuts >/dev/null; source ${XDG_CONFIG_HOME:-$HOME/.config}/shell/shortcutrc ; source ${XDG_CONFIG_HOME:-$HOME/.config}/shell/zshnameddirrc"
 
