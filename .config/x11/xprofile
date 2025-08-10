@@ -7,35 +7,41 @@
 # === DPI Einstellungen ===
 # hier einen der Werte eintragen, je größer der DPI wert desto kleiner die Schrift
 # Praktische DPI-Optionen:
-#   96  = 1.0× (Standard, alles winzig)
+#   96  = 1.0×  historische Standard (von Windows 95!)
 #   144 = 1.5× (gut lesbar, fractional scaling)
 #   168 = 1.75× (größer, manche Apps haben Probleme)
 #   192 = 2.0× (integer scaling, beste Kompatibilität)
-xrandr --dpi 96
+#   Weitere Werte im 96er raster 216 240 264 288
+MASTER_DPI=168
+SCALE_FACTOR=1.25
+export SCALE_FACTOR=$SCALE_FACTOR           # EXPORTIEREN für Wrapper-Scripts!
+xrandr --dpi $MASTER_DPI
 
-# HiDPI Settings
-# export QT_ENABLE_HIGHDPI_SCALING=1
-# export QT_AUTO_SCREEN_SCALE_FACTOR=1
-# export QT_SCALE_FACTOR_ROUNDING_POLICY=PassThrough
-# export QT_SCALE_FACTOR=1.5
-# export QT_AUTO_SCREEN_SET_FACTOR=0
-# export QT_FONT_DPI=122
-# export ELM_SCALE=1.5
-
-# === GDK Low Level Einstellungen ===
-# export GDK_SCALE=1                                  # Für GTK-Anwendungen
-# export GDK_DPI_SCALE=0.5                            # Korrigiert die Schriftgrößen bei GDK_SCALE=2
+# === GDK Low Level Einstellungen SINNLOS ===
+# export GDK_SCALE=1                        # Für GTK-Anwendungen (nur fraktionale Skalierung möglich)
+# export GDK_DPI_SCALE=1                    # Korrigiert die Schriftgrößen bei GDK_SCALE=2
 
 # === Themes und GUI ===
 export GTK_THEME=Breeze-Dark
 # export GTK2_RC_FILES="$XDG_CONFIG_HOME/gtk-2.0/gtkrc-2.0"       # GTK3-Konfigurationsdatei
 export GTK3_RC_FILES="$XDG_CONFIG_HOME/gtk-3.0/settings.ini"    # GTK3-Konfigurationsdatei
+export GDK_DPI_SCALE=$SCALE_FACTOR
 # export GTK_SCALE=2       #(redundant)                         # Skalierung für GTK Anwendungen
 
 # Qt Settings - nur eine Platform Theme Variable pro Qt-Version!
 export QT_QPA_PLATFORMTHEME=qt6ct               # für Qt6-Apps
-export QT5_QPA_PLATFORMTHEME=qt5ct              # für Qt5-Apps (falls noch welche da sind)
-export QT_STYLE_OVERRIDE=kvantum                # Stilüberschreibung für Kvantum
+export QT5_QPA_PLATFORMTHEME=qt5ct              # FALLBACK für Qt5-Apps (falls noch welche da sind)
+# export QT_STYLE_OVERRIDE=kvantum              # Stilüberschreibung für Kvantum
+export QT_FONT_DPI=$MASTER_DPI                  # Qt nutzt gleiche DPI!
+# export QT_FONT_DPI=96
+
+# HiDPI Settings
+# export QT_ENABLE_HIGHDPI_SCALING=1
+# export QT_AUTO_SCREEN_SCALE_FACTOR=1
+# export QT_SCALE_FACTOR_ROUNDING_POLICY=PassThrough      # für Qutebrowser Scrollverhalten
+# export ELM_SCALE=1.5
+# export QT_AUTO_SCREEN_SET_FACTOR=1
+export QT_SCALE_FACTOR=$SCALE_FACTOR                   # Globale skalierung für QT Anwendungen
 
 # === Bildschirm (kann mit MOD+Löschen beinflusst werden) ===
 xset s off          # Bildschirmschoner deaktivieren

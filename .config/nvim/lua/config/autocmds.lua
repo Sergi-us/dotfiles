@@ -17,10 +17,15 @@ autocmd("BufReadPost", {
   end,
 })
 
--- Trim Whitespace beim Speichern
 autocmd("BufWritePre", {
-  pattern = "*",
+  pattern = { "*" },
   callback = function()
+    -- Skip für Markdown-Dateien
+    local filename = vim.fn.expand("%")
+    if filename:match("%.md$") or filename:match("%.markdown$") then
+      return
+    end
+
     local save_cursor = vim.fn.getpos(".")
     vim.cmd([[%s/\s\+$//e]])
     vim.fn.setpos(".", save_cursor)
@@ -75,22 +80,32 @@ vim.cmd([[
 ]])
 
 -- DPI Synchronisation zwischen xprofile und GTK3 settings.ini
--- Berechnet automatisch gtk-xft-dpi = xrandr_dpi * 1024
+-- Liest MASTER_DPI Variable statt direkt xrandr --dpi
 vim.api.nvim_create_autocmd("BufWritePost", {
-    -- Nur die aktiven Config-Dateien, nicht die in Dotfiles
     pattern = {
         vim.fn.expand("~/.xprofile"),
         vim.fn.expand("~/.config/x11/xprofile"),
     },
     callback = function()
-        -- Extrahiere DPI-Wert aus xrandr --dpi XXX Zeile
-        local dpi = tonumber(vim.fn.system("grep 'xrandr --dpi' " .. vim.fn.expand("%:p") .. " | grep -o '[0-9]*'"))
+        -- Suche nach MASTER_DPI=XXX ODER xrandr --dpi XXX
+        local file_content = vim.fn.readfile(vim.fn.expand("%:p"))
+        local dpi = nil
+
+        for _, line in ipairs(file_content) do
+            -- Erst nach MASTER_DPI suchen (Priorität)
+            dpi = tonumber(line:match("^MASTER_DPI=(%d+)"))
+            if dpi then break end
+
+            -- Fallback: xrandr --dpi
+            dpi = tonumber(line:match("xrandr --dpi (%d+)"))
+            if dpi then break end
+        end
 
         -- Nur weitermachen wenn gültiger DPI-Wert gefunden
         if dpi and dpi > 0 then
             -- Update GTK3 settings.ini mit berechnetem Wert (DPI * 1024) + Kommentar
             vim.fn.system(string.format(
-                "sed -i 's/^gtk-xft-dpi=.*/gtk-xft-dpi=%d  # Auto-generiert: %d * 1024 (xprofile DPI)/' ~/.config/gtk-3.0/settings.ini",
+                "sed -i 's/^gtk-xft-dpi=.*/gtk-xft-dpi=%d  # Auto-generiert: %d * 1024 (MASTER_DPI)/' ~/.config/gtk-3.0/settings.ini",
                 dpi * 1024, dpi
             ))
             vim.notify("DPI synced: " .. dpi .. " → GTK3: " .. (dpi * 1024))
