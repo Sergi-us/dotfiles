@@ -61,8 +61,8 @@ cd ~/dotfiles
 Für Updates (ignoriert deine Änderungen) wenn du mit Git nicht vertraut bist)
 ```bash
 cd ~/.local/src/dotfiles
-git pull --force
-cd dotfiles
+git fetch origin
+git reset --hard origin/main
 dotfiles-home
 ```
 
