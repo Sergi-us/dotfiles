@@ -1,6 +1,5 @@
-# QuteBrowser Konfiguration
-## 2025-06-21   SARBS
-# TODO Scrollgeschwindigkeit regeln
+# QuteBrowser Konfiguration mit Sicherheitsstufen
+## 2025-08-12   SARBS
 
 # Autoconfig laden (UI-Einstellungen werden übernommen)
 config.load_autoconfig(True)
@@ -14,19 +13,27 @@ c.auto_save.session = False
 c.editor.command = ['st', '-e', 'nvim', '{}']
 
 # ================================================================================
-# HiDPI & UI-EINSTELLUNGEN
+# HiDPI & UI-EINSTELLUNGEN (Unkritisch für Sicherheit)
 # ================================================================================
 
+# Schriftgrößen einstellungen
+FONTS = {
+    'small': '10pt',
+    'normal': '12pt',
+    'large': '14pt',
+    'xlarge': '18pt'
+}
+
 # Schriftgrößen für HiDPI-Display
-c.fonts.default_size = '8pt'
-c.fonts.tabs.selected = '8pt default_family'
-c.fonts.tabs.unselected = '10pt default_family'
+c.fonts.default_size = FONTS['normal']
+c.fonts.tabs.selected = f"{FONTS['normal']} default_family"
+c.fonts.tabs.unselected = f"{FONTS['small']} default_family"
 
 # Allgemeine UI-Schriftgröße
-c.fonts.statusbar = '8pt default_family'
-c.fonts.downloads = '8pt default_family'
-c.fonts.prompts = '8pt default_family'
-c.fonts.hints = 'bold 8pt default_family'
+c.fonts.statusbar = f"{FONTS['normal']} default_family"
+c.fonts.downloads = f"{FONTS['normal']} default_family"
+c.fonts.prompts = f"{FONTS['normal']} default_family"
+c.fonts.hints = f"bold {FONTS['normal']} default_family"
 
 # Zoom-Faktor für Webseiten
 c.zoom.default = '100%'
@@ -41,22 +48,22 @@ c.tabs.indicator.width = 1  # Ladesymbol deaktivieren
 c.tabs.favicons.show = 'always'
 
 # Schriftgröße für die Kommandozeile
-c.fonts.prompts = '8pt default_family'
-c.fonts.statusbar = '8pt default_family'
-c.fonts.completion.category = 'bold 10pt default_family'
-c.fonts.completion.entry = '8pt default_family'
+c.fonts.prompts = f"{FONTS['normal']} default_family"
+c.fonts.statusbar = f"{FONTS['normal']} default_family"
+c.fonts.completion.category = f"{FONTS['large']} default_family"
+c.fonts.completion.entry = f"{FONTS['normal']} default_family"
 
 # Completion-Menü (das Dropdown beim Tippen)
-c.fonts.completion.category = 'bold 8pt default_family'
-c.fonts.completion.entry = '8pt default_family'
+c.fonts.completion.category = f"bold {FONTS['normal']} default_family"
+c.fonts.completion.entry = f"{FONTS['normal']} default_family"
 
 # Messages/Fehlermeldungen
-c.fonts.messages.error = 'bold 10pt default_family'
-c.fonts.messages.info = '10pt default_family'
-c.fonts.messages.warning = '10pt default_family'
+c.fonts.messages.error = f"bold {FONTS['large']} default_family"
+c.fonts.messages.info = f"{FONTS['normal']} default_family"
+c.fonts.messages.warning = f"{FONTS['normal']} default_family"
 
 # ================================================================================
-# DARK MODE EINSTELLUNGEN
+# DARK MODE EINSTELLUNGEN (Unkritisch für Sicherheit)
 # ================================================================================
 
 # Dark Mode für Webseiten aktivieren
@@ -72,7 +79,7 @@ c.colors.webpage.darkmode.enabled = True
 # c.colors.webpage.darkmode.policy.page = 'always'
 
 # ================================================================================
-# PYWALL FARBEN LADEN FALLS MÖGLICH
+# PYWALL FARBEN LADEN (Unkritisch für Sicherheit)
 # ================================================================================
 
 import os
@@ -206,127 +213,163 @@ except (FileNotFoundError, KeyError, json.JSONDecodeError) as e:
     c.colors.tabs.even.fg = '#d0d0d0'
 
 # ================================================================================
-# SICHERHEITSEINSTELLUNGEN
+# SICHERHEITSEINSTELLUNGEN - GRUNDSCHUTZ (EMPFOHLEN)
 # ================================================================================
+# Diese Einstellungen bieten einen guten Basisschutz ohne große Einschränkungen
 
-# JavaScript deaktivieren für bestimmte Domains (Beispiel)
-# c.content.javascript.enabled = True  # Allgemein aktivieren
-# config.set('content.javascript.enabled', False, 'https://example.com/*')  # Für bestimmte Seiten deaktivieren
+# COOKIES - GRUNDSCHUTZ
+# 'no-3rdparty' = Blockiert nur Drittanbieter-Cookies (empfohlen)
+# 'all' = Akzeptiert alle Cookies (weniger sicher, aber manche Seiten brauchen das)
+# 'never' = Blockiert alle Cookies (sehr sicher, aber viele Seiten funktionieren nicht)
+c.content.cookies.accept = 'no-3rdparty'  # EMPFOHLEN: Gute Balance
+# c.content.cookies.accept = 'all'  # LOCKERER: Für problematische Seiten
 
-# Cookies von Drittanbietern blockieren
-c.content.cookies.accept = 'no-3rdparty'
-# c.content.cookies.accept = 'no-3rdparty'
-c.content.cookies.store = True
+# Cookies speichern (für Login-Sessions wichtig)
+# c.content.cookies.store = True  # Cookies bleiben gespeichert (für Logins wichtig)
 
-# Do-Not-Track-Header senden
+# Do-Not-Track-Header senden (höfliche Bitte, kein Schutz)
 c.content.headers.do_not_track = True
 
-config.set("content.webgl", False, "*")
-# WebGL für Jitsi erlauben
-config.set("content.webgl", True, "https://meet.jit.si/*")
-config.set("content.webgl", True, "https://*.jitsi.org/*")
+# Referrer-Policy (welche Infos an andere Seiten gesendet werden)
+# 'same-domain' = Nur an gleiche Domain (sicher)
+# 'no-referrer-when-downgrade' = Standard, weniger restriktiv
+c.content.headers.referer = 'same-domain'  # EMPFOHLEN
+# c.content.headers.referer = 'no-referrer-when-downgrade'  # LOCKERER
 
-config.set("content.canvas_reading", False)
-config.set("content.geolocation", False)
+# ================================================================================
+# SICHERHEITSEINSTELLUNGEN - ERHÖHTER SCHUTZ (OPTIONAL)
+# ================================================================================
+# Diese Einstellungen erhöhen die Sicherheit, können aber Seiten kaputt machen
+
+# JAVASCRIPT - DER HAUPTSCHALTER
+# False = JS komplett aus (sehr sicher, viele Seiten funktionieren nicht)
+# True = JS an (normal)
+# Tipp: Mit 'tsh' Keybind togglen statt permanent aus!
+config.set("content.javascript.enabled", False)  # SEHR RESTRIKTIV!
+# config.set("content.javascript.enabled", True)  # NORMAL (empfohlen mit Keybind)
+
+# WEBGL - 3D-Grafiken im Browser
+# False = Aus (sicherer, aber keine 3D-Inhalte)
+config.set("content.webgl", False, "*")  # Für alle Seiten aus
+# Ausnahmen für spezielle Seiten (z.B. Jitsi für Videocalls):
+# config.set("content.webgl", True, "https://meet.jit.si/*")
+
+# CANVAS FINGERPRINTING - Tracking-Schutz
+# False = Canvas-Auslesen blockieren (gut gegen Tracking)
+config.set("content.canvas_reading", False)  # EMPFOHLEN
+
+# STANDORT-ZUGRIFF
+# False = Keine Standortabfragen
+config.set("content.geolocation", False)  # EMPFOHLEN
+
+# WEBRTC - Für Videocalls, kann IP leaken
+# 'default-public-interface-only' = Nur öffentliche IP (sicher)
+# 'all-interfaces' = Alle IPs (für manche Videocalls nötig)
 config.set("content.webrtc_ip_handling_policy", "default-public-interface-only")
-# WebRTC für Jitsi-Domains erlauben
-##config.set("content.webrtc_ip_handling_policy", "default-public-and-private-interfaces", "https://meet.jit.si/*")
-##config.set("content.webrtc_ip_handling_policy", "default-public-and-private-interfaces", "https://*.jitsi.org/*")
-config.set("content.cookies.accept", "all")
-config.set("content.cookies.store", True)
-# config.set("content.javascript.enabled", False) # tsh keybind to toggle
 
-# Referrer-Policy einschränken
-c.content.headers.referer = 'same-domain'
+# CLIPBOARD-ZUGRIFF
+# 'none' = Kein Zugriff (sehr sicher, kein Copy&Paste auf Webseiten)
+# 'access-paste' = Nur Einfügen erlaubt (Kompromiss)
+# 'access' = Voller Zugriff (normal)
+config.set('content.javascript.clipboard', 'access-paste')  # EMPFOHLEN: Guter Kompromiss
+# config.set('content.javascript.clipboard', 'access')  # LOCKERER: Für Web-Apps
 
-# HTTPS-Redirects erzwingen
-# c.content.https.enforced = 'strict'
-c.content.default_encoding = 'utf-8'
-# Mit zusätzlichem userscript kann man HTTPS erzwingen
-# Manuell installieren: https://github.com/qutebrowser/qutebrowser/blob/master/misc/userscripts/redirect_https
+# BENACHRICHTIGUNGEN
+# False = Keine Push-Benachrichtigungen
+config.set('content.notifications.enabled', False)  # EMPFOHLEN
 
-# Cache löschen beim Schließen
-c.content.private_browsing = False  # Vollständiger Privat-Modus (optional)
-c.completion.web_history.max_items = 1000  # Begrenze Historie
+# ================================================================================
+# TRACKING-SCHUTZ & WERBEBLOCKER
+# ================================================================================
 
-# WebRTC IP-Handling einschränken (verhindert IP-Leaks)
-c.content.webrtc_ip_handling_policy = 'default-public-interface-only'
-
-# Fingerprinting reduzieren
-c.content.headers.user_agent = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.0.0 Safari/537.36'
-c.content.headers.accept_language = 'de-DE,de;q=0.9,en-US;q=0.8,en;q=0.7'
-
-# Tracking-Schutz aktivieren
-# Adblocking info -->
-    # For yt ads: place the greasemonkey script yt-ads.js in your greasemonkey folder (~/.config/qutebrowser/greasemonkey).
-    # The script skips through the entire ad, so all you have to do is click the skip button.
-    # Yeah it's not ublock origin, but if you want a minimal browser, this is a solution for the tradeoff.
-    # You can also watch yt vids directly in mpv, see qutebrowser FAQ for how to do that.
-    # If you want additional blocklists, you can get the python-adblock package, or you can uncomment the ublock lists here.
-    # https://wiki.greasespot.net/User_Script_Hosting
-    # https://greasyfork.org/de
+# BLOCKING METHODE
+# 'both' = Hosts + Adblock-Filter (beste Blockierung, minimal langsamer)
+# 'adblock' = Nur Adblock-Filter
+# 'hosts' = Nur Hosts-Datei (schneller, aber weniger effektiv)
 c.content.blocking.enabled = True
-c.content.blocking.method = 'hosts'  # Statt 'both'
+c.content.blocking.method = 'both'  # EMPFOHLEN für beste Blockierung
+
+# FILTERLISTEN
+# Kommentiere Listen aus, die zu aggressiv sind
 c.content.blocking.adblock.lists = [
+    # === BASIS-WERBEBLOCKER (EMPFOHLEN) ===
+    'https://easylist.to/easylist/easylist.txt',  # Haupt-Werbeblocker
+    'https://easylist-downloads.adblockplus.org/easylistgermany.txt',  # Deutsche Werbung
+
+    # === PRIVACY & TRACKING (EMPFOHLEN) ===
+    'https://easylist.to/easylist/easyprivacy.txt',  # Tracking-Schutz
+
+    # === COOKIE-BANNER (EMPFOHLEN) ===
+    'https://secure.fanboy.co.nz/fanboy-cookiemonster.txt',  # Cookie-Banner 1
+    'https://raw.githubusercontent.com/OctoNezd/istilldontcareaboutcookies/main/dist/abp.txt',  # Cookie-Banner 2
+
+    # === NERVIGE ELEMENTE (OPTIONAL - kann zu aggressiv sein) ===
+    'https://secure.fanboy.co.nz/fanboy-annoyance.txt',  # Popups, Newsletter, etc.
+    # Wenn zu aggressiv, auskommentieren und nur diese nutzen:
+    # 'https://easylist-downloads.adblockplus.org/fanboy-social.txt',  # Nur Social-Media-Buttons
+
+    # === YOUTUBE-SPEZIFISCH (OPTIONAL) ===
     'https://raw.githubusercontent.com/kbinani/adblock-youtube-ads/master/signed.txt',
-    'https://easylist.to/easylist/easylist.txt',
-    'https://easylist.to/easylist/easyprivacy.txt',
-    'https://secure.fanboy.co.nz/fanboy-annoyance.txt',
-    'https://easylist-downloads.adblockplus.org/easylistgermany.txt',
-    'https://github.com/ewpratten/youtube_ad_blocklist/blob/master/blocklist.txt',
-    'https://github.com/uBlockOrigin/uAssets/raw/master/filters/legacy.txt',
+    # 'https://github.com/ewpratten/youtube_ad_blocklist/blob/master/blocklist.txt',  # Oft veraltet
+
+    # === UBLOCK ORIGIN FILTER (OPTIONAL - sehr aggressiv) ===
+    # Diese können Seiten kaputt machen, bei Problemen auskommentieren:
     'https://github.com/uBlockOrigin/uAssets/raw/master/filters/filters.txt',
-    'https://github.com/uBlockOrigin/uAssets/raw/master/filters/filters-2020.txt',
-    'https://github.com/uBlockOrigin/uAssets/raw/master/filters/filters-2021.txt',
-    'https://github.com/uBlockOrigin/uAssets/raw/master/filters/filters-2022.txt',
-    'https://github.com/uBlockOrigin/uAssets/raw/master/filters/filters-2023.txt',
     'https://github.com/uBlockOrigin/uAssets/raw/master/filters/filters-2024.txt',
     'https://github.com/uBlockOrigin/uAssets/raw/master/filters/badware.txt',
     'https://github.com/uBlockOrigin/uAssets/raw/master/filters/privacy.txt',
-    'https://github.com/uBlockOrigin/uAssets/raw/master/filters/badlists.txt',
     'https://github.com/uBlockOrigin/uAssets/raw/master/filters/annoyances.txt',
     'https://github.com/uBlockOrigin/uAssets/raw/master/filters/annoyances-cookies.txt',
-    'https://github.com/uBlockOrigin/uAssets/raw/master/filters/annoyances-others.txt',
-    'https://github.com/uBlockOrigin/uAssets/raw/master/filters/badlists.txt',
-    'https://github.com/uBlockOrigin/uAssets/raw/master/filters/quick-fixes.txt',
     'https://github.com/uBlockOrigin/uAssets/raw/master/filters/resource-abuse.txt',
-    'https://github.com/uBlockOrigin/uAssets/raw/master/filters/unbreak.txt',
+    'https://github.com/uBlockOrigin/uAssets/raw/master/filters/unbreak.txt',  # Wichtig! Fixt kaputte Seiten
+
+    # === ALTE/LEGACY FILTER (meist nicht nötig) ===
+    # 'https://github.com/uBlockOrigin/uAssets/raw/master/filters/legacy.txt',
+    # 'https://github.com/uBlockOrigin/uAssets/raw/master/filters/filters-2020.txt',
+    # 'https://github.com/uBlockOrigin/uAssets/raw/master/filters/filters-2021.txt',
+    # 'https://github.com/uBlockOrigin/uAssets/raw/master/filters/filters-2022.txt',
+    # 'https://github.com/uBlockOrigin/uAssets/raw/master/filters/filters-2023.txt',
 ]
 
 # ================================================================================
-# PERFORMANCE-EINSTELLUNGEN
+# FINGERPRINTING-SCHUTZ (OPTIONAL)
+# ================================================================================
+# Macht dich weniger trackbar, kann aber manche Seiten stören
+
+# User-Agent vereinheitlichen (alle Linux-Nutzer sehen gleich aus)
+c.content.headers.user_agent = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.0.0 Safari/537.36'
+
+# Sprache vereinheitlichen
+c.content.headers.accept_language = 'de-DE,de;q=0.9,en-US;q=0.8,en;q=0.7'
+
+# ================================================================================
+# PERFORMANCE-EINSTELLUNGEN (Unkritisch für Sicherheit)
 # ================================================================================
 
 # Cache-Größe (in Bytes, hier 100 MB)
 c.content.cache.size = 104857600
 
-# Hintergrund-Tabs pausieren (spart Ressourcen)
-# c.content.unload_tabs = True                          # funktioniert nicht mehr
+# Tabs im Hintergrund öffnen
+c.tabs.background = True
+c.tabs.last_close = 'close'  # Fenster schließen bei letztem Tab
 
-# Neue Alternative - Ressourcenschonung durch Tabs pausieren:
-c.tabs.background = True                                # Tabs im Hintergrund öffnen
-c.tabs.last_close = 'close'                             # Fenster schließen, wenn letzter Tab geschlossen wird
-
-# Optional: RAM-Reduzierung durch Speicherlimit
-# TODO Konfiguration fixen
-# qt.chromium.process_model = 'process-per-site-instance'        # Reduziert RAM-Verbrauch
-c.content.javascript.clipboard = 'none'                 # 'access' erlaubt Zugriff, 'none' verbietet ihn
-
-# Präfetching (Performance vs. Datenschutz)
-c.content.dns_prefetch = True
-c.content.prefers_reduced_motion = True                 # Animationen reduzieren
+# DNS-Prefetching (minimal schneller, minimal weniger privat)
+c.content.dns_prefetch = True  # Kann auf False für mehr Privacy
+c.content.prefers_reduced_motion = True  # Weniger Animationen
 
 # ================================================================================
-# DATENSCHUTZ- UND DOWNLOAD-EINSTELLUNGEN
+# DOWNLOAD-EINSTELLUNGEN (Unkritisch für Sicherheit)
 # ================================================================================
 
-# Downloads automatisch in diesen Ordner speichern
 c.downloads.location.directory = '~/Downloads'
-c.downloads.location.prompt = False  # Kein Nachfragen bei Downloads
+c.downloads.location.prompt = False  # Kein Nachfragen
 c.downloads.location.remember = True
-c.downloads.remove_finished = 60000  # Nach 1ner Minute aus der Liste entfernen
+c.downloads.remove_finished = 60000  # Nach 1 Minute aus Liste entfernen
 
-# URLs abkürzen
+# ================================================================================
+# SUCHMASCHINEN & STARTSEITE
+# ================================================================================
+
 c.url.searchengines = {
     'DEFAULT': 'https://duckduckgo.com/?q={}',
     'g': 'https://google.com/search?q={}',
@@ -335,7 +378,6 @@ c.url.searchengines = {
     'gh': 'https://github.com/search?q={}',
 }
 
-# Startseite festlegen
 c.url.start_pages = ['https://start.duckduckgo.com']
 c.url.default_page = 'https://start.duckduckgo.com'
 
@@ -343,20 +385,42 @@ c.url.default_page = 'https://start.duckduckgo.com'
 # KEYBINDINGS
 # ================================================================================
 
-# Einige Vim-ähnlichere Keybindings
-config.unbind('d')  # Standard Tab schließen unbinden
-config.bind('dd', 'tab-close')  # Tab mit 'dd' schließen
-##config.bind('+', 'zoom-in')  # Zoom vergrößern
-##config.bind('-', 'zoom-out')  # Zoom verkleinern
-config.bind('<F12>', 'devtools')  # Entwicklertools mit F12
-# Schneller Zugriff auf bestimmte Einstellungen
-##config.bind(',tp', 'set content.private_browsing !') # Toggle Private Mode
-##config.bind(',tj', 'set content.javascript.enabled !') # Toggle JavaScript
+# Tab-Management
+config.unbind('d')
+config.bind('dd', 'tab-close')
 
-# Sicherheitsrelevante Tastenkombinationen
-##config.bind(',c', 'config-clear')  # Konfiguration zurücksetzen
-##config.bind(',p', 'set content.proxy socks://localhost:9050/')  # Tor-Proxy einschalten (wenn installiert)
-##config.bind(',P', 'set content.proxy system')  # Proxy ausschalten
+# Entwicklertools
+config.bind('<F12>', 'devtools')
 
-# Dark Mode Toggle
-##config.bind(',d', 'set colors.webpage.darkmode.enabled !') # Dark mode umschalten
+# === WICHTIGE TOGGLE-KEYBINDS FÜR PROBLEMSEITEN ===
+# Mit diesen kannst du Einstellungen temporär ändern:
+
+# JavaScript an/aus (für kaputte Seiten)
+config.bind('tsh', 'config-cycle content.javascript.enabled true false')
+
+# Cookies-Einstellung wechseln (wenn Login nicht geht)
+config.bind('tsc', 'config-cycle content.cookies.accept all no-3rdparty never')
+
+# Alle Sicherheitseinstellungen temporär lockern (Notfall-Taste!)
+config.bind('tsa', 'cmd-set-text :set content.javascript.enabled true ;; set content.cookies.accept all')
+
+# Dark Mode umschalten
+config.bind('tsd', 'config-cycle colors.webpage.darkmode.enabled true false')
+
+# Blocking temporär ausschalten (wenn Seite nicht lädt)
+config.bind('tsb', 'config-cycle content.blocking.enabled true false')
+
+# ================================================================================
+# TROUBLE-SHOOTING BEFEHLE
+# ================================================================================
+# Wenn eine Seite nicht funktioniert, probiere diese Befehle in der Kommandozeile:
+#
+# :set content.javascript.enabled true              # JS einschalten
+# :set content.cookies.accept all                   # Alle Cookies erlauben
+# :set content.blocking.enabled false               # Blocker aus
+# :set content.javascript.clipboard access          # Vollen Clipboard-Zugriff
+# :reload -f                                        # Seite ohne Cache neu laden
+#
+# Für dauerhafte Ausnahmen für bestimmte Seiten:
+# :set -u DOMAIN content.javascript.enabled true
+# Beispiel: :set -u github.com content.javascript.enabled true

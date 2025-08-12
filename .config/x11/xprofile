@@ -26,14 +26,12 @@ export GTK_THEME=Breeze-Dark
 # export GTK2_RC_FILES="$XDG_CONFIG_HOME/gtk-2.0/gtkrc-2.0"       # GTK3-Konfigurationsdatei
 export GTK3_RC_FILES="$XDG_CONFIG_HOME/gtk-3.0/settings.ini"    # GTK3-Konfigurationsdatei
 export GDK_DPI_SCALE=$SCALE_FACTOR
-# export GTK_SCALE=2       #(redundant)                         # Skalierung für GTK Anwendungen
 
 # Qt Settings - nur eine Platform Theme Variable pro Qt-Version!
 export QT_QPA_PLATFORMTHEME=qt6ct               # für Qt6-Apps
 export QT5_QPA_PLATFORMTHEME=qt5ct              # FALLBACK für Qt5-Apps (falls noch welche da sind)
 # export QT_STYLE_OVERRIDE=kvantum              # Stilüberschreibung für Kvantum
 export QT_FONT_DPI=$MASTER_DPI                  # Qt nutzt gleiche DPI!
-# export QT_FONT_DPI=96
 
 # HiDPI Settings
 # export QT_ENABLE_HIGHDPI_SCALING=1
