@@ -29,7 +29,7 @@ c.fonts.prompts = '8pt default_family'
 c.fonts.hints = 'bold 8pt default_family'
 
 # Zoom-Faktor für Webseiten
-c.zoom.default = '80%'
+c.zoom.default = '100%'
 
 # Tabs-Einstellungen
 c.tabs.position = 'top'

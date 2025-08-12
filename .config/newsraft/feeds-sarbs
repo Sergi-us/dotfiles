@@ -1,4 +1,5 @@
-## 2025-01-10 SARBS"
+## 2025-08-12   SARBS
+# umbenennen in feeds (sonst überschreiben die Dotfiles die Presönlichen feeds)
 @"=== YouTube ==="
 https://www.youtube.com/feeds/videos.xml?channel_id=UC3UmA3JI7pSZZ7v4O3wNiDA "~Sergi-tec"
 https://www.youtube.com/feeds/videos.xml?channel_id=UC2eYFnH61tmytImy1mTYvhA "~Luke Smith"

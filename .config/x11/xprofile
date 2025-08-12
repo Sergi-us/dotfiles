@@ -12,10 +12,10 @@
 #   168 = 1.75× (größer, manche Apps haben Probleme)
 #   192 = 2.0× (integer scaling, beste Kompatibilität)
 #   Weitere Werte im 96er raster 216 240 264 288
-MASTER_DPI=168
-SCALE_FACTOR=1.25
+MASTER_DPI=96
+SCALE_FACTOR=1.5
 export SCALE_FACTOR=$SCALE_FACTOR           # EXPORTIEREN für Wrapper-Scripts!
-xrandr --dpi $MASTER_DPI
+xrandr --dpi 192
 
 # === GDK Low Level Einstellungen SINNLOS ===
 # export GDK_SCALE=1                        # Für GTK-Anwendungen (nur fraktionale Skalierung möglich)

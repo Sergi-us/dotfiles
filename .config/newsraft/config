@@ -5,7 +5,8 @@ reload-period 60
 scrolloff 3
 # show-read-articles true
 # show-read-feeds no
-list-entry-date-format "%d.%m.%Y"
+# list-entry-date-format "%d.%m.%Y"
+list-entry-date-format "%Y.%m.%d"
 
 # Farben (optional)
 # color-list-item-fg white
