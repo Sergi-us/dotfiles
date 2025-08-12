@@ -13,4 +13,6 @@ walogram -i "$BG_PATH" >/dev/null 2>&1
 # walogram -B -i "$BG_PATH" >/dev/null 2>&1
 
 # Startet Telegram
+# GUI_SCALE=$(grep "^GUI_SCALE=" ~/.xprofile | cut -d= -f2)
+# exec /usr/bin/Telegram --force-device-scale-factor=${GUI_SCALE:-1.5} "$@"
 Telegram &
