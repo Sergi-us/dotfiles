@@ -2,6 +2,7 @@
 
 [[Schriftart]]
 
+[[Skalierung x11]]
 
 [[CLI Command Line Interface]]
 
