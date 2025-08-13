@@ -4,7 +4,7 @@
     follow = keyboard
 
     # Größe und Position
-    width = 300
+    width = 350
     height = (0, 300)
     offset = (15, 25)
     notification_limit = 20
