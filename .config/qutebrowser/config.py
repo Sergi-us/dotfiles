@@ -245,8 +245,8 @@ c.content.headers.referer = 'same-domain'  # EMPFOHLEN
 # False = JS komplett aus (sehr sicher, viele Seiten funktionieren nicht)
 # True = JS an (normal)
 # Tipp: Mit 'tsh' Keybind togglen statt permanent aus!
-config.set("content.javascript.enabled", False)  # SEHR RESTRIKTIV!
-# config.set("content.javascript.enabled", True)  # NORMAL (empfohlen mit Keybind)
+# config.set("content.javascript.enabled", False)  # SEHR RESTRIKTIV!
+config.set("content.javascript.enabled", True)  # NORMAL (empfohlen mit Keybind)
 
 # WEBGL - 3D-Grafiken im Browser
 # False = Aus (sicherer, aber keine 3D-Inhalte)

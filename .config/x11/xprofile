@@ -13,8 +13,8 @@
 #   192 = 2.0× (integer scaling, beste Kompatibilität)
 #   Weitere Werte im 96er raster 216 240 264 288
 MASTER_DPI=96
-SCALE_FACTOR=1.5
-export SCALE_FACTOR=$SCALE_FACTOR           # EXPORTIEREN für Wrapper-Scripts!
+SCALE_FACTOR=1.25
+# export SCALE_FACTOR=$SCALE_FACTOR           # EXPORTIEREN für Wrapper-Scripts! (unnötig)
 xrandr --dpi 192
 
 # === GDK Low Level Einstellungen SINNLOS ===
@@ -48,15 +48,14 @@ xset s noblank      # Kein automatisches Bildschirm-Blanking
 setbg &             # Setzt den Hintergrund mit dem `setbg` Skript
 
 # === Verhalten von Eingabegeräten ===
-# Aktiviert Natural Scrolling (Mac-like)
-# xinput set-prop 10 "libinput Natural Scrolling Enabled" 1
 xbanish &           # Mauszeiger beim Tippen ausblenden
+# xinput set-prop 10 "libinput Natural Scrolling Enabled" 1     # Aktiviert Natural Scrolling (Mac-like)
 
 
-# Lädt Xresources Farben/Einstellungen beim Start
-# TODO Trennen von Skalierung und Farben
-# wenn xrdb aktiviert, dann "~/.config/x11/xresources" beachten
-# xrdb ${XDG_CONFIG_HOME:-$HOME/.config}/x11/xresources & xrdbpid=$!
+## Lädt Xresources Farben/Einstellungen beim Start
+## TODO Trennen von Skalierung und Farben
+## wenn xrdb aktiviert, dann "~/.config/x11/xresources" beachten
+## xrdb ${XDG_CONFIG_HOME:-$HOME/.config}/x11/xresources & xrdbpid=$!
 
 # === pamgnupg ===
 export GPG_TTY=$(tty)

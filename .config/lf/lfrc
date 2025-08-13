@@ -1,9 +1,8 @@
 # SARBS lf-Einstellungen
 ## 2025-07-26   SARBS
+## 2025-01-08   funktion für Bildkomprimierung hinzugefügt (bild-80-komprimieren) benötigt 'imagemagick' Trigger 'Pk'
 
-# TODO - auf / binden
 # TODO Funktion zum einfügen aus der Zwischenablage erstellen. z.B. Bilder vom Snipping tool oder Text in ne textdatei...
-# TODO für mimeopen eine möglichkeit zum abbrechen einrichten (ESC)
 # TODO in mimeopen <o> *.webm hinzufügen
 
 # Hinweis zu Bildvorschauen
@@ -20,7 +19,6 @@
 #    als Alias gesetzt werden (`alias lf="lfub") oder, wenn er an eine Taste gebunden ist,
 #    sollte er direkt anstelle des normalen lf aufgerufen werden.
 
-## 2025-01-08   funktion für Bildkomprimierung hinzugefügt (bild-80-komprimieren) benötigt 'imagemagick' Trigger 'Pk'
 
 # ==== Git Integration ====
 # Custom prompt mit Git-Info (mit alternativen Symbolen)

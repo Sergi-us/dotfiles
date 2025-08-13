@@ -231,52 +231,52 @@ fi             00;38;2;241;224;90      # FILE unbekannt Gelb
 Vagrantfile                 00;38;2;21;99;255
 
 # archives or compressed (extensions from dircolors defaults)
-*.tar   
-*.tgz   
-*.arc   
-*.arj   
-*.taz   
-*.lha   
-*.lz4   
-*.lzh   
-*.lzma  
-*.tlz   
-*.txz   
-*.tzo   
-*.t7z   
-*.zip   
-*.z     
-*.dz    
-*.gz    
-*.lrz   
-*.lz    
-*.lzo   
-*.xz    
-*.zst   
-*.tzst  
-*.bz2   
-*.bz    
-*.tbz   
-*.tbz2  
-*.tz    
-*.deb   
-*.rpm   
-*.jar   
-*.war   
-*.ear   
-*.sar   
-*.rar   
-*.alz   
-*.ace   
-*.zoo   
-*.cpio  
-*.7z    
-*.rz    
-*.cab   
-*.wim   
-*.swm   
-*.dwm   
-*.esd   
+*.tar   󰞹
+*.tgz   󰞹
+*.arc   󰞹
+*.arj   󰞹
+*.taz   󰞹
+*.lha   󰞹
+*.lz4   󰞹
+*.lzh   󰞹
+*.lzma  󰞹
+*.tlz   󰞹
+*.txz   󰞹
+*.tzo   󰞹
+*.t7z   󰞹
+*.zip   󰞹
+*.z     󰞹
+*.dz    󰞹
+*.gz    󰞹
+*.lrz   󰞹
+*.lz    󰞹
+*.lzo   󰞹
+*.xz    󰞹
+*.zst   󰞹
+*.tzst  󰞹
+*.bz2   󰞹
+*.bz    󰞹
+*.tbz   󰞹
+*.tbz2  󰞹
+*.tz    󰞹
+*.deb   󰞹
+*.rpm   󰞹
+*.jar   󰞹
+*.war   󰞹
+*.ear   󰞹
+*.sar   󰞹
+*.rar   󰞹
+*.alz   󰞹
+*.ace   󰞹
+*.zoo   󰞹
+*.cpio  󰞹
+*.7z    󰞹
+*.rz    󰞹
+*.cab   󰞹
+*.wim   󰞹
+*.swm   󰞹
+*.dwm   󰞹
+*.esd   󰞹
 
 # image formats (extensions from dircolors defaults)
 *.jpeg  
@@ -349,10 +349,10 @@ Vagrantfile                 00;38;2;21;99;255
 *.wma          00;38;2;1;152;51    # Grün
 
 # === Andere Formate ===
-*.pdf   
-*.md           00;38;2;137;224;81  # Grün
-*.txt   
-*.log   
+*.pdf   
+*.md    󰽛       00;38;2;137;224;81  # Grün
+*.txt   
+*.log   
 *.csv   
 *.pub   󱆄
 *.iso          00;38;2;1;152;51
