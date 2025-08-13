@@ -8,11 +8,12 @@
 # hier einen der Werte eintragen, je größer der DPI wert desto kleiner die Schrift
 # Praktische DPI-Optionen:
 #   96  = 1.0×  historische Standard (von Windows 95!)
+#   120  = 1.25×  historische Standard (von Windows 95!)
 #   144 = 1.5× (gut lesbar, fractional scaling)
 #   168 = 1.75× (größer, manche Apps haben Probleme)
 #   192 = 2.0× (integer scaling, beste Kompatibilität)
 #   Weitere Werte im 96er raster 216 240 264 288
-MASTER_DPI=96
+MASTER_DPI=120
 SCALE_FACTOR=1.25
 # export SCALE_FACTOR=$SCALE_FACTOR           # EXPORTIEREN für Wrapper-Scripts! (unnötig)
 xrandr --dpi 192
