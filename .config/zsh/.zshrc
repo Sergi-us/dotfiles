@@ -34,7 +34,7 @@ plug "jeffreytse/zsh-vi-mode"  # Vi-mode mit allem drum und dran
 # ============================================================================
 
 # --- Minimalistische Prompts ---
-plug "woefe/git-prompt.zsh"             # Simpel, nur Git-Info, sehr schnell, mit Standart-promt
+plug "woefe/git-prompt.zsh"             # Simpel, nur Git-Info, sehr schnell, mit Standart-Prompt
 # plug "agkozak/agkozak-zsh-prompt"     # Minimal aber informativ, async
 # plug "geometry-zsh/geometry"          # Minimal, konfigurierbar
 
@@ -54,10 +54,9 @@ plug "woefe/git-prompt.zsh"             # Simpel, nur Git-Info, sehr schnell, mi
 # PRODUKTIVITÄT & NAVIGATION
 # ============================================================================
 
-plug "Aloxaf/fzf-tab"                 # Tab-Completion mit fzf (mega cool!)
-# plug "changyuheng/fz"                 # z mit fzf kombiniert (braucht 'z' installiert)
-# plug "rupa/z"                         # Schnelle Verzeichnis-Navigation nach Häufigkeit
-# plug "agkozak/zsh-z"                  # Pure Zsh Implementation von z (keine Dependencies!)
+plug "Aloxaf/fzf-tab"                   # Tab-Completion mit fzf (mega cool!)
+# plug "unixorn/fzf-zsh-plugin"             # FZF Integration - lädt Keybindings & Completion! (problematisch!)
+plug "agkozak/zsh-z"                  # Pure Zsh Implementation von z (keine Dependencies!)
 plug "wfxr/forgit"                      # Git mit fzf Interface (git add -i auf Steroiden!)
 # plug "paulirish/git-open"             # 'git open' öffnet Repo im Browser
 plug "MichaelAquilina/zsh-you-should-use"  # Erinnert dich an Aliases die du hast!
@@ -158,14 +157,14 @@ if ! command -v prompt_pure_setup &> /dev/null && \
         ZSH_THEME_GIT_PROMPT_PREFIX="%{$fg_bold[magenta]%} "
         ZSH_THEME_GIT_PROMPT_SUFFIX=""
         ZSH_THEME_GIT_PROMPT_SEPARATOR=" "
-        ZSH_THEME_GIT_PROMPT_BRANCH="⎇ "              # Branch Symbol (Nerd Font)
-        ZSH_THEME_GIT_PROMPT_STAGED="%{$fg[green]%}✓"  # Staged changes
-        ZSH_THEME_GIT_PROMPT_CONFLICTS="%{$fg[red]%}✖" # Conflicts
-        ZSH_THEME_GIT_PROMPT_CHANGED="%{$fg[yellow]%}✚" # Changed files
-        ZSH_THEME_GIT_PROMPT_UNTRACKED="%{$fg[cyan]%}…" # Untracked
-        ZSH_THEME_GIT_PROMPT_STASHED="%{$fg[blue]%}⚑"  # Stash
-        ZSH_THEME_GIT_PROMPT_BEHIND="%{$fg[red]%}↓"    # Behind remote
-        ZSH_THEME_GIT_PROMPT_AHEAD="%{$fg[green]%}↑"   # Ahead of remote
+        ZSH_THEME_GIT_PROMPT_BRANCH="⎇ "                    # Branch Symbol (Nerd Font)
+        ZSH_THEME_GIT_PROMPT_STAGED="%{$fg[green]%}✓"       # Staged changes
+        ZSH_THEME_GIT_PROMPT_CONFLICTS="%{$fg[red]%}✖"      # Conflicts
+        ZSH_THEME_GIT_PROMPT_CHANGED="%{$fg[yellow]%}✚"     # Changed files
+        ZSH_THEME_GIT_PROMPT_UNTRACKED="%{$fg[cyan]%}…"     # Untracked
+        ZSH_THEME_GIT_PROMPT_STASHED="%{$fg[blue]%}⚑"       # Stash
+        ZSH_THEME_GIT_PROMPT_BEHIND="%{$fg[red]%}↓"         # Behind remote
+        ZSH_THEME_GIT_PROMPT_AHEAD="%{$fg[green]%}↑"        # Ahead of remote
 
         # Prompt mit git-prompt.zsh
         PROMPT="%B%{$fg[magenta]%}%n@%m%{$reset_color%} %(?:%{$fg_bold[green]%}➜:%{$fg_bold[red]%}✗) %{$fg[cyan]%}%c%{$reset_color%} "
@@ -184,7 +183,7 @@ if ! command -v prompt_pure_setup &> /dev/null && \
         precmd_functions+=( precmd_vcs_info )
         setopt prompt_subst
 
-        # Zweireihiger Prompt
+        # Standard Prompt
         PROMPT="%B%{$fg[magenta]%}%n@%m%{$reset_color%} %(?:%{$fg_bold[green]%}➜:%{$fg_bold[red]%}✗) %{$fg[cyan]%}%c%{$reset_color%} "
         RPROMPT='$(container_status)$vcs_info_msg_0_%B%F{cyan}[%*]%b%f'
     fi
@@ -234,16 +233,21 @@ fi
 # Diese müssen NACH dem vi-mode plugin definiert werden
 
 # Completion Menu Navigation (falls vi-mode plugin nicht läuft)
-zmodload zsh/complist
 bindkey -M menuselect 'h' vi-backward-char
 bindkey -M menuselect 'k' vi-up-line-or-history
 bindkey -M menuselect 'l' vi-forward-char
 bindkey -M menuselect 'j' vi-down-line-or-history
 
 # Custom Funktions-Keybindings
-bindkey -s '^o' '^ulfcd\n'              # Strg+o für lf
-bindkey -s '^a' '^ubc -lq\n'            # Strg+a für bc
-bindkey -s '^f' '^ucd "$(dirname "$(fzf)")"\n'  # Strg+f für fzf Dateisuche
+bindkey -s '^o' '^ulfcd\n'                          # Strg+o für lf
+bindkey -s '^a' '^ubc -lq\n'                        # Strg+a für bc
+
+# Überschreibe FZF Standard-Keybinding (Ctrl+T → Ctrl+F)
+bindkey '^f' fzf-file-widget            # Strg+f für FZF Dateisuche
+
+# FZF Integration laden (ohne Plugin)
+[ -f /usr/share/fzf/key-bindings.zsh ] && source /usr/share/fzf/key-bindings.zsh
+[ -f /usr/share/fzf/completion.zsh ] && source /usr/share/fzf/completion.zsh
 
 # fzf History
 zle -N fzf-history-widget
@@ -258,6 +262,10 @@ bindkey '^e' edit-command-line
 if command -v zvm_version &> /dev/null; then
     # Das Plugin überschreibt manche Keybindings, also definieren wir sie neu
     zvm_after_init() {
+        # FZF Bindings nach vi-mode Init
+        if [ -f /usr/share/fzf/key-bindings.zsh ]; then
+            source /usr/share/fzf/key-bindings.zsh
+        fi
         bindkey '^r' fzf-history-widget
         bindkey '^f' fzf-file-widget
         bindkey '^e' edit-command-line
