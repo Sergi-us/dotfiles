@@ -16,7 +16,7 @@ Dieses Repository enthält meine Dotfiles für SARBS - ein vollständig konfigur
 - **🚀 Terminal**: st (Simple Terminal)
 - **📁 Dateimanager**: lf (Terminal-basiert)
 - **🎨 Themes**: pywal für dynamische Farbschemata
-- **🔧 Shell**: Zsh mit angepasster Konfiguration
+- **🔧 Shell**: [Zsh mit angepasster Konfiguration](.config/zsh/README.md)
 - **📝 Editor**: Neovim mit umfangreicher Konfiguration
 - **📰 RSS Reader**: Newsboat/Newsraft
 - **🎨 UI Styling**: GTK & Qt Themes
@@ -107,7 +107,7 @@ NeoVim ist das Herzstück der Entwicklungsumgebung und erhält besondere Aufmerk
 - `st` - Simple Terminal
 - `dmenu` - Application Launcher
 - `lf` - Terminal File Manager
-- `zsh` - Erweiterte Shell
+- `zsh` - Erweiterte Shell ([Konfiguration & Zap Plugin Manager](.config/zsh/README.md))
 - `neovim` - Moderner Text Editor
 
 ### Zusatz-Tools *(in aktiver Entwicklung)*
