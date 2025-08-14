@@ -1,5 +1,6 @@
 #!/bin/bash
 ## 2025-03-11 SARBS
+# TODO über redshift nachdenken (oder anderweitig automatisieren)
 
 # Konfigurationsdatei für Farbtemperatur
 CONFIG_DIR="$HOME/.config/xsct"
