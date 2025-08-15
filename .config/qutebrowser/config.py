@@ -1,5 +1,6 @@
 # QuteBrowser Konfiguration mit Sicherheitsstufen
 ## 2025-08-12   SARBS
+# TODO YY hinzufügen zum Beenden mit Speichern
 
 # Autoconfig laden (UI-Einstellungen werden übernommen)
 config.load_autoconfig(True)

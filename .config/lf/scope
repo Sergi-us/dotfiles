@@ -1,86 +1,161 @@
 #!/bin/sh
-## 2025-02-25 SARBS
-# TODO Vorschau für alben ergänzen... So wie für bilder und videos
+## 2025-08-15   SARBS - Verbesserte Version
+# Konsistente Cache-Behandlung und Albumcover-Vorschau für mp3
+# der versuch Albuncover für flac anzuzeigen schlug fehl
 
-# Git-Status Check (NEU)
+# Git-Status Check
 if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
     git_status=$(git status --porcelain "$1" 2>/dev/null | cut -c1-2)
     if [ -n "$git_status" ]; then
         case "$git_status" in
             " M"|"MM")
-                echo -e "\033[33m[󰊢 Modified]\033[0m"
+                echo -e "\033[33m[󰊢  Geändert]\033[0m"
                 ;;
             "??")
-                echo -e "\033[90m[󰊢 Untracked]\033[0m"
+                echo -e "\033[90m[󰊢  Untracked]\033[0m"
                 ;;
             "A ")
-                echo -e "\033[32m[󰊢 Added]\033[0m"
+                echo -e "\033[32m[󰊢  Hinzugefügt]\033[0m"
                 ;;
             "D ")
-                echo -e "\033[31m[󰊢 Deleted]\033[0m"
+                echo -e "\033[31m[󰊢  Gelöscht]\033[0m"
                 ;;
         esac
         echo "---"
     fi
 fi
 
-# File preview handler for lf.
-
+# File preview handler for lf
 set -C -f
 IFS="$(printf '%b_' '\n')"; IFS="${IFS%_}"
 
-image() {
-	if [ -f "$1" ] && [ -n "$DISPLAY" ] && [ -z "$WAYLAND_DISPLAY" ] && command -V ueberzug >/dev/null 2>&1; then
-		printf '{"action": "add", "identifier": "PREVIEW", "x": "%s", "y": "%s", "width": "%s", "height": "%s", "scaler": "contain", "path": "%s"}\n' "$4" "$5" "$(($2-1))" "$(($3-1))" "$1" > "$FIFO_UEBERZUG"
-	else
-		mediainfo "$6"
-	fi
+# Hilfsfunktion für Cache-Pfad mit konsistenter Endung
+get_cache_path() {
+    local file="$1"
+    local extension="$2"
+    local hash=$(stat --printf '%n\0%i\0%F\0%s\0%W\0%Y' -- "$(readlink -f "$file")" 2>/dev/null | sha256sum | cut -d' ' -f1)
+    echo "${XDG_CACHE_HOME:-$HOME/.cache}/lf/thumb.${hash}.${extension}"
 }
 
-# Note that the cache file name is a function of file information, meaning if
-# an image appears in multiple places across the machine, it will not have to
-# be regenerated once seen.
+# Albumcover aus Audiodateien extrahieren (nur MP3)
+extract_album_cover() {
+    local audio_file="$1"
+    local cache="$2"
 
+    # Nur ffmpeg für MP3 Cover-Extraktion verwenden
+    if command -v ffmpeg >/dev/null 2>&1 && [ "${audio_file##*.}" = "mp3" ]; then
+        ffmpeg -i "$audio_file" -an -vcodec copy "$cache" 2>/dev/null && return 0
+    fi
+
+    return 1
+}
+
+# Bildvorschau-Funktion (vereinfacht zurück zum Original)
+image() {
+    if [ -f "$1" ] && [ -n "$DISPLAY" ] && [ -z "$WAYLAND_DISPLAY" ] && command -V ueberzug >/dev/null 2>&1; then
+        printf '{"action": "add", "identifier": "PREVIEW", "x": "%s", "y": "%s", "width": "%s", "height": "%s", "scaler": "contain", "path": "%s"}\n' "$4" "$5" "$(($2-1))" "$(($3-1))" "$1" > "$FIFO_UEBERZUG"
+    else
+        mediainfo "$6" 2>/dev/null || mediainfo "$1" 2>/dev/null
+    fi
+}
+
+# Hauptlogik basierend auf MIME-Type
 case "$(file --dereference --brief --mime-type -- "$1")" in
-	image/avif) CACHE="${XDG_CACHE_HOME:-$HOME/.cache}/lf/thumb.$(stat --printf '%n\0%i\0%F\0%s\0%W\0%Y' -- "$(readlink -f "$1")" | sha256sum | cut -d' ' -f1)"
-		[ ! -f "$CACHE" ] && magick "$1" "$CACHE.jpg"
-		image "$CACHE.jpg" "$2" "$3" "$4" "$5" "$1" ;;
-	image/vnd.djvu)
-		CACHE="${XDG_CACHE_HOME:-$HOME/.cache}/lf/thumb.$(stat --printf '%n\0%i\0%F\0%s\0%W\0%Y' -- "$(readlink -f "$1")" | sha256sum | cut -d' ' -f1)"
-		[ ! -f "$CACHE" ] && djvused "$1" -e 'select 1; save-page-with /dev/stdout' | magick -density 200 - "$CACHE.jpg" > /dev/null 2>&1
-		image "$CACHE.jpg" "$2" "$3" "$4" "$5" "$1" ;;
-image/svg+xml)
-	CACHE="${XDG_CACHE_HOME:-$HOME/.cache}/lf/thumb.$(stat --printf '%n\0%i\0%F\0%s\0%W\0%Y' -- "$(readlink -f "$1")" | sha256sum | cut -d' ' -f1)"
-	[ ! -f "$CACHE" ] && inkscape --convert-dpi-method=none -o "$CACHE.png" --export-overwrite -D --export-png-color-mode=RGBA_16 "$1"
-	image "$CACHE.png" "$2" "$3" "$4" "$5" "$1"
-	;;
-  image/x-xcf)
-    CACHE="${XDG_CACHE_HOME:-$HOME/.cache}/lf/thumb.$(stat --printf '%n\0%i\0%F\0%s\0%W\0%Y' -- "$(readlink -f "$1")" | sha256sum | awk '{print $1}')"
-    [ ! -f "$CACHE.jpg" ] && magick "$1[0]" "$CACHE.jpg"
-    image "$CACHE.jpg" "$2" "$3" "$4" "$5" "$1"
-  ;;
-	image/*) image "$1" "$2" "$3" "$4" "$5" "$1" ;;
-	text/html) lynx -width="$4" -display_charset=utf-8 -dump "$1" ;;
-	text/troff) man ./ "$1" | col -b ;;
-	text/* | */xml | application/json | application/x-ndjson) bat -p --theme ansi --terminal-width "$(($4-2))" -f "$1" ;;
-	audio/* | application/octet-stream) mediainfo "$1" || exit 1 ;;
-	video/* )
-		CACHE="${XDG_CACHE_HOME:-$HOME/.cache}/lf/thumb.$(stat --printf '%n\0%i\0%F\0%s\0%W\0%Y' -- "$(readlink -f "$1")" | sha256sum | cut -d' ' -f1)"
-		[ ! -f "$CACHE" ] && ffmpegthumbnailer -i "$1" -o "$CACHE" -s 0
-		image "$CACHE" "$2" "$3" "$4" "$5" "$1"
-		;;
-	*/pdf)
-		CACHE="${XDG_CACHE_HOME:-$HOME/.cache}/lf/thumb.$(stat --printf '%n\0%i\0%F\0%s\0%W\0%Y' -- "$(readlink -f "$1")" | sha256sum | cut -d' ' -f1)"
-		[ ! -f "$CACHE.jpg" ] && pdftoppm -jpeg -f 1 -singlefile "$1" "$CACHE"
-		image "$CACHE.jpg" "$2" "$3" "$4" "$5" "$1"
-		;;
-	*/epub+zip|*/mobi*)
-		CACHE="${XDG_CACHE_HOME:-$HOME/.cache}/lf/thumb.$(stat --printf '%n\0%i\0%F\0%s\0%W\0%Y' -- "$(readlink -f "$1")" | sha256sum | cut -d' ' -f1)"
-		[ ! -f "$CACHE.jpg" ] && gnome-epub-thumbnailer "$1" "$CACHE.jpg"
-		image "$CACHE.jpg" "$2" "$3" "$4" "$5" "$1"
-		;;
-	application/*zip) atool --list -- "$1" ;;
-	*opendocument*) odt2txt "$1" ;;
-	application/pgp-encrypted) gpg -d -- "$1" ;;
+    image/avif)
+        CACHE="$(get_cache_path "$1" "jpg")"
+        [ ! -s "$CACHE" ] && magick "$1" "$CACHE" 2>/dev/null
+        [ -s "$CACHE" ] && image "$CACHE" "$2" "$3" "$4" "$5" "$1"
+        ;;
+    image/vnd.djvu)
+        CACHE="$(get_cache_path "$1" "jpg")"
+        [ ! -s "$CACHE" ] && djvused "$1" -e 'select 1; save-page-with /dev/stdout' | magick -density 200 - "$CACHE" >/dev/null 2>&1
+        [ -s "$CACHE" ] && image "$CACHE" "$2" "$3" "$4" "$5" "$1"
+        ;;
+    image/svg+xml)
+        CACHE="$(get_cache_path "$1" "png")"
+        [ ! -s "$CACHE" ] && inkscape --convert-dpi-method=none -o "$CACHE" --export-overwrite -D --export-png-color-mode=RGBA_16 "$1" 2>/dev/null
+        [ -s "$CACHE" ] && image "$CACHE" "$2" "$3" "$4" "$5" "$1"
+        ;;
+    image/x-xcf)
+        CACHE="$(get_cache_path "$1" "jpg")"
+        [ ! -s "$CACHE" ] && magick "$1[0]" "$CACHE" 2>/dev/null
+        [ -s "$CACHE" ] && image "$CACHE" "$2" "$3" "$4" "$5" "$1"
+        ;;
+    image/*)
+        image "$1" "$2" "$3" "$4" "$5" "$1"
+        ;;
+    audio/*)
+        # Albumcover-Extraktion für Audiodateien
+        CACHE="$(get_cache_path "$1" "jpg")"
+        if [ ! -s "$CACHE" ]; then
+            # Nur für MP3: Versuche Cover aus der Audiodatei zu extrahieren
+            if [ "${1##*.}" = "mp3" ] && extract_album_cover "$1" "$CACHE"; then
+                image "$CACHE" "$2" "$3" "$4" "$5" "$1"
+            else
+                # Für alle anderen: Nur mediainfo anzeigen
+                mediainfo "$1"
+            fi
+        else
+            image "$CACHE" "$2" "$3" "$4" "$5" "$1"
+        fi
+        ;;
+    video/*)
+        CACHE="$(get_cache_path "$1" "jpg")"
+        [ ! -s "$CACHE" ] && ffmpegthumbnailer -i "$1" -o "$CACHE" -s 0 2>/dev/null
+        [ -s "$CACHE" ] && image "$CACHE" "$2" "$3" "$4" "$5" "$1"
+        ;;
+    */pdf)
+        CACHE="$(get_cache_path "$1" "jpg")"
+        [ ! -s "$CACHE" ] && pdftoppm -jpeg -f 1 -singlefile "$1" "${CACHE%.*}" 2>/dev/null
+        [ -s "$CACHE" ] && image "$CACHE" "$2" "$3" "$4" "$5" "$1"
+        ;;
+    */epub+zip|*/mobi*)
+        CACHE="$(get_cache_path "$1" "jpg")"
+        [ ! -s "$CACHE" ] && gnome-epub-thumbnailer "$1" "$CACHE" 2>/dev/null
+        [ -s "$CACHE" ] && image "$CACHE" "$2" "$3" "$4" "$5" "$1"
+        ;;
+    text/html)
+        lynx -width="$4" -display_charset=utf-8 -dump "$1"
+        ;;
+    text/troff)
+        man ./ "$1" | col -b
+        ;;
+    text/*|*/xml|application/json|application/x-ndjson)
+        bat -p --theme ansi --terminal-width "$(($4-2))" -f "$1"
+        ;;
+    audio/* | application/octet-stream)
+        # Behandlung für Audiodateien mit falschem MIME-Type
+        case "${1##*.}" in
+            mp3)
+                CACHE="$(get_cache_path "$1" "jpg")"
+                if [ ! -s "$CACHE" ]; then
+                    if extract_album_cover "$1" "$CACHE"; then
+                        image "$CACHE" "$2" "$3" "$4" "$5" "$1"
+                    else
+                        mediainfo "$1" || exit 1
+                    fi
+                else
+                    image "$CACHE" "$2" "$3" "$4" "$5" "$1"
+                fi
+                ;;
+            flac|ogg|opus|m4a|aac|wav)
+                # Für diese Formate nur mediainfo anzeigen
+                mediainfo "$1" || exit 1
+                ;;
+            *)
+                mediainfo "$1" || exit 1
+                ;;
+        esac
+        ;;
+    application/*zip)
+        atool --list -- "$1"
+        ;;
+    *opendocument*)
+        odt2txt "$1"
+        ;;
+    application/pgp-encrypted)
+        gpg -d -- "$1"
+        ;;
 esac
+
 exit 1

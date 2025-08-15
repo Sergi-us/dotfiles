@@ -38,11 +38,13 @@ alias gc"git clone --depth 1"
 alias magit="nvim -c MagitOnly"
 
 # Systemwerkzeuge
+
+alias lf="lfub"
+
 alias \
 	p="pacman" \
 	bc="bc -ql" \
 	df="df -h" \
-	lf="lfub" \
 	free="free -h" \
 	ka="killall" \
 	neofetch="fastfetch --load-config examples/2.jsonc" \

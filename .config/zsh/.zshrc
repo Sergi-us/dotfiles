@@ -116,11 +116,18 @@ function container_status() {
     [ -f /run/.containerenv ] && echo "⚟ "
 }
 
-# lf mit Verzeichniswechsel
+# lf mit Verzeichniswechsel (verbesserte Version die zuerst lfub probiert)
 lfcd () {
     tmp="$(mktemp -uq)"
     trap 'rm -f $tmp >/dev/null 2>&1 && trap - HUP INT QUIT TERM PWR EXIT' HUP INT QUIT TERM PWR EXIT
-    lf -last-dir-path="$tmp" "$@"
+
+    # Verwende lfub wenn verfügbar, sonst lf
+    if command -v lfub >/dev/null 2>&1; then
+        lfub -last-dir-path="$tmp" "$@"
+    else
+        lf -last-dir-path="$tmp" "$@"
+    fi
+
     if [ -f "$tmp" ]; then
         dir="$(cat "$tmp")"
         [ -d "$dir" ] && [ "$dir" != "$(pwd)" ] && cd "$dir"
