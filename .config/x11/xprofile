@@ -14,7 +14,7 @@
 #   192 = 2.0× (integer scaling, beste Kompatibilität)
 #   Weitere Werte im 96er raster 216 240 264 288
 MASTER_DPI=120
-SCALE_FACTOR=1.25
+SCALE_FACTOR=1.5
 # export SCALE_FACTOR=$SCALE_FACTOR           # EXPORTIEREN für Wrapper-Scripts! (unnötig)
 xrandr --dpi 192
 
