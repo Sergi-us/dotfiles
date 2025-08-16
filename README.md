@@ -21,7 +21,7 @@ Dieses Repository enthält meine Dotfiles für SARBS - ein vollständig konfigur
 - **📰 RSS Reader**: Newsboat/Newsraft
 - **🎨 UI Styling**: GTK & Qt Themes
 - **📚 Dokumentation**: wikiman Integration
-- **🖼️ X11**: Angepasste X11-Konfiguration
+- **🖼️ X11**: [Angepasste X11-Konfiguration](.config/x11/README.md)
 
 ## 🗂️ Repository-Struktur
 
