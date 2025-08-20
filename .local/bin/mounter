@@ -1,67 +1,139 @@
 #!/bin/bash
-## 2025-01-09 SARBS
-# Dieses Skript mountet Android-Telefone und USB-Laufwerke (verschlüsselt oder
-# nicht). Dieses Skript ersetzt das ältere `dmenumount`, das zusätzliche
-# Schritte erforderte und keine verschlüsselten Laufwerke handhaben konnte.
-# TODO: Versuche, Laufwerke in crypttab zu entschlüsseln
+## 2025-08-20   SARBS - ASCII-Marker Edition
+## Mountet Android-Telefone und USB-Laufwerke (verschlüsselt oder nicht)
+## WICHTIG: Nutzt ASCII-Marker [TYPE] statt Emojis für Portabilität!
+## Die Marker bestimmen die Mount-Logik und Optionen.
+## Dependencies: dmenu, simple-mtpfs (für Android), cryptsetup (für LUKS)
+## Sudoers-Einträge nötig für: mount, umount, cryptsetup, mkdir in /mnt
 
 IFS='
 '
-# Funktion zum Escapen von Handy-Namen.
+
+# Funktion zum Escapen von Handy-Namen für sichere Filesystem-Namen
+# Entfernt Sonderzeichen und konvertiert zu ASCII
 escape() {
     echo "$@" | iconv -cf UTF-8 -t ASCII//TRANSLIT | tr -d '[:punct:]' | tr '[:upper:]' '[:lower:]' | tr ' ' '-' | sed "s/-\+/-/g;s/\(^-\|-\$\)//g"
 }
 
-# Überprüfe auf Handys.
-phones="$(simple-mtpfs -l 2>/dev/null | sed "s/^/📱/")"
+# Gerätetyp-Erkennung basierend auf Device-Namen und System-Info
+# Returnt: NVME, DVD, USB, SSD, HDD oder DISK
+get_device_type() {
+    local device="$1"
+    local base="${device##*/}"  # Nur der Device-Name ohne /dev/
+
+    # NVMe-SSDs erkennen (z.B. nvme0n1p1)
+    [[ "$base" =~ nvme ]] && echo "NVME" && return
+
+    # Optische Laufwerke (sr0, sr1, etc.)
+    [[ "$base" =~ sr[0-9]+ ]] && echo "DVD" && return
+
+    # Basis-Device für weitere Checks vorbereiten
+    # Bei NVMe: nvme0n1p1 -> nvme0n1, bei anderen: sda1 -> sda
+    [[ "$base" =~ nvme[0-9]+n[0-9]+p[0-9]+ ]] && base="${base%p[0-9]*}" || base="${base%[0-9]*}"
+
+    # Check ob rotational (HDD) oder nicht (SSD) via /sys
+    if [ -f "/sys/block/$base/queue/rotational" ]; then
+        rot=$(cat "/sys/block/$base/queue/rotational")      # 0=SSD, 1=HDD
+        rem=$(cat "/sys/block/$base/removable" 2>/dev/null || echo "0")  # 1=USB
+        [ "$rem" = "1" ] && echo "USB" && return
+        [ "$rot" = "0" ] && echo "SSD" || echo "HDD"
+    else
+        echo "DISK"  # Fallback wenn keine Info verfügbar
+    fi
+}
+
+# ========== ANDROID/MTP DEVICES ==========
+# Listet alle MTP-Geräte und markiert sie mit [HANDY]
+phones="$(simple-mtpfs -l 2>/dev/null | sed "s/^/[HANDY] /")"
+
+# Bereits gemountete Handys aus der Liste entfernen
 mountedphones="$(grep "simple-mtpfs" /etc/mtab)"
-# Wenn es bereits gemountete Handys gibt, entferne sie aus der Liste der mountbaren Geräte.
 [ -n "$mountedphones" ] && phones="$(for phone in $phones; do
-    for mounted in $mountedphones; do
-        escphone="$(escape "$phone")"
-        [[ "$mounted" =~ "$escphone" ]] && break 1
-    done && continue 1
-    echo "$phone"
+    escphone="$(escape "${phone#*] }")"
+    echo "$mountedphones" | grep -q "$escphone" || echo "$phone"
 done)"
 
-# Überprüfe auf Laufwerke.
-lsblkoutput="$(lsblk -rpo "uuid,name,type,size,label,mountpoint,fstype")"
-# Alle LUKS-Laufwerke abrufen
-allluks="$(echo "$lsblkoutput" | grep crypto_LUKS)"
-# Eine Liste der bereits entschlüsselten LUKS-Laufwerk-UUIDs abrufen.
-decrypted="$(find /dev/disk/by-id/dm-uuid-CRYPT-LUKS2-* | sed "s|.*LUKS2-||;s|-.*||")"
-# Funktion zum Formatieren von Laufwerken für dmenu:
-filter() { sed "s/ /:/g" | awk -F':' '$7==""{printf "%s%s (%s) %s\n", $1, $3, $5, $6}' ; }
+# ========== LUKS ENCRYPTED DRIVES ==========
+# Alle LUKS-Laufwerke finden (brauchen UUID zum Check ob bereits entschlüsselt)
+allluks="$(lsblk -rpo "uuid,name,type,size,label,mountpoint,fstype" | grep crypto_LUKS)"
 
-# Nur nicht entschlüsselte LUKS-Laufwerke abrufen.
+# Bereits entschlüsselte LUKS devices finden
+decrypted="$(find /dev/disk/by-id/dm-uuid-CRYPT-LUKS2-* 2>/dev/null | sed "s|.*LUKS2-||;s|-.*||")"
+
+# Nur nicht-entschlüsselte LUKS anzeigen
 unopenedluks="$(for drive in $allluks; do
     uuid="${drive%% *}"
-    uuid="${uuid//-}"  # Dies ist ein Bashismus.
-    [ -n "$decrypted" ] && for open in $decrypted; do
-        [ "$uuid" = "$open" ] && break 1
-    done && continue 1
-    echo " $drive"
-done | filter)"
+    uuid="${uuid//-}"  # Bindestriche aus UUID entfernen für Vergleich
 
-# Alle normalen, nicht verschlüsselten oder entschlüsselten Partitionen abrufen, die nicht gemountet sind.
-normalparts="$(echo "$lsblkoutput" | grep -v crypto_LUKS | grep 'part\|rom\|crypt' | sed "s/^/💾 /" | filter)"
+    # Skip wenn bereits entschlüsselt
+    if [ -n "$decrypted" ]; then
+        echo "$decrypted" | grep -q "$uuid" && continue
+    fi
 
-# Alles in eine Variable hinzufügen. Wenn keine mountbaren Laufwerke gefunden werden, beenden.
+    # Format: [LUKS ] device (size) label/fstype
+    echo "$drive" | sed 's/ /:/g' | awk -F: '{
+        if ($1 == "") {
+            # Keine UUID (sollte bei LUKS nicht vorkommen)
+            printf "[LUKS ] %s (%s) %s\n", $2, $4, $7
+        } else {
+            # Mit UUID (normal)
+            printf "[LUKS ] %s (%s) %s\n", $2, $4, $7
+        }
+    }'
+done)"
+
+# ========== NORMALE PARTITIONEN ==========
+# WICHTIG: Ohne UUID-Feld! Das verschiebt nur die Felder wenn UUID fehlt
+# Format: name type size label mountpoint fstype
+normalparts="$(lsblk -rpo "name,type,size,label,mountpoint,fstype" | grep -v crypto_LUKS | grep 'part\|rom' | while read -r line; do
+    # Felder direkt parsen - Position ist jetzt fest!
+    name=$(echo "$line" | awk '{print $1}')      # Device-Pfad
+    type=$(echo "$line" | awk '{print $2}')      # part/rom/etc
+    size=$(echo "$line" | awk '{print $3}')      # Größe
+    label=$(echo "$line" | awk '{print $4}')     # Label (optional)
+    mountpoint=$(echo "$line" | awk '{print $5}') # Mountpoint (leer wenn unmounted)
+    fstype=$(echo "$line" | awk '{print $6}')    # Filesystem-Typ
+
+    # Nur unmountete Devices anzeigen
+    if [ -z "$mountpoint" ]; then
+        # Device-Typ ermitteln (USB/SSD/HDD/etc)
+        dtype=$(get_device_type "$name")
+
+        # Beschreibung: Label > Filesystem > Device-Name
+        desc="${label:-${fstype:-${name##*/}}}"
+
+        # Format: [TYPE  ] /dev/xxx (size) description
+        printf "[%-5s] %s (%s) %s\n" "$dtype" "$name" "$size" "$desc"
+    fi
+done)"
+
+# ========== ALLES ZUSAMMENFÜGEN ==========
 alldrives="$(echo "$phones
 $unopenedluks
-$normalparts" | sed "/^$/d;s/ *$//")"
+$normalparts" | sed "/^$/d")"  # Leere Zeilen entfernen
 
-# Beende das Skript, wenn ein sequentieller Befehl fehlschlägt.
+# Beende wenn keine Laufwerke gefunden
 set -e
-
 test -n "$alldrives"
 
-# Alle gefundenen Laufwerke an dmenu übergeben und die Benutzerwahl abrufen.
-chosen="$(echo "$alldrives" | dmenu -p "Welches Laufwerk mounten?" -i)"
+# ========== DMENU AUSWAHL ==========
+chosen="$(echo "$alldrives" | dmenu -l 10 -p "Welches Laufwerk mounten?" -i)"
 
-# Funktion zur Abfrage des Benutzers nach einem Mountpunkt.
+# ========== PARSE DIE AUSWAHL ==========
+# Der Marker [TYPE] bestimmt die Mount-Logik!
+marker="${chosen%%]*}"         # Alles vor ]
+marker="${marker#[}"           # [ entfernen
+marker="${marker// /}"         # Spaces entfernen
+
+# Device-Pfad ist zwischen "] " und " ("
+device="${chosen#*] }"         # Alles nach "] "
+device="${device%% (*}"        # Alles vor " ("
+
+# ========== HILFSFUNKTIONEN ==========
+
+# Mountpunkt via dmenu wählen lassen
 getmount() {
-    mp="$(find /mnt /media /mount /home -maxdepth 1 -type d 2>/dev/null | dmenu -i -p "Dieses Laufwerk wo mounten?")"
+    mp="$(find /mnt /media /mount /home -maxdepth 1 -type d 2>/dev/null | dmenu -l 10 -i -p "Mountpunkt wählen:")"
     test -n "$mp"
     if [ ! -d "$mp" ]; then
         mkdiryn=$(printf "Nein\\nJa" | dmenu -i -p "$mp existiert nicht. Erstellen?")
@@ -69,72 +141,107 @@ getmount() {
     fi
 }
 
+# Versuche mount ohne spezifischen Mountpunkt (nutzt fstab wenn vorhanden)
 attemptmount() {
-    # Versuch, ohne Mountpunkt zu mounten, um zu sehen, ob das Laufwerk in fstab ist.
-    echo "Versuche, $chosen ohne spezifischen Mountpunkt zu mounten..." | tee -a /tmp/mount.log
-    if sudo -A mount "$chosen"; then
-        notify-send "󱊟 Laufwerk gemountet." "$chosen gemountet."
-        echo "$chosen erfolgreich gemountet." | tee -a /tmp/mount.log
+    if sudo -A mount "$1" 2>/dev/null; then
+        notify-send "✓ Laufwerk gemountet" "$1 gemountet."
         exit
     else
-        echo "Mount ohne spezifischen Mountpunkt fehlgeschlagen." | tee -a /tmp/mount.log
         return 1
     fi
 }
 
-case "$chosen" in
-    󱊟*)
-        chosen="${chosen%% *}"
-        chosen="${chosen:1}"  # Dies ist ein Bashismus.
-        if attemptmount; then
-            notify-send "💾Laufwerk gemountet." "$chosen gemountet."
+# ========== HAUPTLOGIK - Marker-basierte Aktionen ==========
+case "$marker" in
+    HDD|SSD|USB|NVME|DVD|DISK)
+        # Normale Laufwerke
+        if attemptmount "$device"; then
+            exit
         else
             getmount
-            echo "Versuche, $chosen zu $mp zu mounten..." | tee -a /tmp/mount.log
-            sudo -A mount "$chosen" "$mp" -o uid="$(id -u)",gid="$(id -g)" || {
-                echo "Manuelles Mounten von $chosen zu $mp fehlgeschlagen." | tee -a /tmp/mount.log
+
+            # Device-spezifische Mount-Optionen
+            case "$marker" in
+                USB|HDD)
+                    # sync für sicheres Entfernen bei USB/HDD
+                    opts="uid=$(id -u),gid=$(id -g),sync"
+                    ;;
+                SSD|NVME)
+                    # noatime reduziert Schreibvorgänge auf SSDs
+                    opts="uid=$(id -u),gid=$(id -g),noatime"
+                    ;;
+                DVD)
+                    # Read-only für optische Medien
+                    opts="ro,uid=$(id -u),gid=$(id -g)"
+                    ;;
+                *)
+                    # Standard-Optionen
+                    opts="uid=$(id -u),gid=$(id -g)"
+                    ;;
+            esac
+
+            # Mount mit spezifischen Optionen
+            sudo -A mount "$device" "$mp" -o "$opts" || {
+                notify-send "✗ Fehler" "Mount fehlgeschlagen für $device"
                 exit 1
             }
-            notify-send "💾Laufwerk gemountet." "$chosen zu $mp gemountet."
-            echo "$chosen zu $mp erfolgreich gemountet." | tee -a /tmp/mount.log
+            notify-send "✓ $marker gemountet" "$device zu $mp gemountet."
         fi
         ;;
 
-    *)
-        chosen="${chosen%% *}"
-        chosen="${chosen:1}"  # Dies ist ein Bashismus.
-        num=0  # Initialisiere die Variable num
-        # Nummeriere das Laufwerk.
-        while true; do
-            [ -f "/dev/mapper/usb$num" ] || break
-            num="$(printf "%02d" "$((num + 1))")"
+    LUKS)
+        # Verschlüsselte Laufwerke - automatisch nach /mnt/usb[num]
+
+        # Freie Nummer für mapper-Device finden
+        num=0
+        while [ -e "/dev/mapper/usb$num" ]; do
+            num=$((num + 1))
         done
 
-        # Entschlüsseln in einem Terminalfenster mit angepasster Größe und Schriftgröße
-        ${TERMINAL:-st} -n floatterm -g 70x2 -f "Liberation Mono:size=16" -e sudo cryptsetup open "$chosen" "usb$num"
-        # Überprüfen, ob jetzt entschlüsselt.
-        if ! test -b "/dev/mapper/usb$num"; then
-            notify-send "Fehler" "Entschlüsselung von $chosen fehlgeschlagen."
-            echo "Entschlüsselung von $chosen fehlgeschlagen." | tee -a /tmp/mount.log
+        # Entschlüsseln in separatem Terminal für Passwort-Eingabe
+        # WICHTIG: cryptsetup braucht NOPASSWD in sudoers!
+        ${TERMINAL:-st} -n floatterm -g 70x2 -f "Liberation Mono:size=16" \
+            -e sudo cryptsetup open "$device" "usb$num"
+
+        if [ -b "/dev/mapper/usb$num" ]; then
+            # LUKS devices immer nach /mnt/usb[num] mounten
+            mp="/mnt/usb$num"
+            [ ! -d "$mp" ] && sudo -A mkdir -p "$mp"
+
+            sudo -A mount "/dev/mapper/usb$num" "$mp" || {
+                notify-send "✗ Fehler" "Mount fehlgeschlagen"
+                sudo cryptsetup close "usb$num"
+                exit 1
+            }
+            notify-send "✓ LUKS gemountet" "$device zu $mp gemountet."
+        else
+            notify-send "✗ Fehler" "Entschlüsselung fehlgeschlagen"
             exit 1
         fi
-
-        echo "Versuche, entschlüsseltes Laufwerk $chosen zu mounten..." | tee -a /tmp/mount.log
-        sudo mount "/dev/mapper/usb$num" /mnt/usb || {
-            echo "Manuelles Mounten von entschlüsseltem Laufwerk $chosen zu /mnt/usb fehlgeschlagen." | tee -a /tmp/mount.log
-            exit 1
-        }
-        notify-send "🔓Entschlüsseltes Laufwerk gemountet." "$chosen entschlüsselt und zu /mnt/usb gemountet."
-        echo "Entschlüsseltes Laufwerk $chosen zu /mnt/usb erfolgreich gemountet." | tee -a /tmp/mount.log
         ;;
 
-    *)
-        notify-send "❗Hinweis" "Erlaube jetzt den Dateizugriff auf deinem Handy."
+    HANDY)
+        # Android/MTP Geräte
+        notify-send "📱 Hinweis" "Erlaube Dateizugriff auf dem Handy"
         getmount
-        number="${chosen%%:*}"
-        number="${chosen:1}"  # Dies ist ein Bashismus.
-        sudo -A simple-mtpfs -o allow_other -o fsname="simple-mtpfs-$(escape "$chosen")" --device "$number" "$mp"
-        notify-send " Android gemountet." "Android-Gerät zu $mp gemountet."
-        echo "Android-Gerät $chosen zu $mp erfolgreich gemountet." | tee -a /tmp/mount.log
+
+        # Device-Nummer aus der MTP-Liste extrahieren
+        number="${chosen#*] }"
+        number="${number%%:*}"
+
+        # MTP mount mit simple-mtpfs
+        sudo -A simple-mtpfs -o allow_other \
+            -o fsname="simple-mtpfs-$(escape "$chosen")" \
+            --device "$number" "$mp" || {
+            notify-send "✗ Fehler" "Mount fehlgeschlagen"
+            exit 1
+        }
+        notify-send "✓ Handy gemountet" "Android zu $mp gemountet"
+        ;;
+
+    *)
+        # Unbekannter Marker - sollte nicht vorkommen
+        notify-send "✗ Fehler" "Unbekannter Typ: $marker"
+        exit 1
         ;;
 esac
