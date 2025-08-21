@@ -12,7 +12,12 @@ THEME_PATH=~/.cache/walogram/wal.tdesktop-theme
 walogram -i "$BG_PATH" >/dev/null 2>&1
 # walogram -B -i "$BG_PATH" >/dev/null 2>&1
 
-# Startet Telegram
-# GUI_SCALE=$(grep "^GUI_SCALE=" ~/.xprofile | cut -d= -f2)
-# exec /usr/bin/Telegram --force-device-scale-factor=${GUI_SCALE:-1.5} "$@"
-Telegram &
+
+# Scale Factor aus .xprofile lesen
+SCALE_FACTOR=$(grep "^SCALE_FACTOR=" ~/.xprofile 2>/dev/null | cut -d= -f2)
+
+# Verwende SCALE_FACTOR mit Fallback auf 1.25 (wie in deiner .xprofile)
+exec /usr/bin/Telegram --force-device-scale-factor=${SCALE_FACTOR:-1.25} "$@"
+
+# Ohne Skaliereinstellungen starten
+# Telegram &
