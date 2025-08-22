@@ -1,11 +1,12 @@
 configuration {
-/*	modes: "window,drun,run,ssh";*/
-/*	font: "mono 12";*/
+	modes: "window,drun,run,ssh";
+	font: "JetBrainsMono NF 10";
 /*	location: 0;*/
 /*	yoffset: 0;*/
 /*	xoffset: 0;*/
 /*	fixed-num-lines: true;*/
-/*	show-icons: false;*/
+	show-icons: true;
+	icon-theme: "Adwaita";
 /*	preview-cmd: ;*/
 /*	on-selection-changed: ;*/
 /*	on-mode-changed: ;*/
@@ -46,7 +47,7 @@ configuration {
 /*	tokenize: true;*/
 /*	m: "-5";*/
 /*	filter: ;*/
-/*	dpi: -1;*/
+    dpi: 192;  /* Auto-sync von xrandr --dpi */
 /*	threads: 0;*/
 /*	scroll-method: 0;*/
 /*	window-format: "{w}    {c}   {t}";*/
@@ -166,3 +167,7 @@ configuration {
       sorting-method:    "name";
   }
 }
+
+// @theme "/usr/share/rofi/themes/gruvbox-dark.rasi"
+/* Pywal colors - wird bei jedem wal update aktualisiert */
+@import "~/.cache/wal/colors-rofi-dark.rasi"

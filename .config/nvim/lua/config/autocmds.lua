@@ -79,36 +79,56 @@ vim.cmd([[
   autocmd BufWritePost Xresources,Xdefaults,xresources,xdefaults !xrdb %
 ]])
 
--- DPI Synchronisation zwischen xprofile und GTK3 settings.ini
+-- DPI Synchronisation zwischen xprofile, GTK3 und Rofi
 -- Liest MASTER_DPI Variable statt direkt xrandr --dpi
+-- Liest xrandr --dpi Wert und synchronisiert ihn
 vim.api.nvim_create_autocmd("BufWritePost", {
     pattern = {
         vim.fn.expand("~/.xprofile"),
         vim.fn.expand("~/.config/x11/xprofile"),
     },
     callback = function()
-        -- Suche nach MASTER_DPI=XXX ODER xrandr --dpi XXX
         local file_content = vim.fn.readfile(vim.fn.expand("%:p"))
-        local dpi = nil
+        local master_dpi = nil
+        local xrandr_dpi = nil
 
         for _, line in ipairs(file_content) do
-            -- Erst nach MASTER_DPI suchen (Priorität)
-            dpi = tonumber(line:match("^MASTER_DPI=(%d+)"))
-            if dpi then break end
-
-            -- Fallback: xrandr --dpi
-            dpi = tonumber(line:match("xrandr --dpi (%d+)"))
-            if dpi then break end
+            -- MASTER_DPI für GTK3 (nur wenn Zeile mit MASTER_DPI beginnt)
+            if not master_dpi then
+                master_dpi = tonumber(line:match("^MASTER_DPI=(%d+)"))
+            end
+            -- xrandr --dpi für Rofi (nur wenn Zeile "xrandr --dpi" enthält)
+            if not xrandr_dpi and line:match("^xrandr%s+%-%-dpi%s+") then
+                xrandr_dpi = tonumber(line:match("xrandr%s+%-%-dpi%s+(%d+)"))
+            end
         end
 
-        -- Nur weitermachen wenn gültiger DPI-Wert gefunden
-        if dpi and dpi > 0 then
-            -- Update GTK3 settings.ini mit berechnetem Wert (DPI * 1024) + Kommentar
+        -- GTK3 Update mit MASTER_DPI (falls vorhanden)
+        if master_dpi and master_dpi > 0 then
             vim.fn.system(string.format(
                 "sed -i 's/^gtk-xft-dpi=.*/gtk-xft-dpi=%d  # Auto-generiert: %d * 1024 (MASTER_DPI)/' ~/.config/gtk-3.0/settings.ini",
-                dpi * 1024, dpi
+                master_dpi * 1024, master_dpi
             ))
-            vim.notify("DPI synced: " .. dpi .. " → GTK3: " .. (dpi * 1024))
+        end
+
+        -- Rofi Update mit xrandr --dpi (falls vorhanden)
+        if xrandr_dpi and xrandr_dpi > 0 then
+            local rofi_config = vim.fn.expand("~/.config/rofi/config.rasi")
+            if vim.fn.filereadable(rofi_config) == 1 then
+                -- Erst alles bis zum Semikolon ersetzen, alte Kommentare entfernen
+                vim.fn.system(string.format(
+                    "sed -i 's/\\s*dpi:.*$/    dpi: %d;  \\/\\* Auto-sync von xrandr --dpi \\*\\//' %s",
+                    xrandr_dpi, rofi_config
+                ))
+            end
+        end
+
+        -- Notify mit beiden Werten
+        if master_dpi or xrandr_dpi then
+            local msg = "DPI synced: "
+            if master_dpi then msg = msg .. string.format("GTK3: %d ", master_dpi * 1024) end
+            if xrandr_dpi then msg = msg .. string.format("Rofi: %d", xrandr_dpi) end
+            vim.notify(msg)
         end
     end
 })
