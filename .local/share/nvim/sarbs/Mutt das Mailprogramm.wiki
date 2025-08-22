@@ -70,4 +70,50 @@ Installieren der notwendigen Pakete (bei Sarbs bereits vorinstaliert)
 sudo pacman -S pam-gnupg
 }}}
 
+GnuPG Agent konfigurieren
+/home/sergi/.local/share/gnupg/gpg-agent.conf
 
+
+== GPG-Schlüssel für  Mailverschlüsselung einrichten ==
+
+gpg --full-gen-key
+
+=== KEY_ID herausfinden ===
+
+{{{
+gpg --list-secret-keys --keyid-format 0xLONG
+}}}
+
+die key_id fängt mit *0x* an (für neomutt zu bevorzugen)
+
+=== ~/.config/mutt/muttrc beabreiten ===
+
+key_id in die *~/.config/mutt/accounts/mail@posteo.de.muttrc* eintragen
+
+{{{
+# Der E-Mail-Verschlüsselungsschlüssel
+set crypt_use_gpgme = no  # Nutze klassisches GPG
+set pgp_default_key = "0xDEIN_EMAIL_KEY_ID"
+set pgp_sign_as = "0xDEIN_EMAIL_KEY_ID"
+set pgp_self_encrypt = yes
+set pgp_self_encrypt_as = "0xDEIN_EMAIL_KEY_ID"
+
+# Auto-sign/encrypt Optionen
+set crypt_autosign = yes           # Signiere alle Mails
+set crypt_opportunistic_encrypt = yes  # Verschlüssle wenn möglich
+set crypt_replyencrypt = yes       # Verschlüssle Antworten auf verschlüsselte Mails
+set crypt_replysign = yes          # Signiere Antworten auf signierte Mails
+set crypt_replysignencrypted = yes # Signiere Antworten auf verschlüsselte Mails
+
+# GPG-Agent nutzen
+set pgp_use_gpg_agent = yes
+}}}
+
+== Test ==
+
+{{{
+gpg-connect-agent /bye
+gpg-connect-agent RELOADAGENT /bye
+echo "test" | gpg --clearsign --local-user 0x12AB345CD678E9F0
+echo "test" | gpg --clearsign --local-user anderer-name@posteo.de
+}}}

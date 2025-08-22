@@ -12,7 +12,6 @@ THEME_PATH=~/.cache/walogram/wal.tdesktop-theme
 walogram -i "$BG_PATH" >/dev/null 2>&1
 # walogram -B -i "$BG_PATH" >/dev/null 2>&1
 
-
 # Scale Factor aus .xprofile lesen
 SCALE_FACTOR=$(grep "^SCALE_FACTOR=" ~/.xprofile 2>/dev/null | cut -d= -f2)
 
