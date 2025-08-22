@@ -75,45 +75,91 @@ GnuPG Agent konfigurieren
 
 
 == GPG-Schlüssel für  Mailverschlüsselung einrichten ==
+GPG-Schlüssel für Mailverschlüsselung einrichten
+Schlüssel-Setup (Zwei-Schlüssel-System)
+Dieses Setup trennt die Authentifizierung (Pass) von der E-Mail-Verschlüsselung:
 
-gpg --full-gen-key
-
-=== KEY_ID herausfinden ===
+Pass-Schlüssel: Für Passwort-Manager und Mail-Account-Authentifizierung (8h Cache)
+E-Mail-Schlüssel: Für Verschlüsselung/Signierung von Mail-Inhalten (kein Cache)
 
 {{{
-gpg --list-secret-keys --keyid-format 0xLONG
+# E-Mail-Verschlüsselungsschlüssel erstellen
+gpg --full-gen-key
+# Name: Sergius (E-Mail Verschlüsselung)
+# E-Mail: anderer-name@posteo.de UND name@posteo.de hinzufügen
 }}}
 
-die key_id fängt mit *0x* an (für neomutt zu bevorzugen)
+=== Beide E-Mail-Adressen zum Schlüssel hinzufügen ===
+{{{
+# Falls Alias verwendet wird (anderer-name@posteo.de als Alias für name@posteo.de)
+gpg --edit-key 0x12AB345CD678E9F0
+gpg> adduid
+# Real name: Sergius
+# E-Mail: name@posteo.de
+# Comment: Posteo Account
+gpg> save
+}}}
 
-=== ~/.config/mutt/muttrc beabreiten ===
+=== KEY_ID herausfinden ===
+{{{
+gpg --list-secret-keys --keyid-format 0xLONG
+# Die KEY_ID beginnt mit 0x (für neomutt bevorzugt)
+}}}
 
-key_id in die *~/.config/mutt/accounts/mail@posteo.de.muttrc* eintragen
+=== Neomutt-Konfiguration ===
+In *~/.config/mutt/accounts/name@posteo.de.muttrc*:
 
 {{{
-# Der E-Mail-Verschlüsselungsschlüssel
-set crypt_use_gpgme = no  # Nutze klassisches GPG
-set pgp_default_key = "0xDEIN_EMAIL_KEY_ID"
-set pgp_sign_as = "0xDEIN_EMAIL_KEY_ID"
+# E-Mail-Verschlüsselungsschlüssel
+set crypt_use_gpgme = no  # WICHTIG: Klassisches GPG statt GPGME (behebt Probleme mit custom GNUPGHOME)
+set pgp_default_key = "0x12AB345CD678E9F0"
+set pgp_sign_as = "0x12AB345CD678E9F0"
 set pgp_self_encrypt = yes
-set pgp_self_encrypt_as = "0xDEIN_EMAIL_KEY_ID"
+set pgp_self_encrypt_as = "0x12AB345CD678E9F0"
+
+# Crypt-Hooks für Alias-Mapping
+crypt-hook name@posteo.de 0x12AB345CD678E9F0
+crypt-hook anderer-name@posteo.de 0x12AB345CD678E9F0
 
 # Auto-sign/encrypt Optionen
-set crypt_autosign = yes           # Signiere alle Mails
-set crypt_opportunistic_encrypt = yes  # Verschlüssle wenn möglich
-set crypt_replyencrypt = yes       # Verschlüssle Antworten auf verschlüsselte Mails
-set crypt_replysign = yes          # Signiere Antworten auf signierte Mails
-set crypt_replysignencrypted = yes # Signiere Antworten auf verschlüsselte Mails
+set crypt_autosign = no           # Manuell signieren wenn gewünscht
+set crypt_opportunistic_encrypt = no  # Manuell verschlüsseln
+set crypt_replyencrypt = yes       # Verschlüsselte Antworten auf verschlüsselte Mails
+set crypt_replysign = yes          # Signierte Antworten auf signierte Mails
 
-# GPG-Agent nutzen
+# GPG-Agent
 set pgp_use_gpg_agent = yes
 }}}
 
-== Test ==
+
+
+== Test-Befehle ==
 
 {{{
+# GPG-Agent prüfen
 gpg-connect-agent /bye
 gpg-connect-agent RELOADAGENT /bye
+
+# Signatur-Test mit beiden Identitäten
 echo "test" | gpg --clearsign --local-user 0x12AB345CD678E9F0
 echo "test" | gpg --clearsign --local-user anderer-name@posteo.de
+echo "test" | gpg --clearsign --local-user name@posteo.de
+
+# Verschlüsselungs-Test
+echo "test" | gpg --encrypt --recipient anderer-name@posteo.de > test.gpg
+gpg --decrypt test.gpg
 }}}
+
+=== Neomutt Shortcuts ===
+S = Security-Menü beim Compose
+s = sign (signieren)
+e = encrypt (verschlüsseln)
+b = both (beides)
+
+== Offene Punkte / TODO ==
+[ ] Pinentry-rofi konfigurieren für bessere Schlüssel-Identifikation
+[ ] Cache-Strategie implementieren (Pass-Key 8h, E-Mail-Key 0h)
+[ ] GPG-Agent Debug wenn Pinentry nicht erscheint
+[ ] Problem lösen: "Geheimer Schlüssel nicht gefunden" in neomutt
+
+
