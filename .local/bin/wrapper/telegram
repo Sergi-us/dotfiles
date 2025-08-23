@@ -1,0 +1,18 @@
+#!/bin/bash
+# Telegram Wrapper mit Theme und Qt-Skalierung
+
+# Manuelle Skalierung (auskommentieren für xprofile)
+SCALE_FACTOR=2
+
+# Theme-Update
+walogram -i ~/.local/share/bg >/dev/null 2>&1
+
+# TODO Prüfen auf nutzen...
+THEME_PATH=~/.cache/walogram/wal.tdesktop-theme
+
+# Hole SCALE_FACTOR - lokal oder aus xprofile
+SCALE_FACTOR=${SCALE_FACTOR:-$(grep "^SCALE_FACTOR=" ~/.config/x11/xprofile | cut -d= -f2)}
+
+# Qt-Skalierung
+export QT_SCALE_FACTOR=$SCALE_FACTOR
+exec /usr/bin/Telegram "$@"
