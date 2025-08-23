@@ -6,6 +6,10 @@
 
 SCALE_FACTOR=${SCALE_FACTOR:-$(grep "^SCALE_FACTOR=" ~/.config/x11/xprofile | cut -d= -f2)}
 
+# GTK-Dialog Skalierung (wichtig für File-Chooser!)
+export GDK_SCALE=1
+export GDK_DPI_SCALE=$SCALE_FACTOR
+
 exec /usr/bin/chromium \
     --force-device-scale-factor=$SCALE_FACTOR \
     --high-dpi-support=1 \
