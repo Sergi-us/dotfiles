@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# 2025-01-09 SARBS DEV-Version
 # dotfiles-sarbs - Dotfiles Management Tool
+# 2025-01-09 SARBS
 # Verwaltet öffentliche und private Dotfiles mit Hardlinks
 
 # Strikte Fehlerbehandlung
@@ -138,28 +138,30 @@ git_hard_reset() {
 entwickler_modus() {
     echo -e "${YELLOW}Entwickler-Modus: Öffentliche + Private Dotfiles${NC}"
 
-    # Erstelle privates Verzeichnis falls nötig
-    erstelle_privates_verzeichnis
-
-    # Validiere beide Verzeichnisse
+    # Validiere öffentliches Verzeichnis zuerst
     if ! validiere_verzeichnis "$PUBLIC_DIR" "Öffentliches Verzeichnis"; then
         return 1
     fi
 
-    if ! validiere_verzeichnis "$PRIVATE_DIR" "Privates Verzeichnis"; then
-        echo -e "${YELLOW}Warnung: Privates Verzeichnis nicht validiert${NC}"
-        echo "Überspringe private Dotfiles..."
-    else
-        # Schritt 1: Öffentliche Dotfiles
-        echo -e "\n${GREEN}Schritt 1: Öffentliche Dotfiles${NC}"
-        hardlinks_oeffentlich
+    # Erstelle privates Verzeichnis falls nötig (BEVOR Validierung!)
+    erstelle_privates_verzeichnis
 
-        # Schritt 2: Private Dotfiles darüber
+    # Prüfe ob privates Verzeichnis leer ist (nur Marker-Datei)
+    local file_count=$(find "$PRIVATE_DIR" -maxdepth 1 -type f ! -name "$MARKER_FILE" | wc -l)
+
+    # Schritt 1: Öffentliche Dotfiles
+    echo -e "\n${GREEN}Schritt 1: Öffentliche Dotfiles${NC}"
+    hardlinks_oeffentlich
+
+    # Schritt 2: Private Dotfiles nur wenn welche vorhanden
+    if [[ $file_count -gt 0 ]]; then
         echo -e "\n${GREEN}Schritt 2: Private Dotfiles${NC}"
         local cmd=$(baue_rsync_kommando "$PRIVATE_DIR" "$TARGET_DIR")
         eval "$cmd"
-
         echo -e "${GREEN}✓ Private Dotfiles überschrieben${NC}"
+    else
+        echo -e "${YELLOW}Info: Keine privaten Dotfiles gefunden (nur Marker)${NC}"
+        echo "Privates Verzeichnis: $PRIVATE_DIR"
     fi
 }
 
@@ -177,9 +179,9 @@ zeige_menu() {
         "6" "Beenden" \
         3>&1 1>&2 2>&3)
 
-    # Prüfe ob abgebrochen wurde
+    # Prüfe ob abgebrochen wurde (ESC oder Cancel)
     if [[ $? -ne 0 ]]; then
-        echo "Abgebrochen."
+        echo -e "${YELLOW}Programm beendet.${NC}"
         exit 0
     fi
 
