@@ -5,6 +5,21 @@
 # XXX Stelle sicher dass du im Arbeitsverzeichniss deiner Dotfiles bist
 # TODO irgenteine Sicherheitsmaßnahme einbauen, das Kript überschreibt Daten...
 
+# TODO TUI Auswahlmenu (wiptale) für verschiedene Funktionen einbauen
+# Erklärbilgschirm dass die Dotfiles in jedem fall überschrieben werden
+# Option 1 soll hardlinks der Dotfiles ins Home verzeichniss schreiben
+# Option 2 soll die Dotfiles ins Home Verzeichniss kopieren
+# Option 3 soll die Dotfiles von Git holen (git angaben sollen aus dem Verzeichniss genommen werden)
+# Ich brauche eine Sicherheitsfunktion die ein Merkmal prüft dass nur mein Dorfiles-Repo aufweist
+# Es soll jederzeit eine Möglichkeit geben abbrechen zu können
+# ich brauche im Skript eine Möglichkeit einen weiteren Pfad mit einem Lokalen Dotfiles-Verzeichniss eintragen zu
+# können: Ich habe ein Git-Dotfiles Repo dafür ist dieses Skript und in dem Verzeichniss arbeitet es auch, ich habe aber
+# ein zweites lokales Dotfiles Verzeichniss darin sind meine anpasungen. Da die Dateinamen teilweise indentisch sind
+# muss ich zuerst meine Öffentlichen Dotfiles in's Home-Verzeichniss hardlinken und anschließend mit meinen Privaten
+# Dotfiles überschreiben. Das möchte ich automatisieren in dem ich mein Lokales Dotfile-verzeichniss immer nach dem
+# öffentlichen drüberschreibe...
+# Dafür ist die Option 4 vorgesehen (Entwickler Option) ich muss es in ruhe testen
+
 # Variablen
 SOURCE_DIR="$(pwd)"    # Aktuelles Verzeichnis als Quelle
 TARGET_DIR="$HOME"     # Zielverzeichnis: Home-Verzeichnis
