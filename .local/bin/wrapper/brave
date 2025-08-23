@@ -1,8 +1,10 @@
 #!/bin/sh
 # Brave Wrapper mit allen Tweaks
 
-# SCALE_FACTOR=1.5  # Variable für einfache Anpassung
-SCALE_FACTOR=$(grep "^SCALE_FACTOR=" ~/.config/x11/xprofile | cut -d= -f2)
+# Manuelle Skalierung (auskommentieren für xprofile)
+# SCALE_FACTOR=1
+
+SCALE_FACTOR=${SCALE_FACTOR:-$(grep "^SCALE_FACTOR=" ~/.config/x11/xprofile | cut -d= -f2)}
 
 exec /usr/bin/brave \
     --force-device-scale-factor=$SCALE_FACTOR \

@@ -1,0 +1,14 @@
+#!/bin/sh
+# Chromium Wrapper (mit Tweaks)
+
+# Manuelle Skalierung (auskommentieren für xprofile)
+# SCALE_FACTOR=1
+
+SCALE_FACTOR=${SCALE_FACTOR:-$(grep "^SCALE_FACTOR=" ~/.config/x11/xprofile | cut -d= -f2)}
+
+exec /usr/bin/chromium \
+    --force-device-scale-factor=$SCALE_FACTOR \
+    --high-dpi-support=1 \
+    --enable-features=UseOzonePlatform \
+    --ozone-platform=x11 \
+    "$@"

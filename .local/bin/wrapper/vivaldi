@@ -1,0 +1,14 @@
+#!/bin/sh
+# Vivaldi Wrapper (mit Tweaks)
+
+# Variable für einfache Anpassung
+# SCALE_FACTOR=1.5
+
+SCALE_FACTOR=$(grep "^SCALE_FACTOR=" ~/.config/x11/xprofile | cut -d= -f2)
+
+exec /usr/bin/vivaldi \
+    --force-device-scale-factor=$SCALE_FACTOR \
+    --high-dpi-support=1 \
+    --enable-features=UseOzonePlatform \
+    --ozone-platform=x11 \
+    "$@"

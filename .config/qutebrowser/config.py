@@ -19,11 +19,13 @@ c.editor.command = ['st', '-e', 'nvim', '{}']
 
 # Schriftgrößen einstellungen
 FONTS = {
-    'small': '10pt',
-    'normal': '12pt',
-    'large': '14pt',
-    'xlarge': '18pt'
+    'small': '8pt',
+    'normal': '9pt',
+    'large': '10pt',
+    'xlarge': '11pt'
 }
+
+# TODO Thin als Default setzen alternative als Fallback
 
 # Schriftgrößen für HiDPI-Display
 c.fonts.default_size = FONTS['normal']
