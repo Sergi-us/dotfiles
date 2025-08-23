@@ -2,7 +2,13 @@
 # Telegram Wrapper mit Theme und Qt-Skalierung
 
 # Manuelle Skalierung (auskommentieren für xprofile)
-SCALE_FACTOR=2
+SCALE_FACTOR=1
+
+## NOTE Telegramm ist echt ein seltsamer fall!
+# Die Skalierung sollte nach dem Dateimanager-Dialog eingestellt werden
+# T480 WQHD SCALE_FACTOR=1 manuel setzen
+# dann intern über den Prozentregler hochdrehen
+# T480 WQHD auf 180% hochdrehen
 
 # Theme-Update
 walogram -i ~/.local/share/bg >/dev/null 2>&1
@@ -15,4 +21,5 @@ SCALE_FACTOR=${SCALE_FACTOR:-$(grep "^SCALE_FACTOR=" ~/.config/x11/xprofile | cu
 
 # Qt-Skalierung
 export QT_SCALE_FACTOR=$SCALE_FACTOR
+
 exec /usr/bin/Telegram "$@"

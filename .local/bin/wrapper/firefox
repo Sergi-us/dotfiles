@@ -2,7 +2,7 @@
 # Firefox Wrapper - liest SCALE_FACTOR aus xprofile
 
 # Manuelle Skalierung (auskommentieren für xprofile)
-# SCALE_FACTOR=1
+SCALE_FACTOR=1.25
 
 SCALE_FACTOR=${SCALE_FACTOR:-$(grep "^SCALE_FACTOR=" ~/.config/x11/xprofile | cut -d= -f2)}
 
