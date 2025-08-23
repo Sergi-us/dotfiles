@@ -1,0 +1,264 @@
+#!/usr/bin/env bash
+# 2025-01-09 SARBS DEV-Version
+# dotfiles-sarbs - Dotfiles Management Tool
+# Verwaltet öffentliche und private Dotfiles mit Hardlinks
+
+# Strikte Fehlerbehandlung
+set -euo pipefail
+
+# Konstanten
+readonly SCRIPT_NAME="$(basename "$0")"
+readonly PUBLIC_DIR="$(pwd)"
+readonly PRIVATE_DIR="$HOME/.local/src/dotfiles-privat"
+readonly TARGET_DIR="$HOME"
+readonly MARKER_FILE=".dotfiles-marker"
+readonly GIT_BRANCH="main"
+
+# Farben für Ausgabe
+readonly RED='\033[0;31m'
+readonly GREEN='\033[0;32m'
+readonly YELLOW='\033[1;33m'
+readonly NC='\033[0m' # No Color
+
+# Ausschluss-Muster für rsync
+readonly EXCLUDES=(
+    ".git/"
+    ".gitignore"
+    ".gitattributes"
+    ".github/"
+    "LICENSE*"
+    "FUNDING*"
+    "*.bac"
+    "*.~*~"
+    "$MARKER_FILE"
+    "$SCRIPT_NAME"
+)
+
+# Prüft ob Validierungsdatei existiert
+validiere_verzeichnis() {
+    local dir="$1"
+    local name="$2"
+
+    if [[ ! -f "$dir/$MARKER_FILE" ]]; then
+        echo -e "${RED}Fehler: $name ist kein gültiges Dotfiles-Verzeichnis${NC}"
+        echo "Marker-Datei '$MARKER_FILE' fehlt in: $dir"
+        return 1
+    fi
+    return 0
+}
+
+# Erstellt privates Verzeichnis falls nicht vorhanden
+erstelle_privates_verzeichnis() {
+    if [[ ! -d "$PRIVATE_DIR" ]]; then
+        echo -e "${YELLOW}Erstelle privates Dotfiles-Verzeichnis...${NC}"
+        mkdir -p "$PRIVATE_DIR"
+        touch "$PRIVATE_DIR/$MARKER_FILE"
+        echo -e "${GREEN}Verzeichnis erstellt: $PRIVATE_DIR${NC}"
+    fi
+}
+
+# Baut rsync Kommando mit allen Ausschlüssen
+baue_rsync_kommando() {
+    local src="$1"
+    local dest="$2"
+    local cmd="rsync -avh --link-dest='$src'"
+
+    # Füge alle Ausschlüsse hinzu
+    for pattern in "${EXCLUDES[@]}"; do
+        cmd="$cmd --exclude='$pattern'"
+    done
+
+    cmd="$cmd '$src/' '$dest/'"
+    echo "$cmd"
+}
+
+# Option 1: Hardlinks vom aktuellen Verzeichnis
+hardlinks_oeffentlich() {
+    echo -e "${GREEN}Erstelle Hardlinks der öffentlichen Dotfiles...${NC}"
+
+    if ! validiere_verzeichnis "$PUBLIC_DIR" "Öffentliches Verzeichnis"; then
+        return 1
+    fi
+
+    local cmd=$(baue_rsync_kommando "$PUBLIC_DIR" "$TARGET_DIR")
+    eval "$cmd"
+
+    echo -e "${GREEN}✓ Hardlinks erstellt von $PUBLIC_DIR nach $TARGET_DIR${NC}"
+}
+
+# Option 2: Kopiere Dotfiles (ohne Hardlinks)
+kopiere_dotfiles() {
+    echo -e "${GREEN}Kopiere Dotfiles ins Home-Verzeichnis...${NC}"
+
+    if ! validiere_verzeichnis "$PUBLIC_DIR" "Öffentliches Verzeichnis"; then
+        return 1
+    fi
+
+    local cmd="rsync -avh"
+
+    # Füge Ausschlüsse hinzu
+    for pattern in "${EXCLUDES[@]}"; do
+        cmd="$cmd --exclude='$pattern'"
+    done
+
+    cmd="$cmd '$PUBLIC_DIR/' '$TARGET_DIR/'"
+    eval "$cmd"
+
+    echo -e "${GREEN}✓ Dotfiles kopiert nach $TARGET_DIR${NC}"
+}
+
+# Option 3: Git hard reset
+git_hard_reset() {
+    echo -e "${YELLOW}Führe harten Git-Reset durch...${NC}"
+
+    # Prüfe ob Git-Repository
+    if [[ ! -d "$PUBLIC_DIR/.git" ]]; then
+        echo -e "${RED}Fehler: Kein Git-Repository in $PUBLIC_DIR${NC}"
+        return 1
+    fi
+
+    # Führe Reset durch
+    cd "$PUBLIC_DIR"
+    echo "Hole aktuelle Änderungen..."
+    git fetch origin
+
+    echo "Setze auf origin/$GIT_BRANCH zurück..."
+    git reset --hard "origin/$GIT_BRANCH"
+
+    echo -e "${GREEN}✓ Repository zurückgesetzt auf origin/$GIT_BRANCH${NC}"
+
+    # Frage ob Hardlinks erstellt werden sollen
+    read -p "Hardlinks ins Home-Verzeichnis erstellen? [j/N]: " antwort
+    if [[ "$antwort" =~ ^[jJ]$ ]]; then
+        hardlinks_oeffentlich
+    fi
+}
+
+# Option 4: Entwickler-Option (öffentlich + privat)
+entwickler_modus() {
+    echo -e "${YELLOW}Entwickler-Modus: Öffentliche + Private Dotfiles${NC}"
+
+    # Erstelle privates Verzeichnis falls nötig
+    erstelle_privates_verzeichnis
+
+    # Validiere beide Verzeichnisse
+    if ! validiere_verzeichnis "$PUBLIC_DIR" "Öffentliches Verzeichnis"; then
+        return 1
+    fi
+
+    if ! validiere_verzeichnis "$PRIVATE_DIR" "Privates Verzeichnis"; then
+        echo -e "${YELLOW}Warnung: Privates Verzeichnis nicht validiert${NC}"
+        echo "Überspringe private Dotfiles..."
+    else
+        # Schritt 1: Öffentliche Dotfiles
+        echo -e "\n${GREEN}Schritt 1: Öffentliche Dotfiles${NC}"
+        hardlinks_oeffentlich
+
+        # Schritt 2: Private Dotfiles darüber
+        echo -e "\n${GREEN}Schritt 2: Private Dotfiles${NC}"
+        local cmd=$(baue_rsync_kommando "$PRIVATE_DIR" "$TARGET_DIR")
+        eval "$cmd"
+
+        echo -e "${GREEN}✓ Private Dotfiles überschrieben${NC}"
+    fi
+}
+
+# Zeige Hauptmenü
+zeige_menu() {
+    local choice
+
+    choice=$(whiptail --title "Dotfiles Manager - SARBS" \
+        --menu "\nWähle eine Option:\n\n⚠️  ACHTUNG: Alle Optionen überschreiben bestehende Dateien!" 18 70 6 \
+        "1" "Hardlinks erstellen (öffentliche Dotfiles)" \
+        "2" "Kopieren (öffentliche Dotfiles)" \
+        "3" "Git Hard Reset + optional Hardlinks" \
+        "4" "Entwickler-Modus (öffentlich + privat)" \
+        "5" "Info anzeigen" \
+        "6" "Beenden" \
+        3>&1 1>&2 2>&3)
+
+    # Prüfe ob abgebrochen wurde
+    if [[ $? -ne 0 ]]; then
+        echo "Abgebrochen."
+        exit 0
+    fi
+
+    echo "$choice"
+}
+
+# Zeige Info
+zeige_info() {
+    whiptail --title "Info" --msgbox "\
+Dotfiles Manager - SARBS
+
+Verzeichnisse:
+• Öffentlich: $PUBLIC_DIR
+• Privat: $PRIVATE_DIR
+• Ziel: $TARGET_DIR
+
+Validierung:
+• Marker-Datei: $MARKER_FILE
+
+Ausgeschlossen:
+• Git-Dateien (.git/, .gitignore, etc.)
+• Lizenzen und Funding
+• Backup-Dateien (*.bac, *.~*~)
+• Marker und Skript selbst
+
+Entwickler-Modus:
+Überschreibt zuerst mit öffentlichen,
+dann mit privaten Dotfiles." 22 60
+}
+
+# Hauptprogramm
+main() {
+    # Endlosschleife für Menü
+    while true; do
+        choice=$(zeige_menu)
+
+        case $choice in
+            1)
+                hardlinks_oeffentlich
+                read -p "Enter drücken zum Fortfahren..."
+                ;;
+            2)
+                kopiere_dotfiles
+                read -p "Enter drücken zum Fortfahren..."
+                ;;
+            3)
+                git_hard_reset
+                read -p "Enter drücken zum Fortfahren..."
+                ;;
+            4)
+                entwickler_modus
+                read -p "Enter drücken zum Fortfahren..."
+                ;;
+            5)
+                zeige_info
+                ;;
+            6)
+                echo "Auf Wiedersehen!"
+                exit 0
+                ;;
+            *)
+                echo -e "${RED}Ungültige Option${NC}"
+                ;;
+        esac
+    done
+}
+
+# Prüfe Abhängigkeiten
+if ! command -v whiptail &> /dev/null; then
+    echo -e "${RED}Fehler: whiptail ist nicht installiert${NC}"
+    echo "Installation: sudo apt install whiptail"
+    exit 1
+fi
+
+if ! command -v rsync &> /dev/null; then
+    echo -e "${RED}Fehler: rsync ist nicht installiert${NC}"
+    echo "Installation: sudo apt install rsync"
+    exit 1
+fi
+
+# Starte Hauptprogramm
+main

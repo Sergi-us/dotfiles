@@ -48,16 +48,30 @@ dotfiles/
 
 Die Dotfiles werden automatisch mit dem [SARBS-Installationsskript](https://github.com/Sergi-us/SARBS) installiert. SARBS übernimmt die komplette Systemkonfiguration inklusive aller Abhängigkeiten.
 
-### Manuelle Installation
+## 🔄 Updates & Wartung
 
+### Funktioniert nur für unveränderte Dotfiles
+```bash
+# Repository auf neuesten Stand bringen
+cd ~/.local/src/dotfiles
+git pull origin main
+
+# TODO Anleitung wie man mit Merge-konflikten umgeht hinzufügen
+
+# Neue Dotfiles ins System übernehmen
+dotfiles-home
+```
+
+### Manuelle Installation
 Für manuelle Updates oder Installation auf bereits bestehenden Systemen:
 
 ```bash
 cd ~/.local/src
 git clone https://github.com/Sergi-us/dotfiles.git
 cd ~/dotfiles
-./dotfiles-home  # erstellt Hardlinks zu $HOME (ich nutze kein Stow)
+dotfiles-home  # erstellt Hardlinks zu $HOME (ich nutze kein Stow)
 ```
+### Dotfiles aktualisieren
 Für Updates (ignoriert deine Änderungen) wenn du mit Git nicht vertraut bist)
 ```bash
 cd ~/.local/src/dotfiles
@@ -137,19 +151,6 @@ Das Repository enthält ein praktisches Skript zur Verwaltung von Cronjobs:
 - **Automatisches Directory-Jumping**
 
 > **🔑 Keybindings & Workflows**: Alle wichtigen Tastenkombinationen und Workflows sind im [SARBS Hauptprojekt](https://github.com/Sergi-us/SARBS) dokumentiert.
-
-## 🔄 Updates & Wartung
-
-### Dotfiles aktualisieren
-
-```bash
-# Repository auf neuesten Stand bringen
-cd ~/.dotfiles
-git pull origin main
-
-# Neue Dotfiles ins System übernehmen
-./dotfiles-home
-```
 
 ### Eigene Anpassungen vornehmen
 
