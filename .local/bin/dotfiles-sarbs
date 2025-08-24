@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # dotfiles-sarbs - Dotfiles Management Tool
-# 2025-01-09 SARBS
+# 2025-01-09 SARBS  DEV V4
 # Verwaltet öffentliche und private Dotfiles mit Hardlinks
 
 # Strikte Fehlerbehandlung
@@ -179,10 +179,10 @@ zeige_menu() {
         "6" "Beenden" \
         3>&1 1>&2 2>&3)
 
-    # Prüfe ob abgebrochen wurde (ESC oder Cancel)
+    # Bei ESC/Cancel einfach leeren String zurückgeben
     if [[ $? -ne 0 ]]; then
-        echo -e "${YELLOW}Programm beendet.${NC}"
-        exit 0
+        echo ""
+        return
     fi
 
     echo "$choice"
@@ -217,6 +217,11 @@ main() {
     # Endlosschleife für Menü
     while true; do
         choice=$(zeige_menu)
+
+        # Bei leerem String (ESC/Cancel) einfach weitermachen
+        if [[ -z "$choice" ]]; then
+            continue
+        fi
 
         case $choice in
             1)
