@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # dotfiles-sarbs - Dotfiles Management Tool
-# 2025-01-09 SARBS  DEV V4
+# 2025-01-09 SARBS  DEV V6
 # Verwaltet öffentliche und private Dotfiles mit Hardlinks
 
 # Strikte Fehlerbehandlung
@@ -203,7 +203,6 @@ Ausgeschlossen:
 • Git-Dateien (.git/, .gitignore, etc.)
 • Lizenzen und Funding
 • Backup-Dateien (*.bac, *.~*~)
-• Marker und Skript selbst
 
 Entwickler-Modus:
 Überschreibt zuerst mit öffentlichen,
