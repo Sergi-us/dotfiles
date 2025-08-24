@@ -7,7 +7,6 @@
 set -euo pipefail
 
 # Konstanten
-readonly SCRIPT_NAME="$(basename "$0")"
 readonly PUBLIC_DIR="$(pwd)"
 readonly PRIVATE_DIR="$HOME/.local/src/dotfiles-privat"
 readonly TARGET_DIR="$HOME"
@@ -31,7 +30,6 @@ readonly EXCLUDES=(
     "*.bac"
     "*.~*~"
     "$MARKER_FILE"
-    "$SCRIPT_NAME"
 )
 
 # Prüft ob Validierungsdatei existiert
