@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 # Telegram Wrapper mit Theme und Qt-Skalierung
 
 # Manuelle Skalierung (auskommentieren für xprofile)
