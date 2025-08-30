@@ -19,7 +19,7 @@ MASTER_DPI=192
 
 xrandr --dpi $MASTER_DPI
 # TODO Xft.dpi wird automatisch gesetzt - alte X11-Apps lesen das (muss noch eingerichtet werden)
-SCALE_FACTOR=1.5
+SCALE_FACTOR=1.25
 
 # === Themes und GUI ===
 # export GTK_THEME=Breeze-Dark                                    # Überschreibt gsettings - sinnvoll für Window Manager ohne GNOME

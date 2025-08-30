@@ -6,6 +6,10 @@ local autocmd = vim.api.nvim_create_autocmd
 -- Gruppe für Highlighting-Prioritäten (NEU)
 local highlight_group = augroup("HighlightPriority", { clear = true })
 
+-- Mache calcurse Markdown kompartibel
+autocmd BufRead,BufNewFile /tmp/calcurse* set filetype=markdoun
+autocmd BufRead,BufNewFile ~/.calcurse/notes/* set filetype=markdoun
+
 -- Cursor zur letzten Position in der Datei setzen
 autocmd("BufReadPost", {
   callback = function()

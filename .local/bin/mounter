@@ -1,5 +1,5 @@
 #!/bin/bash
-## 2025-08-20   SARBS - ASCII-Marker Edition
+## 2025-08-29   SARBS - ASCII-Marker mit Phyton parsing
 ## Mountet Android-Telefone und USB-Laufwerke (verschlüsselt oder nicht)
 ## WICHTIG: Nutzt ASCII-Marker [TYPE] statt Emojis für Portabilität!
 ## Die Marker bestimmen die Mount-Logik und Optionen.
@@ -33,7 +33,7 @@ get_device_type() {
 
     # Check ob rotational (HDD) oder nicht (SSD) via /sys
     if [ -f "/sys/block/$base/queue/rotational" ]; then
-        rot=$(cat "/sys/block/$base/queue/rotational")      # 0=SSD, 1=HDD
+        rot=$(cat "/sys/block/$base/queue/rotational" 2>/dev/null || echo "1")      # 0=SSD, 1=HDD
         rem=$(cat "/sys/block/$base/removable" 2>/dev/null || echo "0")  # 1=USB
         [ "$rem" = "1" ] && echo "USB" && return
         [ "$rot" = "0" ] && echo "SSD" || echo "HDD"
@@ -83,29 +83,115 @@ unopenedluks="$(for drive in $allluks; do
 done)"
 
 # ========== NORMALE PARTITIONEN ==========
-# WICHTIG: Ohne UUID-Feld! Das verschiebt nur die Felder wenn UUID fehlt
-# Format: name type size label mountpoint fstype
-normalparts="$(lsblk -rpo "name,type,size,label,mountpoint,fstype" | grep -v crypto_LUKS | grep 'part\|rom' | while read -r line; do
-    # Felder direkt parsen - Position ist jetzt fest!
-    name=$(echo "$line" | awk '{print $1}')      # Device-Pfad
-    type=$(echo "$line" | awk '{print $2}')      # part/rom/etc
-    size=$(echo "$line" | awk '{print $3}')      # Größe
-    label=$(echo "$line" | awk '{print $4}')     # Label (optional)
-    mountpoint=$(echo "$line" | awk '{print $5}') # Mountpoint (leer wenn unmounted)
-    fstype=$(echo "$line" | awk '{print $6}')    # Filesystem-Typ
+# FIX: Verwende JSON output für zuverlässiges Parsing
+normalparts="$(lsblk -J -o name,type,size,label,mountpoint,fstype 2>/dev/null | \
+    python3 -c "
+import json, sys
+data = json.load(sys.stdin)
 
-    # Nur unmountete Devices anzeigen
-    if [ -z "$mountpoint" ]; then
-        # Device-Typ ermitteln (USB/SSD/HDD/etc)
-        dtype=$(get_device_type "$name")
+def process_device(dev, parent_removable=False):
+    results = []
+    # Check if device is removable
+    is_removable = parent_removable
+    if 'children' not in dev:
+        # For devices without children, check removable status
+        try:
+            with open(f'/sys/block/{dev[\"name\"]}/removable', 'r') as f:
+                is_removable = f.read().strip() == '1'
+        except:
+            pass
 
-        # Beschreibung: Label > Filesystem > Device-Name
-        desc="${label:-${fstype:-${name##*/}}}"
+    # Process children (partitions)
+    if 'children' in dev:
+        for child in dev['children']:
+            if child.get('type') in ['part', 'rom']:
+                # Skip if mounted or is crypto_LUKS
+                if child.get('mountpoint') or child.get('fstype') == 'crypto_LUKS':
+                    continue
 
-        # Format: [TYPE  ] /dev/xxx (size) description
-        printf "[%-5s] %s (%s) %s\n" "$dtype" "$name" "$size" "$desc"
-    fi
-done)"
+                name = '/dev/' + child['name']
+                size = child.get('size', 'N/A')
+                label = child.get('label', '')
+                fstype = child.get('fstype', '')
+
+                # Determine device type
+                if 'nvme' in child['name']:
+                    dtype = 'NVME'
+                elif child['type'] == 'rom':
+                    dtype = 'DVD'
+                elif is_removable:
+                    dtype = 'USB'
+                else:
+                    # Check rotational for SSD/HDD
+                    base = child['name'].rstrip('0123456789')
+                    try:
+                        with open(f'/sys/block/{base}/queue/rotational', 'r') as f:
+                            dtype = 'HDD' if f.read().strip() == '1' else 'SSD'
+                    except:
+                        dtype = 'DISK'
+
+                # Description: Label > Filesystem > Device-Name
+                desc = label or fstype or child['name']
+
+                results.append(f'[{dtype:<5}] {name} ({size}) {desc}')
+
+    # Also check the device itself if it's a partition without children
+    elif dev.get('type') in ['part', 'rom']:
+        if not dev.get('mountpoint') and dev.get('fstype') != 'crypto_LUKS':
+            name = '/dev/' + dev['name']
+            size = dev.get('size', 'N/A')
+            label = dev.get('label', '')
+            fstype = dev.get('fstype', '')
+
+            # Determine device type
+            if 'nvme' in dev['name']:
+                dtype = 'NVME'
+            elif dev['type'] == 'rom':
+                dtype = 'DVD'
+            elif is_removable:
+                dtype = 'USB'
+            else:
+                base = dev['name'].rstrip('0123456789')
+                try:
+                    with open(f'/sys/block/{base}/queue/rotational', 'r') as f:
+                        dtype = 'HDD' if f.read().strip() == '1' else 'SSD'
+                except:
+                    dtype = 'DISK'
+
+            desc = label or fstype or dev['name']
+            results.append(f'[{dtype:<5}] {name} ({size}) {desc}')
+
+    return results
+
+# Process all block devices
+for device in data.get('blockdevices', []):
+    # Check if device is removable
+    is_removable = False
+    try:
+        with open(f'/sys/block/{device[\"name\"]}/removable', 'r') as f:
+            is_removable = f.read().strip() == '1'
+    except:
+        pass
+
+    for line in process_device(device, is_removable):
+        print(line)
+" 2>/dev/null || \
+    # Fallback to original method if Python fails
+    lsblk -rpo "name,type,size,label,mountpoint,fstype" | grep -v crypto_LUKS | grep 'part\|rom' | while read -r line; do
+        name=$(echo "$line" | awk '{print $1}')
+        type=$(echo "$line" | awk '{print $2}')
+        size=$(echo "$line" | awk '{print $3}')
+        label=$(echo "$line" | awk '{print $4}')
+        mountpoint=$(echo "$line" | awk '{print $5}')
+        fstype=$(echo "$line" | awk '{print $6}')
+
+        if [ -z "$mountpoint" ]; then
+            dtype=$(get_device_type "$name")
+            desc="${label:-${fstype:-${name##*/}}}"
+            printf "[%-5s] %s (%s) %s\n" "$dtype" "$name" "$size" "$desc"
+        fi
+    done
+)"
 
 # ========== ALLES ZUSAMMENFÜGEN ==========
 alldrives="$(echo "$phones
@@ -113,11 +199,14 @@ $unopenedluks
 $normalparts" | sed "/^$/d")"  # Leere Zeilen entfernen
 
 # Beende wenn keine Laufwerke gefunden
-set -e
-test -n "$alldrives"
+if [ -z "$alldrives" ]; then
+    notify-send "ℹ️ Info" "Keine unmounted Laufwerke gefunden"
+    exit 0
+fi
 
 # ========== DMENU AUSWAHL ==========
 chosen="$(echo "$alldrives" | dmenu -l 10 -p "Welches Laufwerk mounten?" -i)"
+[ -z "$chosen" ] && exit 0
 
 # ========== PARSE DIE AUSWAHL ==========
 # Der Marker [TYPE] bestimmt die Mount-Logik!
@@ -144,7 +233,7 @@ getmount() {
 # Versuche mount ohne spezifischen Mountpunkt (nutzt fstab wenn vorhanden)
 attemptmount() {
     if sudo -A mount "$1" 2>/dev/null; then
-        notify-send "✓ Laufwerk gemountet" "$1 gemountet."
+        notify-send "✔ Laufwerk gemountet" "$1 gemountet."
         exit
     else
         return 1
@@ -185,7 +274,7 @@ case "$marker" in
                 notify-send "✗ Fehler" "Mount fehlgeschlagen für $device"
                 exit 1
             }
-            notify-send "✓ $marker gemountet" "$device zu $mp gemountet."
+            notify-send "✔ $marker gemountet" "$device zu $mp gemountet."
         fi
         ;;
 
@@ -213,7 +302,7 @@ case "$marker" in
                 sudo cryptsetup close "usb$num"
                 exit 1
             }
-            notify-send "✓ LUKS gemountet" "$device zu $mp gemountet."
+            notify-send "✔ LUKS gemountet" "$device zu $mp gemountet."
         else
             notify-send "✗ Fehler" "Entschlüsselung fehlgeschlagen"
             exit 1
@@ -236,7 +325,7 @@ case "$marker" in
             notify-send "✗ Fehler" "Mount fehlgeschlagen"
             exit 1
         }
-        notify-send "✓ Handy gemountet" "Android zu $mp gemountet"
+        notify-send "✔ Handy gemountet" "Android zu $mp gemountet"
         ;;
 
     *)

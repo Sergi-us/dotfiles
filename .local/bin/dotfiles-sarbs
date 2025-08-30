@@ -1,9 +1,8 @@
 #!/usr/bin/env bash
 # dotfiles-sarbs - Dotfiles Management Tool
-# 2025-01-09 SARBS  DEV V6
+# 2025-01-09 SARBS DEV V8 - KISS Edition mit fzf
 # Verwaltet öffentliche und private Dotfiles mit Hardlinks
 
-# Strikte Fehlerbehandlung
 set -euo pipefail
 
 # Konstanten
@@ -12,12 +11,7 @@ readonly PRIVATE_DIR="$HOME/.local/src/dotfiles-privat"
 readonly TARGET_DIR="$HOME"
 readonly MARKER_FILE=".dotfiles-marker"
 readonly GIT_BRANCH="main"
-
-# Farben für Ausgabe
-readonly RED='\033[0;31m'
-readonly GREEN='\033[0;32m'
-readonly YELLOW='\033[1;33m'
-readonly NC='\033[0m' # No Color
+readonly VERSION="8.0"
 
 # Ausschluss-Muster für rsync
 readonly EXCLUDES=(
@@ -32,36 +26,39 @@ readonly EXCLUDES=(
     "$MARKER_FILE"
 )
 
-# Prüft ob Validierungsdatei existiert
+# Flags
+QUIET=false
+FORCE=false
+
+# Hilfsfunktionen
+log() {
+    [[ "$QUIET" == false ]] && echo "$@"
+}
+
+fehler() {
+    echo "Fehler: $1" >&2
+    exit 1
+}
+
 validiere_verzeichnis() {
     local dir="$1"
     local name="$2"
-
-    if [[ ! -f "$dir/$MARKER_FILE" ]]; then
-        echo -e "${RED}Fehler: $name ist kein gültiges Dotfiles-Verzeichnis${NC}"
-        echo "Marker-Datei '$MARKER_FILE' fehlt in: $dir"
-        return 1
-    fi
-    return 0
+    [[ -f "$dir/$MARKER_FILE" ]] || fehler "$name fehlt Marker-Datei: $dir/$MARKER_FILE"
 }
 
-# Erstellt privates Verzeichnis falls nicht vorhanden
 erstelle_privates_verzeichnis() {
     if [[ ! -d "$PRIVATE_DIR" ]]; then
-        echo -e "${YELLOW}Erstelle privates Dotfiles-Verzeichnis...${NC}"
+        log "Erstelle privates Verzeichnis: $PRIVATE_DIR"
         mkdir -p "$PRIVATE_DIR"
         touch "$PRIVATE_DIR/$MARKER_FILE"
-        echo -e "${GREEN}Verzeichnis erstellt: $PRIVATE_DIR${NC}"
     fi
 }
 
-# Baut rsync Kommando mit allen Ausschlüssen
 baue_rsync_kommando() {
     local src="$1"
     local dest="$2"
     local cmd="rsync -avh --link-dest='$src'"
 
-    # Füge alle Ausschlüsse hinzu
     for pattern in "${EXCLUDES[@]}"; do
         cmd="$cmd --exclude='$pattern'"
     done
@@ -70,199 +67,210 @@ baue_rsync_kommando() {
     echo "$cmd"
 }
 
-# Option 1: Hardlinks vom aktuellen Verzeichnis
+# Hauptfunktionen
 hardlinks_oeffentlich() {
-    echo -e "${GREEN}Erstelle Hardlinks der öffentlichen Dotfiles...${NC}"
-
-    if ! validiere_verzeichnis "$PUBLIC_DIR" "Öffentliches Verzeichnis"; then
-        return 1
-    fi
+    log "Erstelle Hardlinks (öffentlich)..."
+    validiere_verzeichnis "$PUBLIC_DIR" "Öffentliches Verzeichnis"
 
     local cmd=$(baue_rsync_kommando "$PUBLIC_DIR" "$TARGET_DIR")
+    [[ "$QUIET" == true ]] && cmd="${cmd//-avh/-aq}"
     eval "$cmd"
 
-    echo -e "${GREEN}✓ Hardlinks erstellt von $PUBLIC_DIR nach $TARGET_DIR${NC}"
+    log "✓ Hardlinks erstellt: $PUBLIC_DIR → $TARGET_DIR"
 }
 
-# Option 2: Kopiere Dotfiles (ohne Hardlinks)
 kopiere_dotfiles() {
-    echo -e "${GREEN}Kopiere Dotfiles ins Home-Verzeichnis...${NC}"
-
-    if ! validiere_verzeichnis "$PUBLIC_DIR" "Öffentliches Verzeichnis"; then
-        return 1
-    fi
+    log "Kopiere Dotfiles..."
+    validiere_verzeichnis "$PUBLIC_DIR" "Öffentliches Verzeichnis"
 
     local cmd="rsync -avh"
-
-    # Füge Ausschlüsse hinzu
     for pattern in "${EXCLUDES[@]}"; do
         cmd="$cmd --exclude='$pattern'"
     done
-
     cmd="$cmd '$PUBLIC_DIR/' '$TARGET_DIR/'"
+
+    [[ "$QUIET" == true ]] && cmd="${cmd//-avh/-aq}"
     eval "$cmd"
 
-    echo -e "${GREEN}✓ Dotfiles kopiert nach $TARGET_DIR${NC}"
+    log "✓ Dotfiles kopiert: $PUBLIC_DIR → $TARGET_DIR"
 }
 
-# Option 3: Git hard reset
 git_hard_reset() {
-    echo -e "${YELLOW}Führe harten Git-Reset durch...${NC}"
+    log "Git hard reset..."
 
-    # Prüfe ob Git-Repository
-    if [[ ! -d "$PUBLIC_DIR/.git" ]]; then
-        echo -e "${RED}Fehler: Kein Git-Repository in $PUBLIC_DIR${NC}"
-        return 1
+    [[ ! -d "$PUBLIC_DIR/.git" ]] && fehler "Kein Git-Repository in $PUBLIC_DIR"
+
+    cd "$PUBLIC_DIR"
+    if [[ "$QUIET" == true ]]; then
+        git fetch origin -q
+        git reset --hard "origin/$GIT_BRANCH" -q
+    else
+        git fetch origin
+        git reset --hard "origin/$GIT_BRANCH"
     fi
 
-    # Führe Reset durch
-    cd "$PUBLIC_DIR"
-    echo "Hole aktuelle Änderungen..."
-    git fetch origin
+    log "✓ Reset auf origin/$GIT_BRANCH"
 
-    echo "Setze auf origin/$GIT_BRANCH zurück..."
-    git reset --hard "origin/$GIT_BRANCH"
-
-    echo -e "${GREEN}✓ Repository zurückgesetzt auf origin/$GIT_BRANCH${NC}"
-
-    # Frage ob Hardlinks erstellt werden sollen
-    read -p "Hardlinks ins Home-Verzeichnis erstellen? [j/N]: " antwort
-    if [[ "$antwort" =~ ^[jJ]$ ]]; then
-        hardlinks_oeffentlich
+    if [[ "$FORCE" == false ]]; then
+        read -p "Hardlinks erstellen? [j/N]: " antwort
+        [[ "$antwort" =~ ^[jJ]$ ]] && hardlinks_oeffentlich
     fi
 }
 
-# Option 4: Entwickler-Option (öffentlich + privat)
 entwickler_modus() {
-    echo -e "${YELLOW}Entwickler-Modus: Öffentliche + Private Dotfiles${NC}"
+    log "Entwickler-Modus..."
 
-    # Validiere öffentliches Verzeichnis zuerst
-    if ! validiere_verzeichnis "$PUBLIC_DIR" "Öffentliches Verzeichnis"; then
-        return 1
-    fi
-
-    # Erstelle privates Verzeichnis falls nötig (BEVOR Validierung!)
+    validiere_verzeichnis "$PUBLIC_DIR" "Öffentliches Verzeichnis"
     erstelle_privates_verzeichnis
 
-    # Prüfe ob privates Verzeichnis leer ist (nur Marker-Datei)
-    local file_count=$(find "$PRIVATE_DIR" -maxdepth 1 -type f ! -name "$MARKER_FILE" | wc -l)
-
-    # Schritt 1: Öffentliche Dotfiles
-    echo -e "\n${GREEN}Schritt 1: Öffentliche Dotfiles${NC}"
+    # Schritt 1: Öffentliche
+    log "→ Öffentliche Dotfiles"
     hardlinks_oeffentlich
 
-    # Schritt 2: Private Dotfiles nur wenn welche vorhanden
+    # Schritt 2: Private (falls vorhanden)
+    local file_count=$(find "$PRIVATE_DIR" -type f ! -name "$MARKER_FILE" | wc -l)
     if [[ $file_count -gt 0 ]]; then
-        echo -e "\n${GREEN}Schritt 2: Private Dotfiles${NC}"
+        log "→ Private Dotfiles"
         local cmd=$(baue_rsync_kommando "$PRIVATE_DIR" "$TARGET_DIR")
+        [[ "$QUIET" == true ]] && cmd="${cmd//-avh/-aq}"
         eval "$cmd"
-        echo -e "${GREEN}✓ Private Dotfiles überschrieben${NC}"
+        log "✓ Private Dotfiles überschrieben"
     else
-        echo -e "${YELLOW}Info: Keine privaten Dotfiles gefunden (nur Marker)${NC}"
-        echo "Privates Verzeichnis: $PRIVATE_DIR"
+        log "Info: Keine privaten Dotfiles gefunden"
     fi
 }
 
-# Zeige Hauptmenü
-zeige_menu() {
-    local choice
-
-    choice=$(whiptail --title "Dotfiles Manager - SARBS" \
-        --menu "\nWähle eine Option:\n\n⚠️  ACHTUNG: Alle Optionen überschreiben bestehende Dateien!" 18 70 6 \
-        "1" "Hardlinks erstellen (öffentliche Dotfiles)" \
-        "2" "Kopieren (öffentliche Dotfiles)" \
-        "3" "Git Hard Reset + optional Hardlinks" \
-        "4" "Entwickler-Modus (öffentlich + privat)" \
-        "5" "Info anzeigen" \
-        "6" "Beenden" \
-        3>&1 1>&2 2>&3)
-
-    # Bei ESC/Cancel einfach leeren String zurückgeben
-    if [[ $? -ne 0 ]]; then
-        echo ""
-        return
-    fi
-
-    echo "$choice"
-}
-
-# Zeige Info
 zeige_info() {
-    whiptail --title "Info" --msgbox "\
-Dotfiles Manager - SARBS
+    cat << EOF
+
+Dotfiles Manager v${VERSION}
 
 Verzeichnisse:
-• Öffentlich: $PUBLIC_DIR
-• Privat: $PRIVATE_DIR
-• Ziel: $TARGET_DIR
+  Öffentlich: $PUBLIC_DIR
+  Privat:     $PRIVATE_DIR
+  Ziel:       $TARGET_DIR
 
-Validierung:
-• Marker-Datei: $MARKER_FILE
+Marker-Datei: $MARKER_FILE
 
 Ausgeschlossen:
-• Git-Dateien (.git/, .gitignore, etc.)
-• Lizenzen und Funding
-• Backup-Dateien (*.bac, *.~*~)
+  Git-Dateien, Lizenzen, Backups (*.bac, *.~*~)
 
-Entwickler-Modus:
-Überschreibt zuerst mit öffentlichen,
-dann mit privaten Dotfiles." 22 60
+EOF
+}
+
+zeige_hilfe() {
+    cat << EOF
+Dotfiles Manager v${VERSION}
+
+VERWENDUNG:
+    $(basename "$0") [OPTION] [FLAGS]
+
+OPTIONEN:
+    -d, --dev       Entwickler-Modus (öffentlich + privat)
+    -r, --reset     Git hard reset
+    -l, --link      Hardlinks (öffentlich)
+    -c, --copy      Kopieren (ohne Hardlinks)
+    -i, --info      Info anzeigen
+    -h, --help      Diese Hilfe
+    -v, --version   Version anzeigen
+
+FLAGS:
+    -q, --quiet     Minimale Ausgabe
+    -f, --force     Keine Nachfragen
+    -y              Alias für --force
+
+BEISPIELE:
+    $(basename "$0") -d -f    # Entwickler-Modus ohne Nachfragen
+    $(basename "$0") -r -q    # Git reset (quiet)
+    $(basename "$0") -l       # Nur Hardlinks
+
+Ohne Optionen: Interaktives Menü (fzf)
+
+EOF
+}
+
+# Interaktives Menü mit fzf
+interaktives_menu() {
+    while true; do
+        local auswahl=$(cat << EOF | fzf --height 40% --reverse --header "Dotfiles Manager v${VERSION}" --prompt "> "
+Entwickler-Modus (öffentlich + privat)
+Git Hard Reset
+Hardlinks erstellen (öffentlich)
+Kopieren (ohne Hardlinks)
+Info anzeigen
+Beenden
+EOF
+        )
+
+        case "$auswahl" in
+            "Entwickler"*) entwickler_modus ;;
+            "Git"*) git_hard_reset ;;
+            "Hardlinks"*) hardlinks_oeffentlich ;;
+            "Kopieren"*) kopiere_dotfiles ;;
+            "Info"*) zeige_info; read -p "Enter drücken..." ;;
+            "Beenden"|"") exit 0 ;;
+        esac
+
+        [[ "$auswahl" != "Info"* && "$auswahl" != "" ]] && read -p "Enter drücken..."
+    done
 }
 
 # Hauptprogramm
 main() {
-    # Endlosschleife für Menü
-    while true; do
-        choice=$(zeige_menu)
+    # Ohne Argumente -> Menü
+    [[ $# -eq 0 ]] && {
+        command -v fzf &>/dev/null || fehler "fzf nicht gefunden. Nutze Flags oder installiere fzf."
+        interaktives_menu
+    }
 
-        # Bei leerem String (ESC/Cancel) einfach weitermachen
-        if [[ -z "$choice" ]]; then
-            continue
-        fi
-
-        case $choice in
-            1)
-                hardlinks_oeffentlich
-                read -p "Enter drücken zum Fortfahren..."
-                ;;
-            2)
-                kopiere_dotfiles
-                read -p "Enter drücken zum Fortfahren..."
-                ;;
-            3)
-                git_hard_reset
-                read -p "Enter drücken zum Fortfahren..."
-                ;;
-            4)
+    # Parse Argumente
+    while [[ $# -gt 0 ]]; do
+        case $1 in
+            -d|--dev)
                 entwickler_modus
-                read -p "Enter drücken zum Fortfahren..."
-                ;;
-            5)
-                zeige_info
-                ;;
-            6)
-                echo "Auf Wiedersehen!"
                 exit 0
                 ;;
+            -r|--reset)
+                git_hard_reset
+                exit 0
+                ;;
+            -l|--link)
+                hardlinks_oeffentlich
+                exit 0
+                ;;
+            -c|--copy)
+                kopiere_dotfiles
+                exit 0
+                ;;
+            -i|--info)
+                zeige_info
+                exit 0
+                ;;
+            -h|--help)
+                zeige_hilfe
+                exit 0
+                ;;
+            -v|--version)
+                echo "Dotfiles Manager v${VERSION}"
+                exit 0
+                ;;
+            -q|--quiet)
+                QUIET=true
+                shift
+                ;;
+            -f|--force|-y)
+                FORCE=true
+                shift
+                ;;
             *)
-                echo -e "${RED}Ungültige Option${NC}"
+                fehler "Unbekannte Option: $1"
                 ;;
         esac
     done
 }
 
-# Prüfe Abhängigkeiten
-if ! command -v whiptail &> /dev/null; then
-    echo -e "${RED}Fehler: whiptail ist nicht installiert${NC}"
-    echo "Installation: sudo apt install whiptail"
-    exit 1
-fi
+# Prüfe rsync
+command -v rsync &>/dev/null || fehler "rsync nicht installiert"
 
-if ! command -v rsync &> /dev/null; then
-    echo -e "${RED}Fehler: rsync ist nicht installiert${NC}"
-    echo "Installation: sudo apt install rsync"
-    exit 1
-fi
-
-# Starte Hauptprogramm
-main
+# Los gehts
+main "$@"

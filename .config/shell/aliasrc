@@ -10,12 +10,12 @@
 [ -f "$XINITRC" ] && alias startx="startx $XINITRC"
 [ -f "$MBSYNCRC" ] && alias mbsync="mbsync -c $MBSYNCRC"
 
-# Systembefehle (mit sudo)
+# === Systembefehle (mit sudo) ===
 for command in mount umount sv pacman updatedb su shutdown poweroff reboot ; do
 	alias $command="sudo $command"
 done; unset command
 
-# Benutzerdefinierte Funktionen
+# === Benutzerdefinierte Funktionen ===
 se() {
 	choice="$(find ~/.local/bin -mindepth 1 -printf '%P\n' | fzf)"
 	[ -f "$HOME/.local/bin/$choice" ] && $EDITOR "$HOME/.local/bin/$choice"
@@ -26,7 +26,7 @@ alias \
 	e="$EDITOR" \
 	v="$EDITOR"
 
-# Verbosität und Einstellungen, die man so ziemlich immer will.
+# === Verbosität und Einstellungen, die man so ziemlich immer will ===
 alias \
 	cp="cp -iv" \
 	mv="mv -iv" \
@@ -37,9 +37,11 @@ alias \
 alias gc"git clone --depth 1"
 alias magit="nvim -c MagitOnly"
 
-# Systemwerkzeuge
+# === Systemwerkzeuge ===
 
 alias lf="lfub"
+alias wann="when"
+alias sido="sudo"
 
 alias \
 	p="pacman" \
