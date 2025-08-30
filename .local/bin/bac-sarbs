@@ -1,15 +1,42 @@
 #!/usr/bin/env bash
-## 2025-01-08 SARBS
-# SARBS Backup Script
-# TODO Zielüberprüfung hinzufügen
+## 2025-08-27   SARBS
+# vor nutzung für eigene bedürfnisse anpassen und umbenennen!
+# Zielsuche findet im /mnt verzeichniss das Zielverzeichniss 'BACKUP' und setzt es als Variable
+#
 
 # --ignore-times    zwingt rsync die alle Dateien zu prüfen
 # --inplace         zwingt rsync den Cache zu ignorieren
-# pkexec mit sudo ersetzen
+# --dry-run         zum testen...
 
-# hier den rsync promt eintragen
+# Finde Backup-Ziel (empfohlen)
+# ZIEL=$(find /mnt -maxdepth 2 -type d -name "BACKUP" 2>/dev/null | head -1)
+
+# Manuelle Zieleingabe
+ZEIL=/mnt/usb0/BACKUP/
+
+# Prüfe ob Ziel existiert
+[ -z "$ZIEL" ] && echo "Kein BACKUP Verzeichnis gefunden" && exit 1
+
+echo "Backup nach: $ZIEL"
+
+# Rsync ausführen
+sudo rsync \
+    -r -t -p -o -g -v --progress --delete -l -H -s \
+    --exclude=/proc \
+    --exclude=/sys/* \
+    --exclude=/dev/* \
+    --exclude=/run/* \
+    --exclude=/tmp/* \
+    --exclude=/var/tmp \
+    --exclude=/media/* \
+    --exclude=/mnt \
+    --exclude=/lost+found \
+    --exclude=/var/cache \
+    --exclude=/boot \
+    / "$ZIEL"
 
 # Sicherstellen, dass alle Daten auf die Festplatte geschrieben wurden
 sync
 
+# für terminal nutzung
 read -r -p "Drücke Enter, um das Terminal zu schließen..."
