@@ -1,7 +1,10 @@
 #!/usr/bin/env bash
 # dotfiles-sarbs - Dotfiles Management Tool
-# 2025-01-09 SARBS DEV V8 - KISS Edition mit fzf
+# 2025-01-09 SARBS DEV V9 - KISS Edition mit fzf + Preview
 # Verwaltet öffentliche und private Dotfiles mit Hardlinks
+#
+# FÜR ANFÄNGER: Teste erstmal mit --dry-run Flag!
+# Beispiel: ./dotfiles-sarbs -d --dry-run
 
 set -euo pipefail
 
@@ -11,7 +14,7 @@ readonly PRIVATE_DIR="$HOME/.local/src/dotfiles-privat"
 readonly TARGET_DIR="$HOME"
 readonly MARKER_FILE=".dotfiles-marker"
 readonly GIT_BRANCH="main"
-readonly VERSION="8.0"
+readonly VERSION="9.0"
 
 # Ausschluss-Muster für rsync
 readonly EXCLUDES=(
@@ -29,6 +32,7 @@ readonly EXCLUDES=(
 # Flags
 QUIET=false
 FORCE=false
+DRY_RUN=false
 
 # Hilfsfunktionen
 log() {
@@ -59,6 +63,8 @@ baue_rsync_kommando() {
     local dest="$2"
     local cmd="rsync -avh --link-dest='$src'"
 
+    [[ "$DRY_RUN" == true ]] && cmd="$cmd --dry-run"
+
     for pattern in "${EXCLUDES[@]}"; do
         cmd="$cmd --exclude='$pattern'"
     done
@@ -76,6 +82,7 @@ hardlinks_oeffentlich() {
     [[ "$QUIET" == true ]] && cmd="${cmd//-avh/-aq}"
     eval "$cmd"
 
+    [[ "$DRY_RUN" == true ]] && log "⚠️  DRY-RUN - Nichts wurde verändert!"
     log "✓ Hardlinks erstellt: $PUBLIC_DIR → $TARGET_DIR"
 }
 
@@ -84,6 +91,8 @@ kopiere_dotfiles() {
     validiere_verzeichnis "$PUBLIC_DIR" "Öffentliches Verzeichnis"
 
     local cmd="rsync -avh"
+    [[ "$DRY_RUN" == true ]] && cmd="$cmd --dry-run"
+
     for pattern in "${EXCLUDES[@]}"; do
         cmd="$cmd --exclude='$pattern'"
     done
@@ -92,6 +101,7 @@ kopiere_dotfiles() {
     [[ "$QUIET" == true ]] && cmd="${cmd//-avh/-aq}"
     eval "$cmd"
 
+    [[ "$DRY_RUN" == true ]] && log "⚠️  DRY-RUN - Nichts wurde verändert!"
     log "✓ Dotfiles kopiert: $PUBLIC_DIR → $TARGET_DIR"
 }
 
@@ -101,17 +111,23 @@ git_hard_reset() {
     [[ ! -d "$PUBLIC_DIR/.git" ]] && fehler "Kein Git-Repository in $PUBLIC_DIR"
 
     cd "$PUBLIC_DIR"
-    if [[ "$QUIET" == true ]]; then
-        git fetch origin -q
-        git reset --hard "origin/$GIT_BRANCH" -q
+
+    if [[ "$DRY_RUN" == true ]]; then
+        log "⚠️  DRY-RUN Modus:"
+        log "  Würde ausführen: git fetch origin"
+        log "  Würde ausführen: git reset --hard origin/$GIT_BRANCH"
     else
-        git fetch origin
-        git reset --hard "origin/$GIT_BRANCH"
+        if [[ "$QUIET" == true ]]; then
+            git fetch origin -q
+            git reset --hard "origin/$GIT_BRANCH" -q
+        else
+            git fetch origin
+            git reset --hard "origin/$GIT_BRANCH"
+        fi
+        log "✓ Reset auf origin/$GIT_BRANCH"
     fi
 
-    log "✓ Reset auf origin/$GIT_BRANCH"
-
-    if [[ "$FORCE" == false ]]; then
+    if [[ "$FORCE" == false ]] && [[ "$DRY_RUN" == false ]]; then
         read -p "Hardlinks erstellen? [j/N]: " antwort
         [[ "$antwort" =~ ^[jJ]$ ]] && hardlinks_oeffentlich
     fi
@@ -134,6 +150,7 @@ entwickler_modus() {
         local cmd=$(baue_rsync_kommando "$PRIVATE_DIR" "$TARGET_DIR")
         [[ "$QUIET" == true ]] && cmd="${cmd//-avh/-aq}"
         eval "$cmd"
+        [[ "$DRY_RUN" == true ]] && log "⚠️  DRY-RUN - Nichts wurde verändert!"
         log "✓ Private Dotfiles überschrieben"
     else
         log "Info: Keine privaten Dotfiles gefunden"
@@ -178,13 +195,19 @@ FLAGS:
     -q, --quiet     Minimale Ausgabe
     -f, --force     Keine Nachfragen
     -y              Alias für --force
+    -n, --dry-run   Simulation (zeigt was passieren würde)
 
 BEISPIELE:
     $(basename "$0") -d -f    # Entwickler-Modus ohne Nachfragen
     $(basename "$0") -r -q    # Git reset (quiet)
-    $(basename "$0") -l       # Nur Hardlinks
+    $(basename "$0") -l -n    # Hardlinks simulieren (dry-run)
+    $(basename "$0") -d -n    # Entwickler-Modus testen
 
 Ohne Optionen: Interaktives Menü (fzf)
+
+TIPP FÜR ANFÄNGER:
+    Nutze -n (--dry-run) um zu sehen was passiert!
+    Beispiel: $(basename "$0") -d -n
 
 EOF
 }
@@ -192,14 +215,90 @@ EOF
 # Interaktives Menü mit fzf
 interaktives_menu() {
     while true; do
-        local auswahl=$(cat << EOF | fzf --height 40% --reverse --header "Dotfiles Manager v${VERSION}" --prompt "> "
+        local auswahl=$(cat << 'MENU' | fzf \
+            --height 40% \
+            --reverse \
+            --header "Dotfiles Manager v${VERSION} - ESC zum Beenden" \
+            --prompt "> " \
+            --preview-window=right:50%:wrap \
+            --preview "case {} in
+                \"Entwickler\"*)
+                    echo \"ENTWICKLER-MODUS\"
+                    echo \"===============\"
+                    echo \"\"
+                    echo \"Verlinkt BEIDE Dotfile-Sets:\"
+                    echo \"1. Öffentliche Dotfiles (GitHub)\"
+                    echo \"2. Private Dotfiles (lokal)\"
+                    echo \"\"
+                    echo \"Private überschreiben öffentliche!\"
+                    echo \"\"
+                    echo \"⚠️  ACHTUNG: Überschreibt ALLES!\"
+                    ;;
+                \"Git\"*)
+                    echo \"GIT HARD RESET\"
+                    echo \"==============\"
+                    echo \"\"
+                    echo \"Setzt Repository zurück auf:\"
+                    echo \"→ origin/$GIT_BRANCH\"
+                    echo \"\"
+                    echo \"Verwirft ALLE lokalen Änderungen!\"
+                    echo \"Holt neueste Version vom Server.\"
+                    echo \"\"
+                    echo \"Optional: Hardlinks danach\"
+                    ;;
+                \"Hardlinks\"*)
+                    echo \"HARDLINKS ERSTELLEN\"
+                    echo \"===================\"
+                    echo \"\"
+                    echo \"Erstellt Hardlinks von:\"
+                    echo \"→ $PUBLIC_DIR\"
+                    echo \"\"
+                    echo \"Nach:\"
+                    echo \"→ $TARGET_DIR\"
+                    echo \"\"
+                    echo \"Nur öffentliche Dotfiles!\"
+                    echo \"Spart Speicherplatz.\"
+                    ;;
+                \"Kopieren\"*)
+                    echo \"DOTFILES KOPIEREN\"
+                    echo \"=================\"
+                    echo \"\"
+                    echo \"Kopiert Dateien (keine Hardlinks)\"
+                    echo \"Unabhängige Kopien im Home.\"
+                    echo \"\"
+                    echo \"Gut für:\"
+                    echo \"• Andere Dateisysteme\"
+                    echo \"• Wenn Hardlinks nicht möglich\"
+                    ;;
+                \"Info\"*)
+                    echo \"INFORMATIONEN\"
+                    echo \"=============\"
+                    echo \"\"
+                    echo \"Version: $VERSION\"
+                    echo \"\"
+                    echo \"Verzeichnisse:\"
+                    echo \"• Öffentlich: $PUBLIC_DIR\"
+                    echo \"• Privat: $PRIVATE_DIR\"
+                    echo \"• Ziel: $TARGET_DIR\"
+                    echo \"\"
+                    echo \"Nutze Flags für Automatisierung!\"
+                    ;;
+                *)
+                    echo \"Wähle eine Option\"
+                    echo \"\"
+                    echo \"Navigation:\"
+                    echo \"• ↑/↓ oder j/k: Bewegen\"
+                    echo \"• Enter: Auswählen\"
+                    echo \"• ESC: Beenden\"
+                    ;;
+            esac"
 Entwickler-Modus (öffentlich + privat)
 Git Hard Reset
 Hardlinks erstellen (öffentlich)
 Kopieren (ohne Hardlinks)
 Info anzeigen
 Beenden
-EOF
+MENU
         )
 
         case "$auswahl" in
@@ -260,6 +359,10 @@ main() {
                 ;;
             -f|--force|-y)
                 FORCE=true
+                shift
+                ;;
+            -n|--dry-run)
+                DRY_RUN=true
                 shift
                 ;;
             *)
