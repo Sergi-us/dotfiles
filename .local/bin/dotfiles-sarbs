@@ -216,7 +216,7 @@ EOF
 interaktives_menu() {
     while true; do
         local auswahl=$(cat << 'MENU' | fzf \
-            --height 40% \
+            --height 50% \
             --reverse \
             --header "Dotfiles Manager v${VERSION} - ESC zum Beenden" \
             --prompt "> " \
