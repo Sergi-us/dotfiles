@@ -2,16 +2,16 @@
 # KeePassXC Wrapper mit Qt5-Skalierung
 
 # Manuelle Skalierung (auskommentieren für xprofile)
-# SCALE_FACTOR=1
+SCALE_FACTOR=1
 
 # Hole SCALE_FACTOR - lokal oder aus xprofile
-SCALE_FACTOR=${SCALE_FACTOR:-$(grep "^SCALE_FACTOR=" ~/.config/x11/xprofile | cut -d= -f2)}
+# SCALE_FACTOR=${SCALE_FACTOR:-$(grep "^SCALE_FACTOR=" ~/.config/x11/xprofile | cut -d= -f2)}
 
 # Qt5-Skalierung
 export QT_SCALE_FACTOR=$SCALE_FACTOR
 
 # Optional: Falls KeePassXC zu groß/klein wird
 # Override System-DPI für Schriften
-export QT_FONT_DPI=92
+# export QT_FONT_DPI=92
 
 exec /usr/bin/keepassxc "$@"
