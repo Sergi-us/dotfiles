@@ -4,9 +4,9 @@
 # Wirkt nur in grafischen X11-Sitzungen.
 # Spezifisch für grafische Programme unter X11.
 
-# === DPI-Only Konfiguration ===
+# === DPI und Skalierfaktor Konfiguration ===
 # Ein DPI-Wert für alle Frameworks - keine zusätzlichen Skalierungsfaktoren
-MASTER_DPI=192
+MASTER_DPI=96
 # DPI-Optionen (Vielfache von 96):
 #   96  = 1.0× (Windows 95 Standard, Low-DPI)
 #   120 = 1.25× (Windows "125%" Skalierung)
@@ -16,16 +16,25 @@ MASTER_DPI=192
 #   240 = 2.5× (für 4K auf kleineren Displays)
 #   288 = 3.0× (für sehr hohe DPI Displays)
 
+# Zusätzlicher Skalierungsfaktor für Feintuning (1.25 oder 1.5 oder integer 2.0 usw..)
+# einfach testen
+SCALE_FACTOR=1
+# Multipliziert mit DPI für finale Skalierung
+# Bei zu großer darstellung greift das whrapper-Skript
+# ~/.local/bin/wrapper
 
 xrandr --dpi $MASTER_DPI
 # TODO Xft.dpi wird automatisch gesetzt - alte X11-Apps lesen das (muss noch eingerichtet werden)
-SCALE_FACTOR=1.25
 
 # === Themes und GUI ===
-# export GTK_THEME=Breeze-Dark                                    # Überschreibt gsettings - sinnvoll für Window Manager ohne GNOME
+export GTK_THEME=Breeze-Dark                                    # Überschreibt gsettings - sinnvoll für Window Manager ohne GNOME
 export GTK3_RC_FILES="$XDG_CONFIG_HOME/gtk-3.0/settings.ini"    # GTK3 liest Einstellungen von hier
 # GTK4 nutzt keine RC_FILES mehr - nur noch gsettings!
 # export GTK2_RC_FILES="$XDG_CONFIG_HOME/gtk-2.0/gtkrc-2.0"     # GTK2 ist obsolet - nur behalten falls alte Apps (GIMP 2.8, etc.)
+
+# === GTK Skalierung ===
+export GDK_DPI_SCALE=$SCALE_FACTOR
+# GDK_SCALE nicht setzen - würde Integer-Only Skalierung erzwingen
 
 # DPI-Only: Alle GTK-Skalierung deaktivieren
 unset GDK_DPI_SCALE                                     # dpi-only lösung (Würde DPI-Wert multiplizieren - wollen wir nicht!)
@@ -35,12 +44,13 @@ unset GDK_SCALE                                         # Integer-Skalierung - n
 export QT_QPA_PLATFORMTHEME=qt6ct                       # Qt6 Theme-Integration
 export QT5_QPA_PLATFORMTHEME=qt5ct                      # Qt5 Theme-Integration (parallel installierbar)
 export QT_FONT_DPI=$MASTER_DPI                          # Explizit setzen - manche Qt-Apps ignorieren xrandr
-unset QT_SCALE_FACTOR                                   # DPI-Only - Keine zusätzliche Skalierung!
+export QT_SCALE_FACTOR=$SCALE_FACTOR                    # Zusätzliche Qt-Skalierung
+# unset QT_SCALE_FACTOR                                   # DPI-Only - Keine zusätzliche Skalierung!
 export QT_SCALE_FACTOR_ROUNDING_POLICY=PassThrough      # Bestimmt, wie nicht-ganzzahlige Skalierungsfaktoren behandelt werden
 # PassThrough ist nur relevant wenn QT_SCALE_FACTOR gesetzt wäre - schadet aber nicht
 
 
-unset ELM_SCALE                                         # Enlightenment/EFL - nutzt jetzt System-DPI
+# unset ELM_SCALE                                         # Enlightenment/EFL - nutzt jetzt System-DPI
 
 # === Optionale Features (aktuell deaktiviert) ===
 # export QT_AUTO_SCREEN_SCALE_FACTOR=1    # VORSICHT: Würde Qt eigene Skalierung berechnen lassen!
