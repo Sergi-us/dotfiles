@@ -47,7 +47,7 @@ configuration {
 /*	tokenize: true;*/
 /*	m: "-5";*/
 /*	filter: ;*/
-    dpi: 192;  /* Auto-sync von xrandr --dpi */
+    dpi: 96;
 /*	threads: 0;*/
 /*	scroll-method: 0;*/
 /*	window-format: "{w}    {c}   {t}";*/

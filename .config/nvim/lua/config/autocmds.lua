@@ -1,14 +1,11 @@
 -- lua/config/autocmds.lua
--- ## 2025-04-01 SARBS
 local augroup = vim.api.nvim_create_augroup
 local autocmd = vim.api.nvim_create_autocmd
 
+-- ## 2025-04-01 SARBS
+
 -- Gruppe für Highlighting-Prioritäten (NEU)
 local highlight_group = augroup("HighlightPriority", { clear = true })
-
--- Mache calcurse Markdown kompartibel
-autocmd BufRead,BufNewFile /tmp/calcurse* set filetype=markdoun
-autocmd BufRead,BufNewFile ~/.calcurse/notes/* set filetype=markdoun
 
 -- Cursor zur letzten Position in der Datei setzen
 autocmd("BufReadPost", {
@@ -86,53 +83,73 @@ vim.cmd([[
 -- DPI Synchronisation zwischen xprofile, GTK3 und Rofi
 -- Liest MASTER_DPI Variable statt direkt xrandr --dpi
 -- Liest xrandr --dpi Wert und synchronisiert ihn
+-- DPI: MASTER_DPI aus xprofile lesen und auf GTK3 + Rofi anwenden
 vim.api.nvim_create_autocmd("BufWritePost", {
-    pattern = {
-        vim.fn.expand("~/.xprofile"),
-        vim.fn.expand("~/.config/x11/xprofile"),
-    },
-    callback = function()
-        local file_content = vim.fn.readfile(vim.fn.expand("%:p"))
-        local master_dpi = nil
-        local xrandr_dpi = nil
+  pattern = {
+    vim.fn.expand("~/.xprofile"),
+    vim.fn.expand("~/.config/x11/xprofile"),
+    vim.fn.expand("~/.config/xprofile"),
+  },
+  callback = function()
+    local p = vim.fn.expand("%:p")
+    local lines = vim.fn.readfile(p)
+    local master
 
-        for _, line in ipairs(file_content) do
-            -- MASTER_DPI für GTK3 (nur wenn Zeile mit MASTER_DPI beginnt)
-            if not master_dpi then
-                master_dpi = tonumber(line:match("^MASTER_DPI=(%d+)"))
-            end
-            -- xrandr --dpi für Rofi (nur wenn Zeile "xrandr --dpi" enthält)
-            if not xrandr_dpi and line:match("^xrandr%s+%-%-dpi%s+") then
-                xrandr_dpi = tonumber(line:match("xrandr%s+%-%-dpi%s+(%d+)"))
-            end
-        end
-
-        -- GTK3 Update mit MASTER_DPI (falls vorhanden)
-        if master_dpi and master_dpi > 0 then
-            vim.fn.system(string.format(
-                "sed -i 's/^gtk-xft-dpi=.*/gtk-xft-dpi=%d  # Auto-generiert: %d * 1024 (MASTER_DPI)/' ~/.config/gtk-3.0/settings.ini",
-                master_dpi * 1024, master_dpi
-            ))
-        end
-
-        -- Rofi Update mit xrandr --dpi (falls vorhanden)
-        if xrandr_dpi and xrandr_dpi > 0 then
-            local rofi_config = vim.fn.expand("~/.config/rofi/config.rasi")
-            if vim.fn.filereadable(rofi_config) == 1 then
-                -- Erst alles bis zum Semikolon ersetzen, alte Kommentare entfernen
-                vim.fn.system(string.format(
-                    "sed -i 's/\\s*dpi:.*$/    dpi: %d;  \\/\\* Auto-sync von xrandr --dpi \\*\\//' %s",
-                    xrandr_dpi, rofi_config
-                ))
-            end
-        end
-
-        -- Notify mit beiden Werten
-        if master_dpi or xrandr_dpi then
-            local msg = "DPI synced: "
-            if master_dpi then msg = msg .. string.format("GTK3: %d ", master_dpi * 1024) end
-            if xrandr_dpi then msg = msg .. string.format("Rofi: %d", xrandr_dpi) end
-            vim.notify(msg)
-        end
+    for _, L in ipairs(lines) do
+      master = master or tonumber(L:match("^%s*MASTER_DPI%s*=%s*(%d+)%s*$"))
     end
+    if not master or master <= 0 then
+      vim.notify("MASTER_DPI nicht gefunden.", vim.log.levels.WARN)
+      return
+    end
+
+    -- GTK3 settings.ini pfad
+    local gtk_ini = vim.fn.expand("~/.config/gtk-3.0/settings.ini")
+    -- falls Datei fehlt: leere anlegen
+    if vim.fn.filereadable(gtk_ini) == 0 then
+      vim.fn.mkdir(vim.fn.fnamemodify(gtk_ini, ":h"), "p")
+      vim.fn.writefile({ "[Settings]" }, gtk_ini)
+    end
+    -- Zeilen laden
+    local gtk = vim.fn.readfile(gtk_ini)
+    local found = false
+    for i, L in ipairs(gtk) do
+      if L:match("^%s*gtk%-xft%-dpi%s*=") then
+        gtk[i] = string.format("gtk-xft-dpi=%d", master * 1024)
+        found = true
+        break
+      end
+    end
+    if not found then
+      table.insert(gtk, "gtk-xft-dpi=" .. (master * 1024))
+    end
+    vim.fn.writefile(gtk, gtk_ini)
+
+    -- Rofi config.rasi pfad
+    local rofi = vim.fn.expand("~/.config/rofi/config.rasi")
+    if vim.fn.filereadable(rofi) == 1 then
+      local r = vim.fn.readfile(rofi)
+      local rfound = false
+      for i, L in ipairs(r) do
+        if L:match("%s*dpi:%s*") then
+          r[i] = string.format("    dpi: %d;", master)
+          rfound = true
+          break
+        end
+      end
+      if not rfound then
+        -- einfache Anfüge-Variante, greift global
+        table.insert(r, "dpi: " .. master .. ";")
+      end
+      vim.fn.writefile(r, rofi)
+    end
+
+    vim.notify(("DPI synced: MASTER_DPI=%d  (GTK3=%d, Rofi=%d)"):format(master, master*1024, master))
+  end,
+})
+
+-- calcurse Markdown
+vim.api.nvim_create_autocmd({ "BufRead", "BufNewFile" }, {
+  pattern = { "/tmp/calcurse*", vim.fn.expand("~/.calcurse/notes/*") },
+  callback = function() vim.bo.filetype = "markdown" end,
 })
