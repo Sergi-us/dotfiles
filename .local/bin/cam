@@ -14,13 +14,14 @@ is_android_webcam() {
 
 # Konfigurationsvariablen
 ANDROID_RESOLUTION="1920x1080"
-STANDARD_RESOLUTION="1280x720"
+STANDARD_RESOLUTION="1080x1080"
 PIXELFORMAT="MJPG"
 
 # Reduzierte GPU-Optionen für mpv
 MPV_BASE_OPTIONS="--untimed --no-cache --no-osc --no-input-default-bindings --profile=low-latency --input-conf=/dev/null --title=webcam"
 # MPV_BASE_OPTIONS="--untimed --no-cache --no-osc --no-input-default-bindings --profile=low-latency --input-conf=/dev/null --title=webcam --vo=x11 --hwdec=no"
-STANDARD_FILTERS="hue=s=0,crop=720:720,scale=720:720"
+STANDARD_FILTERS="crop=1080:1080,scale=1080:1080"
+# STANDARD_FILTERS="hue=s=0,crop=720:720,scale=720:720"
 ANDROID_FILTERS="rotate=PI/2,hue=s=0,crop=1080:1080,hflip,vflip"
 ANDROID_ROTATION=""  # Dann diese Variable leer lassen
 # ANDROID_FILTERS="hue=s=0,crop=1450:1080,hflip,vflip"
