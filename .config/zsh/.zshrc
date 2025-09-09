@@ -203,6 +203,7 @@ fi
 # Verzeichnis-Navigation
 setopt autocd                       # Automatisch in Verzeichnisse wechseln
 setopt interactive_comments         # Kommentare in interaktiven Shells
+setopt CORRECT                      # Simple Autokorrektur
 
 # History Konfiguration
 HISTSIZE=10000000

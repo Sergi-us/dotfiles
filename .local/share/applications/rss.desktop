@@ -1,4 +1,10 @@
 [Desktop Entry]
+Name=Newsraft
+GenericName=RSS Feed reader
+Comment=Feed reader for terminal
 Type=Application
-Name=RSS feed addition
-Exec=/usr/bin/env rssadd %U
+Exec=newsraft
+Icon=newsraft
+Terminal=true
+Categories=Feed;News;Network;ConsoleOnly;
+Keywords=feed;news;network;console;
