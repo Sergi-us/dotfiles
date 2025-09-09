@@ -12,6 +12,6 @@ export QT_SCALE_FACTOR=$SCALE_FACTOR
 
 # Optional: Falls KeePassXC zu groß/klein wird
 # Override System-DPI für Schriften
-# export QT_FONT_DPI=92
+export QT_FONT_DPI=144
 
 exec /usr/bin/keepassxc "$@"

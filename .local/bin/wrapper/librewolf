@@ -2,13 +2,12 @@
 # Librewolf Wrapper - liest SCALE_FACTOR aus xprofile
 
 # Manuelle Skalierung (auskommentieren für xprofile)
-# SCALE_FACTOR=1
-
+# SCALE_FACTOR=1.5
 SCALE_FACTOR=${SCALE_FACTOR:-$(grep "^SCALE_FACTOR=" ~/.config/x11/xprofile | cut -d= -f2)}
 
 # Librewolf braucht diese Umgebungsvariable
 export MOZ_ENABLE_WAYLAND=0
-export GDK_SCALE=1
+export GDK_SCALE=$SCALE_FACTOR
 export GDK_DPI_SCALE=$SCALE_FACTOR
 
 # Alternative: Direkt über about:config
