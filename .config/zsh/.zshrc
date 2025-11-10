@@ -1,7 +1,9 @@
-## 2025-01-08 SARBS - Neu mit Zap Plugin Manager
+## 2025-09-11   SARBS
 #
 # TODO Git integration überprüfen und neue Symbole ergänzen ✂ ☇ ⫽
 # TODO Pure Prompt testen (sieht interessant aus)
+# gitpromt funktion überarbeiten (ist auf Debian Server nicht verfügbar)
+# Benötigt: zsh, fzf
 
 # ============================================================================
 # PATH und Umgebungsvariablen
@@ -9,6 +11,9 @@
 
 # Rust/Cargo
 export PATH="$HOME/.local/share/cargo/bin:$PATH"
+
+# Zsh Completion Cache (XDG Base Directory konform)
+export ZSH_COMPDUMP="${XDG_CACHE_HOME:-$HOME/.cache}/zsh/zcompdump"
 
 # ============================================================================
 # Zap Plugin Manager
@@ -32,11 +37,13 @@ plug "jeffreytse/zsh-vi-mode"  # Vi-mode mit allem drum und dran
 # ============================================================================
 # PROMPT PLUGINS - Wähle EINEN aus (oder keinen für Fallback)
 # ============================================================================
+plug "woefe/git-prompt.zsh"             # Simpel, nur Git-Info, sehr schnell, mit SARBS-Prompt
 
 # --- Minimalistische Prompts ---
-plug "woefe/git-prompt.zsh"             # Simpel, nur Git-Info, sehr schnell, mit Standart-Prompt
-# plug "agkozak/agkozak-zsh-prompt"     # Minimal aber informativ, async
+# plug "zap-zsh/zap-prompt"        # ⚡➜ ~ Der Standard Zap Prompt
+# plug "zap-zsh/cloud-prompt"      # ☁️ Cloud-themed Prompt
 # plug "geometry-zsh/geometry"          # Minimal, konfigurierbar
+# plug "agkozak/agkozak-zsh-prompt"     # Minimal aber informativ, async
 
 # --- Feature-reiche Prompts (mit Dependencies) ---
 # plug "mafredri/zsh-async"             # Dependency für Pure
@@ -57,7 +64,7 @@ plug "woefe/git-prompt.zsh"             # Simpel, nur Git-Info, sehr schnell, mi
 plug "Aloxaf/fzf-tab"                   # Tab-Completion mit fzf (mega cool!)
 # plug "unixorn/fzf-zsh-plugin"             # FZF Integration - lädt Keybindings & Completion! (problematisch!)
 plug "agkozak/zsh-z"                  # Pure Zsh Implementation von z (keine Dependencies!)
-plug "wfxr/forgit"                      # Git mit fzf Interface (git add -i auf Steroiden!)
+# plug "wfxr/forgit"                      # Git mit fzf Interface (git add -i auf Steroiden!)
 # plug "paulirish/git-open"             # 'git open' öffnet Repo im Browser
 plug "MichaelAquilina/zsh-you-should-use"  # Erinnert dich an Aliases die du hast!
 
@@ -66,7 +73,7 @@ plug "MichaelAquilina/zsh-you-should-use"  # Erinnert dich an Aliases die du has
 # ============================================================================
 
 # plug "hlissner/zsh-autopair"          # Auto-schließende Klammern/Quotes
-# plug "zsh-users/zsh-history-substring-search"  # Bessere History-Suche (↑↓ Tasten)
+plug "zsh-users/zsh-history-substring-search"  # Bessere History-Suche (↑↓ Tasten)
 # plug "zdharma-continuum/fast-syntax-highlighting"  # Schnellere Alternative zu zsh-syntax-highlighting
 # plug "marlonrichert/zsh-autocomplete" # Real-time Autocomplete (WARNUNG: ändert viel Verhalten!)
 plug "djui/alias-tips"                  # Zeigt Alias-Tipps wenn du lange Befehle tippst
@@ -75,7 +82,7 @@ plug "djui/alias-tips"                  # Zeigt Alias-Tipps wenn du lange Befehl
 # VISUAL & INFO
 # ============================================================================
 
-plug "zsh-users/zsh-completions"        # Vervollständigung
+# plug "zsh-users/zsh-completions"        # Vervollständigung
 # plug "reegnz/jq-zsh-plugin"           # jq Completions und Helpers
 # plug "lukechilds/zsh-better-npm-completion"  # Bessere npm Completions
 # plug "greymd/docker-zsh-completion"   # Docker Completions
@@ -103,7 +110,7 @@ plug "zsh-users/zsh-completions"        # Vervollständigung
 # plug "chrisands/zsh-yarn-completions" # Yarn Completions
 
 # ============================================================================
-# Eigene Funktionen
+# Eigene Funktionen (bereinigt)
 # ============================================================================
 
 # Tomb in deutsch starten
@@ -112,12 +119,12 @@ tomb() {
 }
 
 # Container-Status für Prompt
-function container_status() {
+container_status() {
     [ -f /run/.containerenv ] && echo "⚟ "
 }
 
 # lf mit Verzeichniswechsel (verbesserte Version die zuerst lfub probiert)
-lfcd () {
+lfcd() {
     tmp="$(mktemp -uq)"
     trap 'rm -f $tmp >/dev/null 2>&1 && trap - HUP INT QUIT TERM PWR EXIT' HUP INT QUIT TERM PWR EXIT
 
@@ -134,66 +141,219 @@ lfcd () {
     fi
 }
 
-# fzf History Widget
-fzf-history-widget() {
-  BUFFER=$(fc -l -n 1 | awk '!x[$0]++' | fzf +s +m -e)
-  CURSOR=$#BUFFER
-  zle redisplay
-}
-
 # ============================================================================
-# Prompt Konfiguration
+# Universal Prompt Settings (für alle Plugins)
 # ============================================================================
 
-# Prüfen ob ein Prompt-Plugin geladen wurde (außer git-prompt)
-if ! command -v prompt_pure_setup &> /dev/null && \
-   ! command -v spaceship_prompt &> /dev/null && \
-   [[ -z "$STARSHIP_SHELL" ]] && \
-   [[ -z "$POWERLEVEL9K_VERSION" ]]; then
+# Diese Settings gelten für alle Prompt-Plugins
+export PROMPT_EOL_MARK=""                    # Kein EOL-Marker
+setopt prompt_subst                         # Variable substitution in prompts
+autoload -U colors && colors
 
-    # FALLBACK: Eigener Prompt (mit git-prompt.zsh Integration falls vorhanden)
-    # Farben und Module laden
-    autoload -U colors && colors
-    autoload -Uz tetriscurses
-    # Wenn git-prompt.zsh Plugin geladen ist, nutze es
-    if command -v gitprompt &> /dev/null; then
-        # git-prompt.zsh Konfiguration
-        ZSH_GIT_PROMPT_SHOW_UPSTREAM="full"
-        ZSH_GIT_PROMPT_SHOW_STASH=1
-        # Nerd Font Symbole für git-prompt.zsh
-        ZSH_THEME_GIT_PROMPT_PREFIX="%{$fg_bold[magenta]%} "
-        ZSH_THEME_GIT_PROMPT_SUFFIX=""
-        ZSH_THEME_GIT_PROMPT_SEPARATOR=" "
-        ZSH_THEME_GIT_PROMPT_BRANCH="⎇ "                    # Branch Symbol (Nerd Font)
-        ZSH_THEME_GIT_PROMPT_STAGED="%{$fg[green]%}✓"       # Staged changes
-        ZSH_THEME_GIT_PROMPT_CONFLICTS="%{$fg[red]%}✖"      # Conflicts
-        ZSH_THEME_GIT_PROMPT_CHANGED="%{$fg[yellow]%}✚"     # Changed files
-        ZSH_THEME_GIT_PROMPT_UNTRACKED="%{$fg[cyan]%}…"     # Untracked
-        ZSH_THEME_GIT_PROMPT_STASHED="%{$fg[blue]%}⚑"       # Stash
-        ZSH_THEME_GIT_PROMPT_BEHIND="%{$fg[red]%}↓"         # Behind remote
-        ZSH_THEME_GIT_PROMPT_AHEAD="%{$fg[green]%}↑"        # Ahead of remote
+# ============================================================================
+# Plugin-spezifische Konfigurationen (bereinigt)
+# ============================================================================
 
-        # Prompt mit git-prompt.zsh
-        PROMPT="%B%{$fg[magenta]%}%n@%m%{$reset_color%} %(?:%{$fg_bold[green]%}➜:%{$fg_bold[red]%}✗) %{$fg[cyan]%}%c%{$reset_color%} "
-        RPROMPT='$(container_status)$(gitprompt)%B%F{cyan} [%*]%b%f'
-    else
-        # Original Prompt OHNE git-prompt.zsh (mit vcs_info)
-        autoload -Uz vcs_info
+# --- Zap Prompts ---
+if [[ -n "$functions[zap_prompt]" ]]; then
+    # Zap-Prompt ist bereits aktiv
+    PROMPT_CHAR="➜"
+fi
 
-        # Git Integration für Prompt
-        zstyle ':vcs_info:*' enable git
-        zstyle ':vcs_info:*' check-for-changes true
-        zstyle ':vcs_info:git:*' formats "%{$fg[red]%}[%u %{$fg[magenta]%}%b%{$fg[red]%}]"
+# --- Woefe Git-Prompt ---
+if command -v gitprompt &> /dev/null; then
+    # Git-Prompt Konfiguration (Nerd Font Symbole)
+    ZSH_GIT_PROMPT_SHOW_UPSTREAM="full"
+    ZSH_GIT_PROMPT_SHOW_STASH=1
+    ZSH_THEME_GIT_PROMPT_PREFIX="%{$fg_bold[magenta]%} "
+    ZSH_THEME_GIT_PROMPT_SUFFIX=""
+    ZSH_THEME_GIT_PROMPT_SEPARATOR=" "
+    ZSH_THEME_GIT_PROMPT_BRANCH="⎇ "
+    ZSH_THEME_GIT_PROMPT_STAGED="%{$fg[green]%}✓"
+    ZSH_THEME_GIT_PROMPT_CONFLICTS="%{$fg[red]%}✖"
+    ZSH_THEME_GIT_PROMPT_CHANGED="%{$fg[yellow]%}✚"
+    ZSH_THEME_GIT_PROMPT_UNTRACKED="%{$fg[cyan]%}…"
+    ZSH_THEME_GIT_PROMPT_STASHED="%{$fg[blue]%}⚑"
+    ZSH_THEME_GIT_PROMPT_BEHIND="%{$fg[red]%}↓"
+    ZSH_THEME_GIT_PROMPT_AHEAD="%{$fg[green]%}↑"
 
-        # vcs_info vor jedem Prompt updaten
-        precmd_vcs_info() { vcs_info }
-        precmd_functions+=( precmd_vcs_info )
-        setopt prompt_subst
+    # Prompt mit git-prompt.zsh (einzeilig)
+    PROMPT="%B%{$fg[magenta]%}%n@%m%{$reset_color%} %(?:%{$fg_bold[green]%}➜:%{$fg_bold[red]%}✗) %{$fg[cyan]%}%c%{$reset_color%} "
+    RPROMPT='$(container_status)$(gitprompt)%B%F{cyan} [%*]%b%f'
+fi
 
-        # Standard Prompt
-        PROMPT="%B%{$fg[magenta]%}%n@%m%{$reset_color%} %(?:%{$fg_bold[green]%}➜:%{$fg_bold[red]%}✗) %{$fg[cyan]%}%c%{$reset_color%} "
-        RPROMPT='$(container_status)$vcs_info_msg_0_%B%F{cyan}[%*]%b%f'
-    fi
+# --- Agkozak Prompt ---
+if [[ -n "$functions[_agkozak_prompt]" ]]; then
+    AGKOZAK_PROMPT_CHAR=( '➜' '❮' )
+    AGKOZAK_COLORS_USER_HOST=magenta
+    AGKOZAK_COLORS_PATH=cyan
+fi
+
+# --- Pure Prompt ---
+if command -v prompt_pure_setup &> /dev/null; then
+    PURE_PROMPT_SYMBOL="➜"
+    PURE_PROMPT_VICMD_SYMBOL="❮"
+    zstyle :prompt:pure:git:stash show yes
+    autoload -U promptinit && promptinit && prompt pure
+fi
+
+# --- Starship (External Binary) ---
+if command -v starship &> /dev/null; then
+    eval "$(starship init zsh)"
+fi
+
+# --- Starship (External Binary) ---
+if command -v starship &> /dev/null; then
+    eval "$(starship init zsh)"
+fi
+
+# ============================================================================
+# Fallback Prompt (bereinigt)
+# ============================================================================
+
+# Minimal Fallback - nur wenn KEIN Prompt-Plugin geladen ist
+if [[ -z "$PROMPT" ]] && \
+   ! command -v prompt_pure_setup &> /dev/null && \
+   ! command -v starship &> /dev/null && \
+   [[ -z "$functions[_agkozak_prompt]" ]] && \
+   [[ -z "$functions[zap_prompt]" ]]; then
+
+    # Einfacher Prompt OHNE Git (Plugin-free)
+    PROMPT="%B%{$fg[magenta]%}%n@%m%{$reset_color%} %(?:%{$fg_bold[green]%}➜:%{$fg_bold[red]%}✗) %{$fg[cyan]%}%c%{$reset_color%} "
+    RPROMPT='$(container_status)%B%F{cyan}[%*]%b%f'
+fi
+
+# ============================================================================
+# Completion System (erweitert aber KISS)
+# ============================================================================
+
+# Basic Completion System
+autoload -U compinit
+zmodload zsh/complist
+
+# Completion-Dateien Cache (Performance)
+if [[ -n ${ZDOTDIR}/.zcompdump(#qN.mh+24) ]]; then
+    compinit
+else
+    compinit -C  # Skip security check für faster startup
+fi
+
+# Grundeinstellungen
+zstyle ':completion:*' menu select
+zstyle ':completion:*' list-max 0
+zstyle ':completion:*' list-prompt ''
+_comp_options+=(globdots)                                   # Versteckte Dateien
+zstyle ':completion:*' matcher-list 'm:{a-z}={A-Za-z}'      # Case-insensitive
+zstyle ':completion:*' group-name ''                        # Gruppierung
+zstyle ':completion:*:descriptions' format '%B%d%b'         # Gruppenbeschreibungen
+
+# Verzeichnis-Navigation
+zstyle ':completion:*' squeeze-slashes true
+zstyle ':completion:*' special-dirs true
+
+# FZF-Tab Integration (falls Plugin verfügbar)
+if [[ -n "$functions[_fzf_tab_compl_wrapper]" ]]; then
+    zstyle ':fzf-tab:complete:cd:*' fzf-preview 'ls -la $realpath'
+    zstyle ':fzf-tab:*' fzf-flags --height=40% --layout=reverse
+    zstyle ':fzf-tab:*' switch-group ',' '.'
+fi
+
+# Performance Cache
+zstyle ':completion::complete:*' use-cache 1
+zstyle ':completion::complete:*' cache-path "${XDG_CACHE_HOME:-$HOME/.cache}/zsh"
+
+# ============================================================================
+# Vi-Mode Konfiguration (bereinigt)
+# ============================================================================
+
+# --- Plugin-basierter Vi-Mode (jeffreytse/zsh-vi-mode) ---
+if command -v zvm_version &> /dev/null; then
+    # Vi-Mode Plugin Konfiguration
+    ZVM_VI_INSERT_ESCAPE_BINDKEY=jk
+    ZVM_CURSOR_STYLE_ENABLED=true
+
+    # Custom Keybindings NACH Plugin-Init
+    zvm_after_init() {
+        # 🔥 ATUIN HIER initialisieren, NACH vi-mode!
+        # eval "$(atuin init zsh --disable-up-arrow)"
+        # eval "$(atuin init zsh)"
+
+        # Strg+R explizit binden
+        # bindkey '^r' _atuin_search_widget
+
+        # Custom Keybindings wiederherstellen
+        bindkey '^f' fzf-file-widget
+        bindkey '^e' edit-command-line
+        bindkey -s '^o' '^ulfcd\n'
+        bindkey -s '^a' '^ubc -lq\n'
+    }
+    VI_MODE_PLUGIN_ACTIVE=true
+
+# --- Fallback: Built-in Vi-Mode ---
+elif [[ "$VI_MODE_PLUGIN_ACTIVE" != "true" ]]; then
+    bindkey -v
+    export KEYTIMEOUT=1
+
+    # Cursor-Style
+    function zle-keymap-select {
+        case $KEYMAP in
+            vicmd)      echo -ne '\e[1 q';;
+            viins|main) echo -ne '\e[5 q';;
+        esac
+    }
+    zle -N zle-keymap-select
+    zle-line-init() { echo -ne '\e[5 q' }
+    zle -N zle-line-init
+
+    # Completion Menu Navigation
+    bindkey -M menuselect 'h' vi-backward-char
+    bindkey -M menuselect 'k' vi-up-line-or-history
+    bindkey -M menuselect 'l' vi-forward-char
+    bindkey -M menuselect 'j' vi-down-line-or-history
+fi
+
+# ============================================================================
+# Universal Keybindings (bereinigt)
+# ============================================================================
+
+# Zeile in Editor bearbeiten
+autoload edit-command-line
+zle -N edit-command-line
+
+# Custom Keybindings (falls Plugin sie nicht überschreibt)
+if [[ "$VI_MODE_PLUGIN_ACTIVE" != "true" ]]; then
+    bindkey '^f' fzf-file-widget
+    bindkey '^e' edit-command-line
+    bindkey -s '^o' '^ulfcd\n'
+    bindkey -s '^a' '^ubc -lq\n'
+fi
+
+# FZF Integration (manuell)
+[ -f /usr/share/fzf/completion.zsh ] && source /usr/share/fzf/completion.zsh
+
+# FZF History-Suche direkt einbinden
+if command -v fzf >/dev/null 2>&1; then
+    # FZF History Widget
+    fzf-history-widget() {
+        local selected num
+        setopt localoptions noglobsubst noposixbuiltins pipefail no_aliases 2> /dev/null
+        selected=( $(fc -rl 1 | 
+            FZF_DEFAULT_OPTS="--height ${FZF_TMUX_HEIGHT:-40%} --reverse --scheme=history --bind=ctrl-r:toggle-sort ${FZF_CTRL_R_OPTS-} --query=${(qqq)LBUFFER} +m" \
+            fzf) )
+        local ret=$?
+        if [ -n "$selected" ]; then
+            num=${selected[1]}
+            if [ -n "$num" ]; then
+                zle vi-fetch-history -n $num
+            else
+                LBUFFER="$selected"
+            fi
+        fi
+        zle reset-prompt
+        return $ret
+    }
+    zle -N fzf-history-widget
+    bindkey '^R' fzf-history-widget
 fi
 
 # ============================================================================
@@ -205,80 +365,30 @@ setopt autocd                       # Automatisch in Verzeichnisse wechseln
 setopt interactive_comments         # Kommentare in interaktiven Shells
 setopt CORRECT                      # Simple Autokorrektur
 
-# History Konfiguration
+# ============================================================================
+# Atuin History - Wichtige Keybindings
+# ============================================================================
+# Installation: bash <(curl --proto '=https' --tlsv1.2 -sSf https://setup.atuin.sh)
+# Config: ~/.config/atuin/config.toml
+# Import alte History: atuin import auto
+#
+# KEYBINDINGS IM ATUIN-UI:
+# Strg+R      - Filter-Modi wechseln (Global → Host → Directory → Session)
+# Pfeiltasten - Durch History navigieren
+# Enter       - Befehl ausführen
+# Tab         - Befehl editieren (nicht ausführen)
+# Esc         - Beenden
+# Strg+O      - Inspect-Modus (Details anzeigen)
+
+# History Konfiguration (wieder aktiviert)
 HISTSIZE=10000000
 SAVEHIST=10000000
-HISTFILE="${XDG_CONFIG_HOME:-$HOME/.config}/zsh/history"
+HISTFILE="${XDG_STATE_HOME:-$HOME/.local/state}/zsh/history"
+HISTORY_IGNORE="(pass|pass *|man *|ls|ls *|cd|cd *|ytt|ytt *|yt|yt *|tomb|tomb *|pwd|exit|clear|history|history *)"
 setopt HIST_IGNORE_ALL_DUPS     # Alle Duplikate ignorieren
 setopt HIST_SAVE_NO_DUPS        # Keine Duplikate speichern
 setopt HIST_IGNORE_SPACE        # Befehle mit führendem Leerzeichen ignorieren
 setopt inc_append_history       # Sofort schreiben
-HISTORY_IGNORE="(pass|pass *|man *|ls|ls *|cd|cd *|ytt|ytt *|yt|yt *|tomb|tomb *|pwd|exit|clear|history|history *)"
-
-# ============================================================================
-# Completion System
-# ============================================================================
-
-autoload -U compinit
-zstyle ':completion:*' menu select
-zmodload zsh/complist
-compinit
-_comp_options+=(globdots)       # Versteckte Dateien einbeziehen
-zstyle ':completion:*' list-prompt ''
-zstyle ':completion:*' list-max 0
-
-# ============================================================================
-# Keybindings (nur noch die Custom-Bindings, Vi-Mode kommt vom Plugin)
-# ============================================================================
-
-# Falls zsh-vi-mode Plugin NICHT geladen ist, nutze basic vi-mode
-if ! command -v zvm_version &> /dev/null; then
-    bindkey -v
-    export KEYTIMEOUT=1
-fi
-
-# Custom Keybindings (funktionieren mit und ohne vi-mode plugin)
-# Diese müssen NACH dem vi-mode plugin definiert werden
-
-# Completion Menu Navigation (falls vi-mode plugin nicht läuft)
-bindkey -M menuselect 'h' vi-backward-char
-bindkey -M menuselect 'k' vi-up-line-or-history
-bindkey -M menuselect 'l' vi-forward-char
-bindkey -M menuselect 'j' vi-down-line-or-history
-
-# Custom Funktions-Keybindings
-bindkey -s '^o' '^ulfcd\n'                          # Strg+o für lf
-bindkey -s '^a' '^ubc -lq\n'                        # Strg+a für bc
-
-# Überschreibe FZF Standard-Keybinding (Ctrl+T → Ctrl+F)
-bindkey '^f' fzf-file-widget            # Strg+f für FZF Dateisuche
-
-# FZF Integration laden (ohne Plugin)
-[ -f /usr/share/fzf/key-bindings.zsh ] && source /usr/share/fzf/key-bindings.zsh
-[ -f /usr/share/fzf/completion.zsh ] && source /usr/share/fzf/completion.zsh
-
-# fzf History
-zle -N fzf-history-widget
-bindkey '^r' fzf-history-widget
-
-# Zeile in nvim bearbeiten
-autoload edit-command-line
-zle -N edit-command-line
-bindkey '^e' edit-command-line
-
-# Für zsh-vi-mode Plugin: Custom bindings nach Plugin-Init
-if command -v zvm_version &> /dev/null; then
-    # Das Plugin überschreibt manche Keybindings, also definieren wir sie neu
-    zvm_after_init() {
-        # FZF Bindings nach vi-mode Init
-        if [ -f /usr/share/fzf/key-bindings.zsh ]; then
-            source /usr/share/fzf/key-bindings.zsh
-        fi
-        bindkey '^r' fzf-history-widget
-        bindkey '^f' fzf-file-widget
-        bindkey '^e' edit-command-line
-    }
-fi
 
 # ============================================================================
 # Externe Konfigurationen laden

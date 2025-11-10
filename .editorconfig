@@ -88,7 +88,7 @@ indent_size = 4
 # Kommentar: Go hat eine strenge Formatierung mit Tabs
 
 # Rust (4 Leerzeichen, offizieller rustfmt-Standard)
-[*.rs]
+[*.rs,*.ron]
 indent_style = space
 indent_size = 4
 # Kommentar: Rustfmt erzwingt standardmäßig 4 Leerzeichen

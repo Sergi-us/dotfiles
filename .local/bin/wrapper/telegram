@@ -12,12 +12,13 @@ SCALE_FACTOR=1
 
 # Theme-Update
 walogram -i ~/.local/share/bg >/dev/null 2>&1
+# walogram -B -i ~/.local/share/bg >/dev/null 2>&1
 
 # TODO Prüfen auf nutzen...
-THEME_PATH=~/.cache/walogram/wal.tdesktop-theme
+# THEME_PATH=~/.cache/walogram/wal.tdesktop-theme
 
 # Hole SCALE_FACTOR - lokal oder aus xprofile
-SCALE_FACTOR=${SCALE_FACTOR:-$(grep "^SCALE_FACTOR=" ~/.config/x11/xprofile | cut -d= -f2)}
+# SCALE_FACTOR=${SCALE_FACTOR:-$(grep "^SCALE_FACTOR=" ~/.config/x11/xprofile | cut -d= -f2)}
 
 # Qt-Skalierung
 export QT_SCALE_FACTOR=$SCALE_FACTOR

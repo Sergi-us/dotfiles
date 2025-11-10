@@ -1,9 +1,9 @@
 #!/bin/sh
-## 2025-07-11 SARBS - DEV
-# Universelles Unmount-Skript mit Prozess-Management und HDD-Poweroff
+## 2025-10-31 SARBS - DEV
+# Universelles Unmount-Skript mit Prozess-Management und intelligentem HDD-Poweroff
 # - Interaktive Prozess-Behandlung
 # - Sync vor Unmount
-# - HDD Power-Management
+# - Intelligentes HDD Power-Management (USB-HDDs automatisch, interne HDDs konfigurierbar)
 # - Kritische Benachrichtigungen
 
 set -e
@@ -81,6 +81,45 @@ is_rotating_disk() {
     fi
 }
 
+# Prüft ob Gerät ein USB-Gerät ist
+is_usb_device() {
+    device=$1
+    base_device=$(echo "$device" | sed 's/[0-9]*$//')
+
+    # Prüfe removable flag
+    if [ -f "/sys/block/${base_device}/removable" ]; then
+        removable=$(cat "/sys/block/${base_device}/removable" 2>/dev/null || echo "0")
+        [ "$removable" = "1" ] && return 0
+    fi
+
+    # Alternative: Prüfe ob Device-Pfad "usb" enthält
+    device_path=$(readlink -f "/sys/block/${base_device}" 2>/dev/null || echo "")
+    echo "$device_path" | grep -q "/usb"
+}
+
+# Lädt Poweroff-Policy aus Config
+load_poweroff_policy() {
+    config_file="${XDG_CONFIG_HOME:-$HOME/.config}/unmounter/config"
+
+    if [ -f "$config_file" ]; then
+        # shellcheck disable=SC1090
+        . "$config_file"
+    fi
+
+    # Standard: auto (USB-HDDs automatisch, interne HDDs fragen)
+    POWEROFF_POLICY="${POWEROFF_POLICY:-auto}"
+}
+
+# Speichert Poweroff-Policy
+save_poweroff_policy() {
+    policy=$1
+    config_dir="${XDG_CONFIG_HOME:-$HOME/.config}/unmounter"
+    config_file="$config_dir/config"
+
+    mkdir -p "$config_dir"
+    echo "POWEROFF_POLICY=$policy" > "$config_file"
+}
+
 # HDD sicher herunterfahren
 poweroff_hdd() {
     device=$1
@@ -146,9 +185,48 @@ fi
 
 # HDD herunterfahren falls es eine rotierende Disk ist
 if [ -n "$device_name" ] && is_rotating_disk "$device_name"; then
-    # Frage ob HDD heruntergefahren werden soll
-    if echo -e "Ja\nNein" | dmenu -i -p "HDD herunterfahren?" | grep -q "Ja"; then
-        poweroff_hdd "$device_name"
+    base_device=$(echo "$device_name" | sed 's/[0-9]*$//')
+
+    # Lade Policy-Einstellungen
+    load_poweroff_policy
+
+    # USB-HDD? -> Automatisch herunterfahren (außer Policy=never)
+    if is_usb_device "$device_name"; then
+        if [ "$POWEROFF_POLICY" != "never" ]; then
+            notify_normal "💡 USB-HDD erkannt" "Wird automatisch heruntergefahren"
+            poweroff_hdd "$device_name"
+        fi
+    # Interne HDD -> Je nach Policy handeln
+    else
+        case "$POWEROFF_POLICY" in
+            always)
+                poweroff_hdd "$device_name"
+                ;;
+            never)
+                # Nichts tun
+                ;;
+            auto|*)
+                # Frage mit erweiterten Optionen
+                device_info=$(lsblk -ndo MODEL,SIZE "/dev/${base_device}" 2>/dev/null || echo "Unbekannt")
+                choice=$(printf "Ja\nNein\nImmer automatisch\nNie automatisch" | \
+                         dmenu -i -p "Interne HDD herunterfahren? ($device_info)")
+
+                case "$choice" in
+                    "Ja")
+                        poweroff_hdd "$device_name"
+                        ;;
+                    "Immer automatisch")
+                        save_poweroff_policy "always"
+                        poweroff_hdd "$device_name"
+                        notify_normal "⚙️ Einstellung gespeichert" "HDDs werden ab jetzt immer automatisch heruntergefahren"
+                        ;;
+                    "Nie automatisch")
+                        save_poweroff_policy "never"
+                        notify_normal "⚙️ Einstellung gespeichert" "HDDs werden nicht mehr heruntergefahren"
+                        ;;
+                esac
+                ;;
+        esac
     fi
 fi
 

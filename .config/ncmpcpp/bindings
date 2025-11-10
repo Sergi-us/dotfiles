@@ -402,6 +402,9 @@
 #def_key "f"
 #	find_item_forward
 
+def_key "-"
+	find_item_forward
+
 def_key "+"
     show_clock
 def_key "="

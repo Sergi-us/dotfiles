@@ -5,15 +5,50 @@ filter() { sed "/^volume:/d;s/\\[paused\\].*/󰏤/g;/\\[playing\\].*/d;/^ERROR/Q
 
 pidof -x sb-mpdup >/dev/null 2>&1 || sb-mpdup >/dev/null 2>&1 &
 
+# Funktion für Cover-Notification
+notify_song() {
+    song=$(mpc current -f '%artist% - %title%')
+    album=$(mpc current -f '%album%')
+
+    # Cover aus aktuell spielendem Song extrahieren
+    coverpath="/tmp/mpd_cover.jpg"
+
+    # MPD's readpicture nutzen (funktioniert besser)
+    music_dir="$HOME/Musik"  # <- Dein MPD Musik-Verzeichnis
+    current_file=$(mpc current -f '%file%')
+
+    # Cover aus embedded tags oder cover.jpg im Ordner suchen
+    if [ -n "$current_file" ]; then
+        song_dir="$(dirname "$music_dir/$current_file")"
+
+        # Erst nach cover.jpg/png im Ordner suchen
+        if [ -f "$song_dir/cover.jpg" ]; then
+            cp "$song_dir/cover.jpg" "$coverpath"
+        elif [ -f "$song_dir/cover.png" ]; then
+            cp "$song_dir/cover.png" "$coverpath"
+        # Oder ffmpeg nutzen um embedded cover zu extrahieren
+        elif command -v ffmpeg >/dev/null 2>&1; then
+            ffmpeg -i "$music_dir/$current_file" -an -c:v copy "$coverpath" 2>/dev/null
+        fi
+    fi
+
+    # Notification mit oder ohne Bild
+    if [ -f "$coverpath" ]; then
+        notify-send -i "$coverpath" "🎵 $song" "$album"
+    else
+        notify-send "🎵 $song" "$album"
+    fi
+}
+
 case $BLOCK_BUTTON in
     1) mpc toggle | filter ; notify-send "󰽴 Musik-Modul" "Pause" ;;
-    2) mpc status | filter ; setsid -f "$TERMINAL" -e ncmpcpp ;;  # right click, pause/unpause
+    2) mpc status | filter ; setsid -f "$TERMINAL" -e rmpc ;;
     3) mpc status | filter ; notify-send "󰽴 Musik-Modul" "\- Zeigt aktuellen Song.
-- L-󰍽  Pause
+- L-󰍽  Pause
 - M-󰍽 Musikplayer
 - 󱕒 ändert Track.";;
-    4) mpc prev   | filter ;;  # scroll up, previous
-    5) mpc next   | filter ;;  # scroll down, next
+    4) mpc prev | filter ; notify_song ;;
+    5) mpc next | filter ; notify_song ;;
     6) mpc status | filter ; setsid -f "$TERMINAL" -e "$EDITOR" "$0" ;;
     *) mpc status | filter ;;
 esac

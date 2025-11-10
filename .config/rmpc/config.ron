@@ -1,0 +1,309 @@
+#![enable(implicit_some)]
+#![enable(unwrap_newtypes)]
+#![enable(unwrap_variant_newtypes)]
+(
+    // === GRUNDEINSTELLUNGEN ===
+
+    // MPD Server Adresse und Port (Standard: localhost:6600)
+    address: "127.0.0.1:6600",
+
+    // Passwort für MPD Server (None = kein Passwort)
+    password: None,
+
+    // Farbschema (None = Standard-Theme)
+    theme: Some("sarbs"),
+
+    // Cache-Verzeichnis für Album-Cover etc. (None = Standardverzeichnis)
+    cache_dir: Some("$HOME/.local/share/rmpc"),
+
+    // Verzeichnis für LRC Lyrics-Dateien
+    lyrics_dir: Some("/home/sergi/.local/share/lyrics"),
+
+    // Globaler Offset für Lyrics in Millisekunden (falls nötig)
+    lyrics_offset_ms: 0,
+
+    // Befehl der bei jedem Liedwechsel ausgeführt wird (für Benachrichtigungen/Skripte)
+    on_song_change: None,
+
+    // === CAVA VISUALISIERUNG ===
+
+    cava: (
+        framerate: 60,
+        autosens: true,
+        sensitivity: 100,
+        lower_cutoff_freq: 50,
+        higher_cutoff_freq: 10000,
+        input: (
+            method: Fifo,
+            source: "/tmp/mpd.fifo",
+            sample_rate: 44100,
+            channels: 2,
+            sample_bits: 16,
+        ),
+        smoothing: (
+            noise_reduction: 77,
+            monstercat: false,
+            waves: false,
+        ),
+        eq: [],
+    ),
+
+    // === WIEDERGABE & VERHALTEN ===
+
+    // Schrittgröße für Lautstärkeänderungen in Prozent
+    volume_step: 5,
+
+    // Maximale Bildwiederholrate (FPS) der Benutzeroberfläche
+    max_fps: 30,
+
+    // Anzahl Zeilen die beim Scrollen als "Puffer" am Rand bleiben (wie vim scrolloff)
+    scrolloff: 0,
+
+    // Navigation springt vom Ende zum Anfang (und umgekehrt)
+    wrap_navigation: false,
+
+    // Mausunterstützung aktivieren
+    enable_mouse: true,
+
+    // Automatisches Neuladen der Config bei Änderungen (ohne rmpc Neustart)
+    enable_config_hot_reload: true,
+
+    // Aktualisierungsintervall des Wiedergabestatus in Millisekunden
+    status_update_interval_ms: 1000,
+
+    // Nach wie vielen Sekunden springt "zurück" zum Liedanfang statt zum vorherigen Lied
+    // (None = Funktion deaktiviert)
+    rewind_to_start_sec: None,
+
+    // Änderungen in der Queue werden automatisch in der geladenen Playlist gespeichert
+    reflect_changes_to_playlist: false,
+
+    // Aktuell spielendes Lied wird automatisch in der Queue ausgewählt
+    select_current_song_on_change: false,
+
+
+    // === SORTIERUNG ===
+
+    // Sortierreihenfolge für Lieder im Browser: Disc -> Track -> Artist -> Titel
+    browser_song_sort: [Disc, Track, Artist, Title],
+
+    // Sortierung im Verzeichnis-Browser
+    // group_by_type: Ordner zuerst, dann Dateien
+    // reverse: Sortierreihenfolge umkehren (Z-A statt A-Z)
+    directories_sort: SortFormat(group_by_type: true, reverse: false),
+
+
+    // === ALBUM-COVER ===
+
+    album_art: (
+        // Methode zur Cover-Anzeige (Auto = automatisch beste Methode wählen)
+        method: Auto,
+
+        // Maximale Größe der Cover in Pixeln
+        // max_size_px: (width: 1200, height: 1200),
+
+        // Cover von diesen Protokollen werden nicht geladen (Sicherheit)
+        disabled_protocols: ["http://", "https://"],
+
+        // Vertikale Ausrichtung (Center/Top/Bottom)
+        vertical_align: Center,
+
+        // Horizontale Ausrichtung (Center/Left/Right)
+        horizontal_align: Center,
+    ),
+
+
+    // === TASTENBELEGUNG ===
+
+    keybinds: (
+        // Globale Tastenkürzel (in allen Ansichten verfügbar)
+        global: {
+            ":":       CommandMode,              // Befehlsmodus öffnen
+            "-":       VolumeDown,                // Lautstärke runter
+            "s":       Stop,                      // Wiedergabe stoppen
+            "+":       VolumeUp,                  // Lautstärke hoch
+            "<Tab>":   NextTab,                   // Nächster Tab
+            "#":       NextTab,                   // Nächster Tab
+            "<S-Tab>": PreviousTab,               // Vorheriger Tab (Shift+Tab)
+            "1":       SwitchToTab("[1] Wiedergabeliste"),      // Zu Tab "Queue" wechseln
+            "2":       SwitchToTab("Verzeichnisse"), // Zu Tab "Verzeichnisse" wechseln
+            "3":       SwitchToTab("Künstler"),    // Zu Tab "Artists" wechseln
+            "4":       SwitchToTab("Album Künstler"), // Zu Tab "Album Artists" wechseln
+            "5":       SwitchToTab("Alben"),     // Zu Tab "Alben" wechseln
+            "6":       SwitchToTab("Playlisten"),  // Zu Tab "Playlists" wechseln
+            "7":       SwitchToTab("[7] Suche"),     // Zu Tab "[7] Suche" wechseln
+            "q":       Quit,                      // rmpc beenden
+            "<":       NextTrack,                 // Nächstes Lied
+            "p":       TogglePause,               // Pause ein/aus
+            ">":       PreviousTrack,             // Vorheriges Lied
+            "f":       SeekForward,               // Vorspulen
+            "z":       ToggleRepeat,              // Wiederholung ein/aus
+            "x":       ToggleRandom,              // Zufallswiedergabe ein/aus
+            "c":       ToggleConsume,             // Consume-Modus (Lied nach Abspielen aus Queue entfernen)
+            "v":       ToggleSingle,              // Single-Modus (nur ein Lied wiedergeben)
+            "b":       SeekBack,                  // Zurückspulen
+            "?":       ShowHelp,                  // Hilfe anzeigen
+            "u":       Update,                    // Musikdatenbank aktualisieren
+            "U":       Rescan,                    // Musikdatenbank komplett neu einlesen
+            "I":       ShowCurrentSongInfo,       // Info zum aktuellen Lied
+            "O":       ShowOutputs,               // Audio-Ausgänge anzeigen
+            "P":       ShowDecoders,              // Verfügbare Decoder anzeigen
+            "R":       AddRandom,                 // Zufälliges Lied zur Queue hinzufügen
+            "L": ExternalCommand(
+                command: ["lyrics-fetch-queue"],
+                description: "Lyrics für gesamte Wiedergabeliste herunterladen"
+            ),
+            "M": ExternalCommand(
+                command: ["lyrics-fetch-batch"],
+                description: "Lyrics für markierte Songs herunterladen"
+            ),
+        },
+
+        // Navigation (in Listen & Browsern)
+        navigation: {
+            "k":         Up,                      // Hoch (vim-style)
+            "j":         Down,                    // Runter (vim-style)
+            "h":         Left,                    // Links (vim-style)
+            "l":         Right,                   // Rechts (vim-style)
+            "<Up>":      Up,                      // Hoch (Pfeiltaste)
+            "<Down>":    Down,                    // Runter (Pfeiltaste)
+            "<Left>":    Left,                    // Links (Pfeiltaste)
+            "<Right>":   Right,                   // Rechts (Pfeiltaste)
+            "<C-k>":     PaneUp,                  // Panel nach oben (Ctrl+k)
+            "<C-j>":     PaneDown,                // Panel nach unten (Ctrl+j)
+            "<C-h>":     PaneLeft,                // Panel nach links (Ctrl+h)
+            "<C-l>":     PaneRight,               // Panel nach rechts (Ctrl+l)
+            "<C-u>":     UpHalf,                  // Halbe Seite hoch (Ctrl+u)
+            "N":         PreviousResult,          // Vorheriges [7] Suchergebnis
+            "a":         Add,                     // Hinzufügen
+            "A":         AddAll,                  // Alles hinzufügen
+            "r":         Rename,                  // Umbenennen
+            "n":         NextResult,              // Nächstes [7] Suchergebnis
+            "g":         Top,                     // Zum Anfang springen
+            "<Space>":   Select,                  // Auswählen/Markieren
+            "<C-Space>": InvertSelection,         // Auswahl umkehren (Ctrl+Space)
+            "G":         Bottom,                  // Zum Ende springen
+            "<CR>":      Confirm,                 // Bestätigen (Enter)
+            "i":         FocusInput,              // Eingabefeld fokussieren
+            "J":         MoveDown,                // Ausgewähltes Element nach unten verschieben
+            "<C-d>":     DownHalf,                // Halbe Seite runter (Ctrl+d)
+            "/":         EnterSearch,             // Suchfeld öffnen
+            "<C-c>":     Close,                   // Schließen (Ctrl+c)
+            "<Esc>":     Close,                   // Schließen (Escape)
+            "K":         MoveUp,                  // Ausgewähltes Element nach oben verschieben
+            "D":         Delete,                  // Löschen
+            "B":         ShowInfo,                // Info anzeigen
+        },
+
+        // Queue-spezifische Tastenkürzel
+        queue: {
+            "D":       DeleteAll,                 // Alles aus Queue löschen
+            "<CR>":    Play,                      // Ausgewähltes Lied abspielen (Enter)
+            "<C-s>":   Save,                      // Queue als Playlist speichern (Ctrl+s)
+            "a":       AddToPlaylist,             // Zur Playlist hinzufügen
+            "d":       Delete,                    // Aus Queue löschen
+            "C":       JumpToCurrent,             // Zum aktuell spielenden Lied springen
+            "X":       Shuffle,                   // Queue mischen
+        },
+    ),
+
+
+    // === SUCHE ===
+
+    search: (
+        // Groß-/Kleinschreibung beachten
+        case_sensitive: false,
+
+        // Suchmodus (Contains = Text muss enthalten sein)
+        mode: Contains,
+
+        // Durchsuchbare Tags/Felder
+        tags: [
+            (value: "any",         label: "Alle Tags"),       // Alle Tags
+            (value: "artist",      label: "Artist"),        // Artist
+            (value: "album",       label: "Album"),         // Album
+            (value: "albumartist", label: "Album Artist"),  // Album Artist
+            (value: "title",       label: "Titel"),         // Titel
+            (value: "filename",    label: "Dateiname"),      // Dateiname
+            (value: "genre",       label: "Genre"),         // Genre
+        ],
+    ),
+
+
+    // === ARTISTS ANSICHT ===
+
+    artists: (
+        // Wie Alben angezeigt werden (SplitByDate = nach Erscheinungsjahr gruppieren)
+        album_display_mode: SplitByDate,
+
+        // Alben sortieren nach Datum (Date = Erscheinungsdatum)
+        album_sort_by: Date,
+    ),
+
+
+    // === TAB-LAYOUT ===
+
+    tabs: [
+    // Tab 1: Queue mit Album-Cover oben, Lyrics unten und Cava rechts
+            (
+                name: "[1] Wiedergabeliste",
+                pane: Split(
+                    direction: Horizontal,
+                    panes: [
+                        // Links: Album-Cover oben + Lyrics unten (45%)
+                        (size: "40%", pane: Split(
+                            direction: Vertical,
+                            panes: [
+                                (size: "70%", pane: Pane(AlbumArt)),  // Oben: Cover
+                                (size: "30%", pane: Pane(Lyrics)),    // Unten: Lyrics
+                            ],
+                        )),
+                        // Rechts: Queue oben + Cava unten (55%)
+                        (size: "60%", pane: Split(
+                            direction: Vertical,
+                            panes: [
+                                (size: "65%", pane: Pane(Queue)),
+                                (size: "35%", pane: Pane(Cava)),
+                            ],
+                        )),
+                    ],
+                ),
+            ),
+
+        // Tab 2: Verzeichnis-Browser
+        (
+            name: "Verzeichnisse",
+            pane: Pane(Directories),
+        ),
+
+        // Tab 3: Artists
+        (
+            name: "Künstler",
+            pane: Pane(Artists),
+        ),
+
+        // Tab 4: Album Artists
+        (
+            name: "Album Künstler",
+            pane: Pane(AlbumArtists),
+        ),
+
+        // Tab 5: Alben
+        (
+            name: "Alben",
+            pane: Pane(Albums),
+        ),
+
+        // Tab 6: Playlists
+        (
+            name: "Playlisten",
+            pane: Pane(Playlists),
+        ),
+
+        // Tab 7: Suche
+        (
+            name: "[7] Suche",
+            pane: Pane(Search),
+        ),
+    ],
+)

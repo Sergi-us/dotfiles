@@ -1,11 +1,20 @@
-# Tausche Escape und Caps Lock
 ## 2025-01-09 SARBS
-keycode 1 = Caps_Lock
-keycode 58 = Escape
+# keycode 1 = Caps_Lock
+
+# Caps Lock wird zu Compose
+keycode 58 = Compose
+# keycode 58 = Escape
+
+# Strg Rechts 105
+keycode 105 = Super_R
+# keycode 105 = Super_R
+
+# Rechte Strg wird zu Meta_R (entspricht Super_R in der Console)
+# keycode 97 = Meta_R
 
 # Tausche Alt-Links mit Mod-Taste
-#keycode 64 = Super_L    # Alt_L wird zu Super_L (Mod-Taste)
-#keycode 133 = Alt_L     # Super_L wird zu Alt_L
+# keycode 64 = Super_L    # Alt_L wird zu Super_L (Mod-Taste)
+# keycode 133 = Alt_L     # Super_L wird zu Alt_L
 
 # Alt-Rechts als zusätzliche Mod-Taste
-#keycode 108 = Super_R   # Alt_R wird zu Super_R
+# keycode 108 = Super_R   # Alt_R wird zu Super_R

@@ -1,0 +1,119 @@
+#!/bin/bash
+## 2025-03-11 SARBS
+# TODO über redshift nachdenken (oder anderweitig automatisieren)
+
+# Konfigurationsdatei für Farbtemperatur
+CONFIG_DIR="$HOME/.config/xsct"
+TEMP_FILE="$CONFIG_DIR/temp"
+MIN_TEMP=1000   # Wärmste Temperatur (rot)
+MAX_TEMP=10000  # Kälteste Temperatur (blau)
+DEFAULT_TEMP=6500  # Standardwert
+STEP=500        # Temperaturänderung pro Schritt
+
+# Erstelle Konfigurationsverzeichnis, falls es nicht existiert
+mkdir -p "$CONFIG_DIR"
+
+# Erstelle/Lese Temperatur-Datei
+if [ ! -f "$TEMP_FILE" ]; then
+    echo "$DEFAULT_TEMP" > "$TEMP_FILE"
+fi
+
+current_temp=$(cat "$TEMP_FILE")
+
+# Prüfe ob xsct installiert ist
+if ! command -v xsct &> /dev/null; then
+    notify-send "󰨞 XSCT nicht gefunden" "Bitte installiere xsct mit deinem Paketmanager"
+    echo "󰨞"
+    exit 1
+fi
+
+# Funktion zum Anpassen der Farbtemperatur
+adjust_temperature() {
+    case $1 in
+        inc)
+            # Erhöhe Temperatur (kälter/blauer)
+            new_temp=$((current_temp + STEP))
+            if [ "$new_temp" -gt "$MAX_TEMP" ]; then
+                new_temp=$MAX_TEMP
+            fi
+            ;;
+        dec)
+            # Verringere Temperatur (wärmer/roter)
+            new_temp=$((current_temp - STEP))
+            if [ "$new_temp" -lt "$MIN_TEMP" ]; then
+                new_temp=$MIN_TEMP
+            fi
+            ;;
+        reset)
+            # Zurücksetzen auf Standard
+            new_temp=$DEFAULT_TEMP
+            ;;
+        toggle)
+            # Toggle zwischen DEFAULT_TEMP und einem warmen Wert
+            if [ "$current_temp" -eq "$DEFAULT_TEMP" ]; then
+                new_temp=3000  # Warme Temperatur für den Abend
+            else
+                new_temp=$DEFAULT_TEMP
+            fi
+            ;;
+        *)
+            notify-send "󰨞 Ungültige Operation"
+            exit 1
+            ;;
+    esac
+
+    # Temperatur anwenden
+    xsct $new_temp
+    echo "$new_temp" > "$TEMP_FILE"
+}
+
+# Zeige aktuellen Status mit Icon an
+show_status() {
+    # Unterschiedliche Symbole je nach Temperaturbereich
+    if [ "$current_temp" -le 3500 ]; then
+        temp_icon=""  # Thermometer für alle Temperaturen
+    elif [ "$current_temp" -le 5500 ]; then
+        temp_icon=""  # Thermometer für alle Temperaturen
+    else
+        temp_icon=""  # Thermometer für alle Temperaturen
+    fi
+
+    # Temperatur in Kelvin anzeigen, formatiert mit Dezimalpunkt
+    temp_k=$(awk "BEGIN {printf \"%.1fK\", $current_temp/1000}")
+    echo "$temp_icon"
+    # echo "[$temp_icon $temp_k]"
+}
+
+# Hauptlogik
+case $1 in
+    inc)
+        adjust_temperature inc
+        ;;
+    dec)
+        adjust_temperature dec
+        ;;
+    reset)
+        adjust_temperature reset
+        ;;
+    toggle)
+        adjust_temperature toggle
+        ;;
+    *)
+        # Standardfunktion zeigt Status an
+        show_status
+        ;;
+esac
+
+# DWMBLOCKS Mausaktionen
+case ${BLOCK_BUTTON:-$1} in
+    1) adjust_temperature toggle ;;  # Linksklick: Toggle zwischen Tag/Nacht
+    2) adjust_temperature reset ;;   # Mittelklick: Zurücksetzen
+    3) notify-send "󰨞 Farbtemperatur" "Aktuelle Temperatur: ${current_temp}K
+󱕒 Temperatur anpassen
+L-󰍽 Tag/Nacht wechseln
+M-󰍽 Zurücksetzen
+R-󰍽 diese Infobox" ;;  # Rechtsklick: Info
+    4) adjust_temperature inc ;;     # Scroll hoch: Temperatur erhöhen
+    5) adjust_temperature dec ;;     # Scroll runter: Temperatur verringern
+    6) setsid -f "$TERMINAL" -e "$EDITOR" "$0" ;;  # Shift+Rechtsklick: Skript bearbeiten
+esac

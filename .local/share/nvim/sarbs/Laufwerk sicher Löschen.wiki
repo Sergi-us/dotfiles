@@ -1,7 +1,11 @@
 HDD sicher löschen:
 
-`sudo dd if=/dev/zero of=/dev/sdX bs=4M status=progress`
+`sudo dd if=/dev/zero of=/dev/sdX bs=4M status=progress conv=fdatasync`
 	- if=/dev/zero: Quelle der Daten. /dev/zero liefert Nullen.
 	- of=/dev/sdX: Zielgerät. Ersetze /dev/sdX durch deine HDD (z.B., /dev/sda).
 	- bs=4M: Blockgröße. Größere Blockgrößen können die Geschwindigkeit erhöhen.
 	- status=progress: Zeigt den Fortschritt des Vorgangs, einschließlich der aktuellen Schreibgeschwindigkeit, an.
+
+oder:
+
+sudo dd if=/dev/zero of=/dev/sdX bs=4M status=progress && sync

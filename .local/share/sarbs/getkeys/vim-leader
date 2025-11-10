@@ -13,6 +13,7 @@ Leader = Leehrtaste =                                                        
     äs  nächster Fehler
     ös  vorheriger Fehler                                                       bn      Nächster Buffer
     z0  Wortvorschläge                                                          bp      Vorherige Buffer
+    zg  Wort hinzufügen
 
  o     Spellcheck für skripte                                                  Strg+w
  n     Nerdtree
@@ -27,7 +28,6 @@ Leader = Leehrtaste =                                                        
  p
  h     hide bar
  t     Terminal
-
 
 
 

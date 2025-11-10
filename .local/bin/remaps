@@ -1,16 +1,24 @@
 #!/bin/sh
-## 2025-01-09 SARBS
+## 2025-10-11 - Angepasst: Caps→Compose, RCtrl→Super_R
 
-# This script is called on startup to remap keys.
-# Decrease key repeat delay to 300ms and increase key repeat rate to 50 per second.
+# Dieses Skript wird beim Start aufgerufen um Tasten neu zu belegen.
+# Tastaturwiederholung: Verzögerung auf 300ms reduzieren, Rate auf 50 pro Sekunde erhöhen.
 xset r rate 300 50
-# Map the caps lock key to super, and map the menu key to right super.
-setxkbmap -option caps:super
+
+# WICHTIG: Erst alte Optionen clearen, dann neue setzen
+setxkbmap -option
+
+# Caps Lock → Compose (für Akzente und Sonderzeichen)
+setxkbmap -option compose:caps
 setxkbmap -option altwin:menu_win
-# setxkbmap -option compose:menu
-# setxkbmap -option compose:rctrl
-setxkbmap -option compose:rctrl
-# When caps lock is pressed only once, treat it as escape.
-killall xcape 2>/dev/null ; xcape -e 'Super_L=Escape'
-# Turn off caps lock if on since there is no longer a key for it.
+
+# Caps Lock Funktion deaktivieren
+# setxkbmap -option ctrl:nocaps
+
+# Rechte Strg → Super_R (zweite Super/Mod-Taste)
+xmodmap -e "remove Control = Control_R"
+xmodmap -e "keysym Control_R = Super_R"
+xmodmap -e "add Mod4 = Super_R"
+
+# Caps Lock ausschalten falls noch an
 xset -q | grep -q "Caps Lock:\s*on" && xdotool key Caps_Lock

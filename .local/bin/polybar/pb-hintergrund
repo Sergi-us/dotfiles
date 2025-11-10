@@ -1,0 +1,16 @@
+#!/bin/sh
+## 2025-03-06 SARBS
+
+# Wechseln automatisch das Hintergrundbild
+
+case ${BLOCK_BUTTON:-$1} in
+    1) setbg ~/Bilder/Hintergrundbilder ;;
+    2) ;;
+    3) notify-send " Hintergrundbild Modul" "\- L-󰍽 neues Hintergrundbild
+- M-󰍽 öffne Verzeichniss " ;;
+    4) ;;
+    5) ;;
+    6) setsid -f "$TERMINAL" -e "$EDITOR" "$0" ;;
+esac;
+
+echo " "

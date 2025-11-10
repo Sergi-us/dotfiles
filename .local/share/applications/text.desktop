@@ -1,6 +1,10 @@
 [Desktop Entry]
 Type=Application
-Name=Text editor
+Icon=nvim
+Name=NeoVim
+GenericName[de]=Texteditor
 Exec=/usr/local/bin/st -e nvim %u
-Terminal=true
+Terminal=false
+Comment[de]=Textdateien bearbeiten
+Keywords=Text;editor;
 MimeType=text/plain;text/x-shellscript;application/x-shellscript;text/x-c;

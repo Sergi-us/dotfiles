@@ -1,5 +1,9 @@
 [[NeoVim]]
 
+[[tmux]]
+
+[[pass]]
+
 [[VimWiki]]
 
 [[lf]]

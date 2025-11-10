@@ -176,7 +176,7 @@ function M.setup()
   vim.api.nvim_create_user_command("ToggleTransparency", M.toggle_transparency, {})
 
   -- Keymaps
-  vim.keymap.set("n", "<leader>ü", ":ToggleTransparency<CR>", {
+  vim.keymap.set("n", "<leader>ä", ":ToggleTransparency<CR>", {
     noremap = true,
     silent = true,
     desc = "Toggle transparency"

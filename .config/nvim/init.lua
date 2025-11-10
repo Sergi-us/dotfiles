@@ -26,6 +26,9 @@ end
 -- das Verzeichnis von lazy.nvim dem "runtime path" (rtp) von Neovim hinzu
 vim.opt.rtp:prepend(lazypath)
 
+-- Bevorzuge unix, erkenne aber auch dos
+vim.opt.fileformats = "unix,dos"
+
 -- Grundlegende Neovim Konfiguration
 vim.g.mapleader = " "      -- Space als Leader-Taste
 vim.g.maplocalleader = "," -- Komma als lokale Leader-Taste
