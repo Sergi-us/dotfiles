@@ -2,6 +2,8 @@
 
 **Suckless Auto-Rice Bootstrapping Scripts - Konfigurationsdateien**
 
+> **🔄 Umzug zu Codeberg**: Die aktive Entwicklung und Kollaboration findet jetzt auf [Codeberg](https://codeberg.org/Sergius/dotfiles) statt. GitHub dient nur als Mirror.
+> 
 > **📦 Hauptprojekt**: [SARBS](https://github.com/Sergi-us/SARBS)
 
 Minimalistische Linux-Desktop-Umgebung auf Suckless-Basis mit automatischem Tiling Window Management.
@@ -50,7 +52,7 @@ dotfiles-home
 ### Manuelles Setup
 ```bash
 cd ~/.local/src
-git clone https://github.com/Sergi-us/dotfiles.git
+git clone https://codeberg.org/Sergius/dotfiles.git
 cd dotfiles
 dotfiles-home  # Erstellt Hardlinks zu $HOME
 ```
@@ -67,8 +69,8 @@ dotfiles-home  # Erstellt Hardlinks zu $HOME
 
 ### Eigene Anpassungen
 ```bash
-# Fork für eigene Änderungen
-git clone https://github.com/Dein-Username/dotfiles.git ~/.dotfiles
+# Fork für eigene Änderungen (auf Codeberg)
+git clone https://codeberg.org/Dein-Username/dotfiles.git ~/.dotfiles
 dotfiles-home
 ```
 
@@ -94,5 +96,6 @@ Diese Konfiguration ist unter der [MIT Lizenz](LICENSE) verfügbar.
 ---
 
 **📧 Kontakt**: 
-- [GitHub Issues](https://github.com/Sergi-us/dotfiles/issues) für Fragen und Feedback
+- [Codeberg Issues](https://codeberg.org/Sergius/dotfiles/issues) für Fragen und Feedback
+- [GitHub Issues](https://github.com/Sergi-us/dotfiles/issues) (Mirror)
 - [Sarbs Homepage/Kontakt](https://sarbs.xyz/kontakt/)
