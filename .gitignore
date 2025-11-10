@@ -1,4 +1,5 @@
 # Backup-Dateien ignorieren
+AGENTS.md
 *.bac
 
 # Weitere nützliche Ignores für Shell-Skripte

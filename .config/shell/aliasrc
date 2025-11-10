@@ -102,10 +102,13 @@ alias ref="shortcuts >/dev/null; source ${XDG_CONFIG_HOME:-$HOME/.config}/shell/
 
 alias wetter="less -S ${XDG_CACHE_HOME:-$HOME/.cache}/weatherreport" \
 
+# Standby
+alias standby="systemd-inhibit --what=handle-lid-switch --why='Musik hören' sleep infinity"
+
 alias talk='env \
   MOZ_DISABLE_CONTENT_SANDBOX=0 \
   MOZ_WEBRTC_AUTO_GAIN_CONTROL=0 \
-  firefox --new-window --kiosk "https://meet.jit.si/linux-talk-3-RUNDE" 2>/dev/null'
+  firefox --new-window --kiosk "https://meet.jit.si/Linux-Talk-4-Neu" 2>/dev/null'
 
 # rsync promt um daten von usenet zu verschieben und verzeichnisse zu löschen
 alias usenet="rsync -av --chown=sergi:wheel --chmod=Du=rwx,Dg=rwx,Do= --chmod=Fu=rw,Fg=rw,Fo= /var/lib/sabnzbd/Downloads/complete/ /home/sergi/Downloads/.usenext/  && sudo rm -r /var/lib/sabnzbd/Downloads/complete"

@@ -1,5 +1,5 @@
 #!/bin/bash
-## 2025-06-20 SARBS - Robust Multi-Output
+## 2025-09-26   SARBS - Robuste Multi-Output version
 # Multi-Platform Streaming Script mit tee muxer
 # TODO Bezeichnungen ändern (verwirrend)
 # Stream Keys - hier deine Keys eintragen:
@@ -8,6 +8,11 @@
 # export FB_KEY="dein_facebook_key"
 # export TT_KEY="dein_tiktok_key"
 
+export YT_KEY="$(cat ~/.local/share/yt/stream-key 2>/dev/null)"
+export TW_KEY="$(cat ~/.local/share/twitch/stream-key 2>/dev/null)"
+# export FB_KEY="$(cat ~/.local/share/facebook/key 2>/dev/null)"
+# export TT_KEY="$(cat ~/.local/share/tiktok/key 2>/dev/null)"
+
 # Auflösung erkennen
 AUFLOSUNG="${AUFLOSUNG:-$(xrandr 2>/dev/null | grep -oE "[0-9]+x[0-9]+" | head -n1)}"
 AUFLOSUNG="${AUFLOSUNG:-1920x1080}"  # Fallback
@@ -15,7 +20,7 @@ FRAMERATE="30"
 
 # Bitrate nach Auflösung
 case "$AUFLOSUNG" in
-    "3840x2160"|"2560x1440") VIDEO_BITRATE="6000k" ;;
+    "3840x2160"|"2560x1440") VIDEO_BITRATE="5500k" ;;
     "1920x1080") VIDEO_BITRATE="4000k" ;;
     "1280x720") VIDEO_BITRATE="2500k" ;;
     *) VIDEO_BITRATE="3000k" ;;

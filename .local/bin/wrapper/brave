@@ -1,14 +1,17 @@
 #!/bin/sh
+## 2025-10-12   SARBS
 # Brave Wrapper mit allen Tweaks
+# die flag --password-store=basic sorgt dafür dass der Linux Schlüsselring nicht verwendet wird.
 
 # Manuelle Skalierung (auskommentieren für xprofile)
-# SCALE_FACTOR=1
+SCALE_FACTOR=1.5
 
-SCALE_FACTOR=${SCALE_FACTOR:-$(grep "^SCALE_FACTOR=" ~/.config/x11/xprofile | cut -d= -f2)}
+# SCALE_FACTOR=${SCALE_FACTOR:-$(grep "^SCALE_FACTOR=" ~/.config/x11/xprofile | cut -d= -f2)}
 
 exec /usr/bin/brave \
     --force-device-scale-factor=$SCALE_FACTOR \
     --high-dpi-support=1 \
     --enable-features=UseOzonePlatform \
     --ozone-platform=x11 \
+    --password-store=basic \
     "$@"

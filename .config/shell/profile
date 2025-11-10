@@ -14,8 +14,9 @@ export PATH="$HOME/.local/bin:$(find ~/.local/bin -mindepth 1 -type d | paste -s
 # === ZSH USER Option um '%' zu entfernen
 unsetopt PROMPT_SP 2>/dev/null
 
-# Priorität 1
-# === Standardprogramme: ===
+#  ===========================================================================
+# ===                       Standardprogramme                               ===
+#  ===========================================================================
 export EDITOR="nvim"
 export TERMINAL="st"
 export TERMINAL_PROG="st"
@@ -23,20 +24,43 @@ export BROWSER="qutebrowser"
 export MANPAGER="sh -c 'col -bx | bat -l man -p'"
 export MANROFFOPT="-c"
 
-# === XDG Standard Verzeichnisse ===
-export XDG_DATA_HOME="$HOME/.local/share"		# ok Anwendungsdaten
-export XDG_CONFIG_HOME="$HOME/.config"			# ok Konfigurationsdateien
-# export XDG_STATE_HOME="$HOME/.local/state"	# Benutzerspezifische Statusdateien
-export XDG_CACHE_HOME="$HOME/.cache"			# ok
+# ============================================================================
+# XDG Base Directory Specification (v0.8, 2021)
+# https://specifications.freedesktop.org/basedir-spec/basedir-spec-latest.html
+# ============================================================================
 
-# === XDG bevorzugte Datenverzeichnisse
-# export XDG_DATA_DIRS="$HOME/.local/share"
-# TODO: Nur ergänzen, wenn nötig. Standardmäßig verwenden Programme selbst Fallbacks.
+# --- Benutzerspezifische Verzeichnisse (User Directories) ---
+export XDG_DATA_HOME="$HOME/.local/share"      # Benutzerdaten (Plugins, Themes, App-Daten)
+export XDG_CONFIG_HOME="$HOME/.config"         # Konfigurationsdateien
+export XDG_STATE_HOME="$HOME/.local/state"     # State-Daten (Logs, History, Undo-Daten)
+export XDG_CACHE_HOME="$HOME/.cache"           # Cache-Daten (löschbar ohne Datenverlust)
+
+# --- Systemweite Verzeichnisse (System Directories) ---
+# Normalerweise nicht nötig zu setzen - System-Defaults sind gut.
+# Nur überschreiben wenn du spezielle Anforderungen hast.
 # export XDG_DATA_DIRS="/usr/local/share:/usr/share"
 # export XDG_CONFIG_DIRS="/etc/xdg"
 
-# === Nutzerverzeichnisse ===
-# export XDG_PICTURES_DIR="$HOME/Bilder"
+# --- Runtime Directory ---
+# XDG_RUNTIME_DIR wird vom System (systemd/login-manager) gesetzt!
+# NICHT manuell setzen. Sollte auf /run/user/$UID zeigen.
+# Für temporäre Runtime-Dateien (Sockets, PID-files, etc.)
+# Wird beim Logout automatisch gelöscht.
+
+# --- Optional: User Directories (XDG User Dirs) ---
+# Für Desktop, Downloads, etc. - wird von xdg-user-dirs verwaltet
+# Normalerweise in ~/.config/user-dirs.dirs definiert
+# export XDG_DESKTOP_DIR="$HOME/Desktop"
+export XDG_DOWNLOAD_DIR="$HOME/Downloads"
+export XDG_DOCUMENTS_DIR="$HOME/Dokumente"
+export XDG_MUSIC_DIR="$HOME/Musik"
+export XDG_PICTURES_DIR="$HOME/Bilder"
+export XDG_VIDEOS_DIR="$HOME/Videos"
+# export XDG_TEMPLATES_DIR="$HOME/Templates"
+# export XDG_PUBLICSHARE_DIR="$HOME/Public"
+
+# GTK2 (falls du in .xprofile aktivierst)
+# export GTK2_RC_FILES="$XDG_CONFIG_HOME/gtk-2.0/gtkrc"
 
 # === Programmspezifische Konfigurationen ===
 export XINITRC="$XDG_CONFIG_HOME/x11/xinitrc"		# X11-(Display)Server-Startdatei
@@ -47,34 +71,43 @@ export _JAVA_AWT_WM_NONREPARENTING=1				# Weiterer Fix für Java-Anwendungen in 
 # === Shell und Tools ===
 export INPUTRC="$XDG_CONFIG_HOME/shell/inputrc"		# ok Shell-Konfigurationsdatei
 export ZDOTDIR="$XDG_CONFIG_HOME/zsh"				# ok Zsh-Konfigurationsverzeichnis
-export HISTFILE="$XDG_DATA_HOME/history"			# ok Historien-Datei
+# export HISTFILE="$XDG_DATA_HOME/history"			# ok Historien-Datei
+export HISTFILE="$XDG_STATE_HOME/zsh/history"		# Nicht DATA_HOME!
 export SUDO_ASKPASS="$HOME/.local/bin/dmenupass"	# ok Sudo Passwortabfrageprogramm
 
 # === Entwicklung (Optional) ===
 export CARGO_HOME="$XDG_DATA_HOME/cargo"				# ok Rust Cargo Verzeichnis
+export RUSTUP_HOME="$XDG_DATA_HOME/rustup"
 export GOPATH="$XDG_DATA_HOME/go"						# ok Go Arbeitsverzeichnis
 export GOMODCACHE="$XDG_CACHE_HOME/go/mod"				# ok Go Modul-Cache
 export PYTHONSTARTUP="$XDG_CONFIG_HOME/python/pythonrc"	# ok Python Startdatei
+export NPM_CONFIG_USERCONFIG="$XDG_CONFIG_HOME/npm/npmrc"
+export NODE_REPL_HISTORY="$XDG_STATE_HOME/node_repl_history"
+export DOCKER_CONFIG="$XDG_CONFIG_HOME/docker"
 
 # === Data & Cache Directories ===
-export PASSWORD_STORE_DIR="$XDG_DATA_HOME/Pass"			# Passwortspeicher für Pass
+export PASSWORD_STORE_DIR="$XDG_DATA_HOME/pass"			# Passwortspeicher für Pass
 export TMUX_TMPDIR="$XDG_RUNTIME_DIR"					# ok Tmux temp. Verzeichnis
-export ANDROID_SDK_HOME="$XDG_CONFIG_HOME/Handy"		# ok Android SDK Verzeichnis
+# export ANDROID_SDK_HOME="$XDG_CONFIG_HOME/Handy"		# veraltet
+export ANDROID_HOME="$XDG_DATA_HOME/android"
+export ANDROID_USER_HOME="$XDG_DATA_HOME/android"
 export WINEPREFIX="$XDG_DATA_HOME/wineprefixes/default"	# ok Wine (Windows) Präfix-Verzeichnis
 export KODI_DATA="$XDG_DATA_HOME/Filme"					# ok Kodi Datenverzeichnis
 export ELECTRUMDIR="$XDG_DATA_HOME/electrum"			# ok Electrum Verzeichnis
 export SQLITE_HISTORY="$XDG_DATA_HOME/sqlite_history"	# ok SQLite Historie
+export LESSHISTFILE="$XDG_STATE_HOME/less/history"
 
 # === Config Files ===
 export NOTMUCH_CONFIG="$XDG_CONFIG_HOME/notmuch-config"	# ok Notmuch E-Mail-Konfigurationsdatei
 export WGETRC="$XDG_CONFIG_HOME/wget/wgetrc"			# ok Wget-Konfigurationsdatei
+export WGET_HSTS_FILE="$XDG_STATE_HOME/wget-hsts"
 export ANSIBLE_CONFIG="$XDG_CONFIG_HOME/ansible/ansible.cfg"	# ok Ansible Konfigurationsdatei
 export MBSYNCRC="$XDG_CONFIG_HOME/mbsync/config"		# ok Mbsync Konfigurationsdatei
 export UNISON="$XDG_DATA_HOME/unison"					# ok Unison Verzeichnis
 
 # === Programm Einstellungen ===
-export DICS="/usr/share/stardict/dic/"					# ok Verzeichnis für Stardict-Wörterbücher
-# export DICS="$XDG_DATA_HOME/stardict/dic/"		Neu erstellen
+# export DICS="/usr/share/stardict/dic/"					# ok Verzeichnis für Stardict-Wörterbücher
+export DICS="$XDG_DATA_HOME/stardict/dic/"					# Neu erstellen
 # mkdir -p "$XDG_DATA_HOME/stardict/dic/"
 export FZF_DEFAULT_OPTS="--layout=reverse --height 40%"	# ok FZF Standardoptionen
 export CRYPTOURL="rate.sx"
@@ -102,4 +135,4 @@ export LESSOPEN="| /usr/bin/highlight -O ansi %s 2>/dev/null"	# Syntax-Hervorheb
 [ "$(tty)" = "/dev/tty1" ] && ! pidof -s Xorg >/dev/null 2>&1 && exec startx "$XINITRC"
 
 # === Tastaturanpassungen ===
-sudo -n loadkeys "$XDG_DATA_HOME/sarbs/ttymaps.kmap" 2>/dev/null # Tausche Escape und Caps Lock
+# sudo -n loadkeys "$XDG_DATA_HOME/sarbs/ttymaps.kmap" 2>/dev/null

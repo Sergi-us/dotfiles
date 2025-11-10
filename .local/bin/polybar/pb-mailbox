@@ -1,0 +1,64 @@
+#!/bin/sh
+## 2025-06-10 SARBS
+
+# Zeigt die Anzahl ungelesener E-Mails und ein Symbol je nach Status
+# Geschlossener Briefumschlag wenn keine ungelesenen Mails, geöffneter mit Anzahl wenn ungelesene vorhanden
+# Bei Klick wird `neomutt` geöffnet, Rechtsklick zeigt detaillierte Mailbox-Informationen
+
+case ${BLOCK_BUTTON:-$1} in
+	1) setsid -f mailsync >/dev/null; notify-send -u low "Mails werden aktualisiert"; polybar-msg hook mailbox 1
+		# Temporäre häufige Aktualisierung während Mail-Sync (im Hintergrund)
+		{
+			for i in $(seq 1 60); do  # 12 mal alle 5 Sekunden = 60 Sekunden
+				sleep 1
+				polybar-msg hook mailbox 1
+			done
+		} & ;;
+	2) setsid -w -f "$TERMINAL" -e neomutt; polybar-msg hook mailbox 1 ;;
+	3)
+		# Detaillierte Informationen zu den einzelnen Postfächern anzeigen
+		mail_dir="${XDG_DATA_HOME:-$HOME/.local/share}/mail"
+		header="Ungelesen - Account"
+		details=""
+
+		# Alle Mail-Accounts durchlaufen
+		for account in "$mail_dir"/*; do
+			# Prüfen, ob es sich um ein Verzeichnis handelt
+			[ -d "$account" ] || continue
+
+			# Verzeichnisnamen extrahieren
+			account_name=$(basename "$account")
+
+			# Ungelesene Mails zählen
+			unread_count=$(find "$account/INBOX/new/" -type f 2>/dev/null | wc -l)
+
+			# Zum details-String hinzufügen, wenn der Account existiert
+			[ -n "$account_name" ] && details="${details}${unread_count} - ${account_name}\n"
+		done
+
+		# Notify-send mit Überschrift und Details
+		notify-send " Mail Modul" "$header\n$details\n- L-󰍽 synchronisiert E-Mails\n- M-󰍽 öffnet NeoMutt" ;;
+	6) setsid -f "$TERMINAL" -e "$EDITOR" "$0" ;;
+esac
+
+# Mail-Verzeichnis
+mail_dir="${XDG_DATA_HOME:-$HOME/.local/share}/mail"
+
+# Anzahl ungelesener E-Mails ermitteln (alle Accounts zusammen)
+unread="$(find "$mail_dir"/*/[Ii][Nn][Bb][Oo][Xx]/new/* -type f 2>/dev/null | wc -l)"
+
+# Prüfen, ob mbsync läuft und entsprechendes Icon setzen
+pidof mbsync >/dev/null 2>&1 && sync_icon=" 󰁪 "
+
+# Mail-Icons: geschlossener und geöffneter Briefumschlag
+closed_icon="󰇰"
+open_icon="󰗯"
+
+# Ausgabe mit entsprechendem Icon je nach Status
+if [ "$unread" = "0" ]; then
+    # Keine ungelesenen Mails: geschlossener Briefumschlag
+    [ -n "$sync_icon" ] && echo "$closed_icon$sync_icon" || echo "$closed_icon"
+else
+    # Ungelesene Mails: geöffneter Briefumschlag mit Anzahl
+    echo "$open_icon $unread$sync_icon"
+fi

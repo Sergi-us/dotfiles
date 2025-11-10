@@ -18,10 +18,10 @@ Eine moderne, minimalistische Zsh-Konfiguration mit intelligenter Plugin-Verwalt
 
 ```
 ~/.config/zsh/
-├── .zshrc          # Hauptkonfiguration
-├── history         # Command-History (automatisch erstellt)
-├── plugins/        # Zap Plugin-Verzeichnis (automatisch verwaltet)
-└── README.md       # Diese Datei
+├── .zshrc				# Hauptkonfiguration
+├── plugins/			# Zap Plugin-Verzeichnis (automatisch verwaltet)
+└── README.md			# Diese Datei
+~/.local/state/history	# Command-History
 ```
 
 ## ⚡ Zap Plugin Manager
