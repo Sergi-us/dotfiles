@@ -5,7 +5,7 @@
 
 # Konfiguration
 # Auf "true" setzen, um die Prozentanzeige auszublenden
-HIDE_PERCENTAGE="false"
+HIDE_PERCENTAGE="true"
 
 # Get the current volume, mute status and device name
 vol_info=$(wpctl get-volume @DEFAULT_AUDIO_SINK@)
@@ -31,8 +31,35 @@ else
     icon="󰝟"
 fi
 
+# Funktion für Benachrichtigung mit Pegelanzeige
+show_volume_notification() {
+    local new_vol=$1
+    local urgency="normal"
+
+    if [ "$new_vol" -gt 100 ]; then
+        urgency="critical"
+    elif [ "$new_vol" -eq 0 ]; then
+        urgency="low"
+    fi
+
+    dunstify -u "$urgency" -h "int:value:$new_vol" --replace=69420 "Lautstärke" "$new_vol%"
+}
+
 case $BLOCK_BUTTON in
-    1) wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle; pkill -RTMIN+21 "${STATUSBAR:-dwmblocks}" ;;
+    1)
+        wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle
+        # Neuen Status holen
+        new_vol_info=$(wpctl get-volume @DEFAULT_AUDIO_SINK@)
+        new_muted=$(echo "$new_vol_info" | grep -q MUTED && echo "yes" || echo "no")
+        if [ "$new_muted" = "yes" ]; then
+            dunstify -u "low" --replace=69420 "Lautstärke" "Stummgeschaltet"
+        else
+            new_vol_decimal=$(echo "$new_vol_info" | awk '{print $2}')
+            new_vol=$(awk -v vol="$new_vol_decimal" 'BEGIN{printf "%.0f\n", vol * 100}')
+            show_volume_notification "$new_vol"
+        fi
+        pkill -RTMIN+21 "${STATUSBAR:-dwmblocks}"
+        ;;
     2) setsid -w -f "$TERMINAL" -e pulsemixer; pkill -RTMIN+21 "${STATUSBAR:-dwmblocks}" ;;
     3) notify-send "Lautstärke Modul" "\- Zeigt Lautsärke 🔊 $vol%,
 - Aktives Gerät: $current_device
@@ -40,10 +67,29 @@ case $BLOCK_BUTTON in
 - M 󰍽 Pulsmixer
 - 󱕒 Lautstärke ändern
 " ;;
-    4) wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%+; pkill -RTMIN+21 "${STATUSBAR:-dwmblocks}" ;;
-    5) wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-; pkill -RTMIN+21 "${STATUSBAR:-dwmblocks}" ;;
+    4)
+        wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%+
+        # Neue Lautstärke holen für Benachrichtigung
+        new_vol_info=$(wpctl get-volume @DEFAULT_AUDIO_SINK@)
+        new_vol_decimal=$(echo "$new_vol_info" | awk '{print $2}')
+        new_vol=$(awk -v vol="$new_vol_decimal" 'BEGIN{printf "%.0f\n", vol * 100}')
+        show_volume_notification "$new_vol"
+        pkill -RTMIN+21 "${STATUSBAR:-dwmblocks}"
+        ;;
+    5)
+        wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-
+        # Neue Lautstärke holen für Benachrichtigung
+        new_vol_info=$(wpctl get-volume @DEFAULT_AUDIO_SINK@)
+        new_vol_decimal=$(echo "$new_vol_info" | awk '{print $2}')
+        new_vol=$(awk -v vol="$new_vol_decimal" 'BEGIN{printf "%.0f\n", vol * 100}')
+        show_volume_notification "$new_vol"
+        pkill -RTMIN+21 "${STATUSBAR:-dwmblocks}"
+        ;;
     6) setsid -f "$TERMINAL" -e "$EDITOR" "$0" ;;
 esac
 
-# echo "[$icon]"
-echo "[$icon $vol%]"
+if [ "$HIDE_PERCENTAGE" = "true" ]; then
+    echo "[$icon]"
+else
+    echo "[$icon $vol%]"
+fi
