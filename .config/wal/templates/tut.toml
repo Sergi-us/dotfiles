@@ -1,0 +1,45 @@
+## 2025-01-09 SARBS
+# Pywal Theme Template für tut
+# Dieses Template wird von pywal automatisch verarbeitet
+
+# Hauptfarben aus Pywal
+background="{background}"
+text="{foreground}"
+subtle="{color8}"
+warning-text="{color1}"
+text-special-one="{color2}"
+text-special-two="{color4}"
+
+# Top Bar
+top-bar-background="{color4}"
+top-bar-text="{foreground}"
+
+# Status Bar
+status-bar-background="{color4}"
+status-bar-text="{foreground}"
+status-bar-view-background="{color2}"
+status-bar-view-text="{background}"
+
+# Listen und Auswahl
+list-selected-background="{color4}"
+list-selected-text="{foreground}"
+list-selected-inactive-background="{color8}"
+list-selected-inactive-text="{foreground}"
+
+# Controls und Hinweise
+controls-text="{color2}"
+controls-highlight="{color4}"
+
+# Autocomplete
+autocomplete-background="{color8}"
+autocomplete-text="{foreground}"
+autocomplete-selected-background="{color4}"
+autocomplete-selected-text="{foreground}"
+
+# Buttons
+button-color-one="{color4}"
+button-color-two="{foreground}"
+
+# Timeline-Namen
+timeline-name-background="{color8}"
+timeline-name-text="{foreground}"

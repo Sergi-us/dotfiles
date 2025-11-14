@@ -3,4 +3,6 @@
 # Dieses Skript ist die SUDO_ASKPASS-Variable, was bedeutet, dass es als
 # Passwortabfrage verwendet wird, wenn nötig.
 
-dmenu -fn Monospace-16 -P -p "$1" <&- && echo
+# dmenu -fn Monospace-16 -P -p "$1" <&- && echo
+# rofi -dmenu -password -p "$1" -theme-str 'window {width: 50%;}' && echo
+rofi -dmenu -password -p "$1" -theme sarbs-pass && echo

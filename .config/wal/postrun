@@ -2,10 +2,11 @@
 
 dunstconf="${XDG_CONFIG_HOME:-$HOME/.config}/dunst/dunstrc"
 zathuraconf="${XDG_CONFIG_HOME:-$HOME/.config}/zathura/zathurarc"
+tutconf="${XDG_CONFIG_HOME:-$HOME/.config}/tut/themes/pywal-generated.toml"
 
 source "${XDG_CACHE_HOME:-$HOME/.cache}/wal/colors.sh"
 
-mkdir -p "${dunstconf%/*}" "${zathuraconf%/*}"
+mkdir -p "${dunstconf%/*}" "${zathuraconf%/*}" "${tutconf%/*}"
 
 mv -n "$dunstconf" "$dunstconf.bak"
 mv -n "$zathuraconf" "$zathuraconf.bak"
@@ -28,5 +29,67 @@ fix_sequences() {
 }
 
 fix_sequences <"${XDG_CACHE_HOME:-$HOME/.cache}/wal/sequences"
+
+# tut Theme generieren
+python3 -c "
+import json
+import os
+
+# Pywal-Farben laden
+with open(os.path.expanduser('${XDG_CACHE_HOME:-$HOME/.cache}/wal/colors.json')) as f:
+    colors = json.load(f)
+
+# Theme erstellen
+theme_content = f'''## 2025-01-09 SARBS
+# Pywal Theme für tut - automatisch generiert
+
+# Hauptfarben aus Pywal
+background=\"{colors['special']['background']}\"
+text=\"{colors['special']['foreground']}\"
+subtle=\"{colors['colors']['color8']}\"
+warning-text=\"{colors['colors']['color1']}\"
+text-special-one=\"{colors['colors']['color2']}\"
+text-special-two=\"{colors['colors']['color4']}\"
+
+# Top Bar
+top-bar-background=\"{colors['colors']['color4']}\"
+top-bar-text=\"{colors['special']['foreground']}\"
+
+# Status Bar
+status-bar-background=\"{colors['colors']['color4']}\"
+status-bar-text=\"{colors['special']['foreground']}\"
+status-bar-view-background=\"{colors['colors']['color2']}\"
+status-bar-view-text=\"{colors['special']['background']}\"
+
+# Listen und Auswahl
+list-selected-background=\"{colors['colors']['color4']}\"
+list-selected-text=\"{colors['special']['foreground']}\"
+list-selected-inactive-background=\"{colors['colors']['color8']}\"
+list-selected-inactive-text=\"{colors['special']['foreground']}\"
+
+# Controls und Hinweise
+controls-text=\"{colors['colors']['color2']}\"
+controls-highlight=\"{colors['colors']['color4']}\"
+
+# Autocomplete
+autocomplete-background=\"{colors['colors']['color8']}\"
+autocomplete-text=\"{colors['special']['foreground']}\"
+autocomplete-selected-background=\"{colors['colors']['color4']}\"
+autocomplete-selected-text=\"{colors['special']['foreground']}\"
+
+# Buttons
+button-color-one=\"{colors['colors']['color4']}\"
+button-color-two=\"{colors['special']['foreground']}\"
+
+# Timeline-Namen
+timeline-name-background=\"{colors['colors']['color8']}\"
+timeline-name-text=\"{colors['special']['foreground']}\"
+'''
+
+# Theme schreiben
+os.makedirs(os.path.expanduser('~/.config/tut/themes'), exist_ok=True)
+with open(os.path.expanduser('~/.config/tut/themes/pywal-generated.toml'), 'w') as f:
+    f.write(theme_content)
+"
 
 pkill dunst; setsid -f dunst
