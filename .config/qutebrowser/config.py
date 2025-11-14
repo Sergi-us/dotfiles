@@ -8,7 +8,7 @@ config.load_autoconfig(True)
 c.scrolling.smooth = False
 
 # Browserverhalten
-c.auto_save.session = False
+c.auto_save.session = True
 
 # Editor-Einstellungen
 c.editor.command = ['st', '-e', 'nvim', '{}']
@@ -262,6 +262,10 @@ c.url.default_page = 'https://start.duckduckgo.com'
 # Tab-Management
 config.unbind('d')
 config.bind('dd', 'tab-close')
+
+# Copy/Paste auf Alt umlegen
+config.bind('<Alt+c>', 'yank selection')
+config.bind('<Alt+v>', 'paste')
 
 # Entwicklertools
 config.bind('<F12>', 'devtools')

@@ -45,6 +45,16 @@ show_volume_notification() {
     dunstify -u "$urgency" -h "int:value:$new_vol" --replace=69420 "Lautstärke" "$new_vol%"
 }
 
+# Prüfe ob das Skript durch Signal 55 (von DWM) aufgerufen wurde
+if [ "$1" = "55" ]; then
+    # Lautstärke wurde über DWM-Tastaturkürzel geändert
+    new_vol_info=$(wpctl get-volume @DEFAULT_AUDIO_SINK@)
+    new_vol_decimal=$(echo "$new_vol_info" | awk '{print $2}')
+    new_vol=$(awk -v vol="$new_vol_decimal" 'BEGIN{printf "%.0f\n", vol * 100}')
+    show_volume_notification "$new_vol"
+    exit 0
+fi
+
 case $BLOCK_BUTTON in
     1)
         wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle

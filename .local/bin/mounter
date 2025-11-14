@@ -287,10 +287,10 @@ case "$marker" in
             num=$((num + 1))
         done
 
-        # Entschlüsseln in separatem Terminal für Passwort-Eingabe
-        # WICHTIG: cryptsetup braucht NOPASSWD in sudoers!
-        ${TERMINAL:-st} -n floatterm -g 70x2 -f "Liberation Mono:size=16" \
-            -e sudo cryptsetup open "$device" "usb$num"
+        # Passwort via rofi abfragen und an cryptsetup pipen
+        # rofi gibt Passwort aus, wird direkt an cryptsetup stdin übergeben
+        rofi -dmenu -password -p "LUKS Passwort für ${device##*/}: " -theme sarbs-pass | \
+            sudo -S cryptsetup open "$device" "usb$num"
 
         if [ -b "/dev/mapper/usb$num" ]; then
             # LUKS devices immer nach /mnt/usb[num] mounten

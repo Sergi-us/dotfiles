@@ -1,7 +1,7 @@
 /* ## 2025-09-01 SARBS */
 configuration {
 	modes: "window,drun,run,ssh,filebrowser";
-	font: "JetBrainsMono NF 10";
+	font: "JetBrainsMono NF 18";
 /*	location: 0;*/
 /*	yoffset: 0;*/
 /*	xoffset: 0;*/
