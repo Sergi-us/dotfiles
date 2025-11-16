@@ -1,0 +1,390 @@
+#!/bin/sh
+## 2025-11-16   SARBS
+# usenet - Usenet Services Manager
+# Verwaltet sabnzbd und nzbhydra2 Services und synchronisiert Downloads
+
+# Konstanten
+readonly SABNZBD_SERVICE="sabnzbd.service"
+readonly NZBHYDRA_SERVICE="nzbhydra2.service"
+readonly SOURCE_DIR="/var/lib/sabnzbd/Downloads/complete/"
+readonly TARGET_DIR="/home/sergi/Downloads/.usenext/"
+readonly VERSION="1.0"
+
+# Farben für Ausgabe
+readonly RED='\033[0;31m'
+readonly GREEN='\033[0;32m'
+readonly YELLOW='\033[1;33m'
+readonly NC='\033[0m' # No Color
+
+# Hilfsfunktionen
+log() {
+	printf "%s\n" "$@"
+}
+
+erfolg() {
+	printf "${GREEN}✓${NC} %s\n" "$1"
+}
+
+warnung() {
+	printf "${YELLOW}⚠${NC} %s\n" "$1"
+}
+
+fehler() {
+	printf "${RED}✗${NC} %s\n" "$1" >&2
+	exit 1
+}
+
+# Service-Status prüfen
+service_status() {
+	local service="$1"
+	if systemctl is-active --quiet "$service"; then
+		printf "${GREEN}aktiv${NC}"
+	else
+		printf "${RED}inaktiv${NC}"
+	fi
+}
+
+# Services starten
+services_starten() {
+	log "Starte Usenet Services..."
+	
+	if sudo systemctl start "$SABNZBD_SERVICE"; then
+		erfolg "sabnzbd.service gestartet"
+	else
+		fehler "Konnte sabnzbd.service nicht starten"
+	fi
+	
+	if sudo systemctl start "$NZBHYDRA_SERVICE"; then
+		erfolg "nzbhydra2.service gestartet"
+	else
+		fehler "Konnte nzbhydra2.service nicht starten"
+	fi
+	
+	log ""
+	log "Status:"
+	printf "  sabnzbd:  " && service_status "$SABNZBD_SERVICE" && printf "\n"
+	printf "  nzbhydra: " && service_status "$NZBHYDRA_SERVICE" && printf "\n"
+}
+
+# Services stoppen
+services_stoppen() {
+	log "Stoppe Usenet Services..."
+	
+	if sudo systemctl stop "$SABNZBD_SERVICE"; then
+		erfolg "sabnzbd.service gestoppt"
+	else
+		warnung "Konnte sabnzbd.service nicht stoppen (läuft evtl. nicht)"
+	fi
+	
+	if sudo systemctl stop "$NZBHYDRA_SERVICE"; then
+		erfolg "nzbhydra2.service gestoppt"
+	else
+		warnung "Konnte nzbhydra2.service nicht stoppen (läuft evtl. nicht)"
+	fi
+	
+	log ""
+	log "Status:"
+	printf "  sabnzbd:  " && service_status "$SABNZBD_SERVICE" && printf "\n"
+	printf "  nzbhydra: " && service_status "$NZBHYDRA_SERVICE" && printf "\n"
+}
+
+# Downloads synchronisieren
+downloads_sync() {
+	log "Synchronisiere Downloads..."
+	log ""
+	
+	# Prüfe ob Quellverzeichnis existiert und Dateien enthält
+	if [ ! -d "$SOURCE_DIR" ]; then
+		fehler "Quellverzeichnis existiert nicht: $SOURCE_DIR"
+	fi
+	
+	# Zähle Dateien im Quellverzeichnis
+	file_count=$(find "$SOURCE_DIR" -type f 2>/dev/null | wc -l)
+	
+	if [ "$file_count" -eq 0 ]; then
+		warnung "Keine Dateien zum Synchronisieren gefunden"
+		log "Verzeichnis: $SOURCE_DIR"
+		return 0
+	fi
+	
+	log "Gefundene Dateien: $file_count"
+	log "Von: $SOURCE_DIR"
+	log "Nach: $TARGET_DIR"
+	log ""
+	
+	# Erstelle Zielverzeichnis falls nicht vorhanden
+	mkdir -p "$TARGET_DIR" || fehler "Konnte Zielverzeichnis nicht erstellen"
+	
+	# Rsync mit Erklärung der Optionen:
+	# -a  = Archiv-Modus (erhält Rechte, Zeiten, etc.)
+	# -v  = Verbose (zeigt was kopiert wird)
+	# --chown=sergi:wheel = Setzt Besitzer auf sergi:wheel
+	# --chmod=Du=rwx,Dg=rwx,Do= = Verzeichnisse: rwx für User, rwx für Gruppe, keine Rechte für Others
+	# --chmod=Fu=rw,Fg=rw,Fo= = Dateien: rw für User, rw für Gruppe, keine Rechte für Others
+	
+	if rsync -av \
+		--chown=sergi:wheel \
+		--chmod=Du=rwx,Dg=rwx,Do= \
+		--chmod=Fu=rw,Fg=rw,Fo= \
+		"$SOURCE_DIR" "$TARGET_DIR"; then
+		erfolg "Dateien synchronisiert"
+	else
+		fehler "Rsync fehlgeschlagen"
+	fi
+	
+	log ""
+	read -p "Quellverzeichnis löschen? [j/N]: " antwort
+	case "$antwort" in
+		[jJ]|[jJ][aA])
+			if sudo rm -rf "$SOURCE_DIR"; then
+				erfolg "Quellverzeichnis gelöscht: $SOURCE_DIR"
+			else
+				fehler "Konnte Quellverzeichnis nicht löschen"
+			fi
+			;;
+		*)
+			log "Quellverzeichnis behalten"
+			;;
+	esac
+}
+
+# Status anzeigen
+status_anzeigen() {
+	log ""
+	log "=== Usenet Manager Status ==="
+	log ""
+	log "Services:"
+	printf "  sabnzbd:  " && service_status "$SABNZBD_SERVICE" && printf "\n"
+	printf "  nzbhydra: " && service_status "$NZBHYDRA_SERVICE" && printf "\n"
+	log ""
+	log "Verzeichnisse:"
+	log "  Quelle: $SOURCE_DIR"
+	if [ -d "$SOURCE_DIR" ]; then
+		file_count=$(find "$SOURCE_DIR" -type f 2>/dev/null | wc -l)
+		log "    Status: existiert ($file_count Dateien)"
+	else
+		log "    Status: existiert nicht"
+	fi
+	log ""
+	log "  Ziel: $TARGET_DIR"
+	if [ -d "$TARGET_DIR" ]; then
+		file_count=$(find "$TARGET_DIR" -type f 2>/dev/null | wc -l)
+		log "    Status: existiert ($file_count Dateien)"
+	else
+		log "    Status: existiert nicht"
+	fi
+	log ""
+}
+
+# Hilfe anzeigen
+zeige_hilfe() {
+	cat << EOF
+Usenet Manager v${VERSION}
+
+VERWENDUNG:
+    $(basename "$0") [OPTION]
+
+OPTIONEN:
+    -s, --start     Services starten
+    -x, --stop      Services stoppen
+    -r, --rsync     Downloads synchronisieren
+    -t, --status    Status anzeigen
+    -h, --help      Diese Hilfe
+    -v, --version   Version anzeigen
+
+BEISPIELE:
+    $(basename "$0")           # Interaktives Menü (fzf)
+    $(basename "$0") -s        # Services starten
+    $(basename "$0") -x        # Services stoppen
+    $(basename "$0") -r        # Downloads synchronisieren
+    $(basename "$0") -t        # Status anzeigen
+
+SERVICES:
+    - sabnzbd.service
+    - nzbhydra2.service
+
+SYNC DETAILS:
+    Quelle: $SOURCE_DIR
+    Ziel:   $TARGET_DIR
+    
+    Rsync Optionen:
+      -a                       Archiv-Modus (erhält Rechte, Zeiten)
+      -v                       Verbose (zeigt Fortschritt)
+      --chown=sergi:wheel      Setzt Besitzer
+      --chmod=Du=rwx,Dg=rwx    Verzeichnisse: rwx für User+Gruppe
+      --chmod=Fu=rw,Fg=rw      Dateien: rw für User+Gruppe
+      
+    Nach erfolgreichem Sync kann das Quellverzeichnis gelöscht werden.
+
+EOF
+}
+
+# Interaktives Menü mit fzf
+interaktives_menu() {
+	while true; do
+		auswahl=$(cat << 'MENU' | fzf \
+			--height 60% \
+			--reverse \
+			--header "Usenet Manager v${VERSION} - ESC zum Beenden" \
+			--prompt "> " \
+			--preview-window=right:55%:wrap \
+			--preview "case {} in
+				\"Services starten\"*)
+					echo \"SERVICES STARTEN\"
+					echo \"================\"
+					echo \"\"
+					echo \"Startet beide Usenet Services:\"
+					echo \"  • sabnzbd.service\"
+					echo \"  • nzbhydra2.service\"
+					echo \"\"
+					echo \"Diese Services ermöglichen:\"
+					echo \"  - SABnzbd: Usenet Download Client\"
+					echo \"  - NZBHydra2: Metasuche für Usenet-Indexer\"
+					echo \"\"
+					echo \"Nach dem Start sind beide Services aktiv\"
+					echo \"und über den Browser erreichbar.\"
+					;;
+				\"Services stoppen\"*)
+					echo \"SERVICES STOPPEN\"
+					echo \"================\"
+					echo \"\"
+					echo \"Stoppt beide Usenet Services:\"
+					echo \"  • sabnzbd.service\"
+					echo \"  • nzbhydra2.service\"
+					echo \"\"
+					echo \"Nutze dies wenn:\"
+					echo \"  - Downloads abgeschlossen sind\"
+					echo \"  - Systemressourcen freigegeben werden sollen\"
+					echo \"  - Services neu gestartet werden müssen\"
+					echo \"\"
+					echo \"Laufende Downloads werden unterbrochen!\"
+					;;
+				\"Downloads synchronisieren\"*)
+					echo \"DOWNLOADS SYNCHRONISIEREN\"
+					echo \"=========================\"
+					echo \"\"
+					echo \"Kopiert fertige Downloads:\"
+					echo \"  Von: $SOURCE_DIR\"
+					echo \"  Nach: $TARGET_DIR\"
+					echo \"\"
+					echo \"Rsync Optionen erklärt:\"
+					echo \"  -a (archive)\"
+					echo \"    Erhält Dateieigenschaften, Zeiten, Links\"
+					echo \"\"
+					echo \"  -v (verbose)\"
+					echo \"    Zeigt welche Dateien kopiert werden\"
+					echo \"\"
+					echo \"  --chown=sergi:wheel\"
+					echo \"    Setzt Besitzer auf sergi, Gruppe auf wheel\"
+					echo \"\"
+					echo \"  --chmod=Du=rwx,Dg=rwx,Do=\"
+					echo \"    Verzeichnisse: rwx für User (7)\"
+					echo \"                   rwx für Gruppe (7)\"
+					echo \"                   --- für Others (0)\"
+					echo \"    = Modus 770 für Ordner\"
+					echo \"\"
+					echo \"  --chmod=Fu=rw,Fg=rw,Fo=\"
+					echo \"    Dateien: rw für User (6)\"
+					echo \"             rw für Gruppe (6)\"
+					echo \"             -- für Others (0)\"
+					echo \"    = Modus 660 für Dateien\"
+					echo \"\"
+					echo \"Sicherheit: Nur User+Gruppe haben Zugriff!\"
+					echo \"\"
+					echo \"Nach erfolgreichem Sync wird gefragt ob\"
+					echo \"das Quellverzeichnis gelöscht werden soll.\"
+					;;
+				\"Status anzeigen\"*)
+					echo \"STATUS ANZEIGEN\"
+					echo \"===============\"
+					echo \"\"
+					echo \"Zeigt Informationen über:\"
+					echo \"\"
+					echo \"Services:\"
+					echo \"  • sabnzbd - aktiv/inaktiv\"
+					echo \"  • nzbhydra2 - aktiv/inaktiv\"
+					echo \"\"
+					echo \"Verzeichnisse:\"
+					echo \"  • Anzahl Dateien in Quelle\"
+					echo \"  • Anzahl Dateien in Ziel\"
+					echo \"  • Existenz der Pfade\"
+					echo \"\"
+					echo \"Nützlich um schnell zu prüfen:\"
+					echo \"  - Laufen die Services?\"
+					echo \"  - Gibt es neue Downloads?\"
+					echo \"  - Ist genug Platz?\"
+					;;
+				*)
+					echo \"USENET MANAGER\"
+					echo \"==============\"
+					echo \"\"
+					echo \"Navigation:\"
+					echo \"  ↑/↓ oder j/k  - Bewegen\"
+					echo \"  Enter         - Auswählen\"
+					echo \"  ESC           - Beenden\"
+					echo \"\"
+					echo \"Wähle eine Aktion aus der Liste.\"
+					echo \"\"
+					echo \"Die Preview zeigt Details und\"
+					echo \"Erklärungen zu jeder Option.\"
+					;;
+			esac"
+Services starten
+Services stoppen
+Downloads synchronisieren
+Status anzeigen
+Beenden
+MENU
+		)
+		
+		case "$auswahl" in
+			"Services starten"*) services_starten ;;
+			"Services stoppen"*) services_stoppen ;;
+			"Downloads synchronisieren"*) downloads_sync ;;
+			"Status anzeigen"*) status_anzeigen; read -p "Enter drücken..." ;;
+			"Beenden"|"") exit 0 ;;
+		esac
+		
+		[ "$auswahl" != "Status anzeigen"* ] && [ -n "$auswahl" ] && read -p "Enter drücken..."
+	done
+}
+
+# Hauptprogramm
+main() {
+	# Ohne Argumente -> Menü
+	if [ $# -eq 0 ]; then
+		if ! command -v fzf >/dev/null 2>&1; then
+			fehler "fzf nicht gefunden. Nutze Flags oder installiere fzf."
+		fi
+		interaktives_menu
+		exit 0
+	fi
+	
+	# Parse Argumente
+	case "$1" in
+		-s|--start)
+			services_starten
+			;;
+		-x|--stop)
+			services_stoppen
+			;;
+		-r|--rsync)
+			downloads_sync
+			;;
+		-t|--status)
+			status_anzeigen
+			;;
+		-h|--help)
+			zeige_hilfe
+			;;
+		-v|--version)
+			echo "Usenet Manager v${VERSION}"
+			;;
+		*)
+			fehler "Unbekannte Option: $1\nNutze -h für Hilfe"
+			;;
+	esac
+}
+
+# Los gehts
+main "$@"
