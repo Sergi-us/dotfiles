@@ -4,24 +4,23 @@
 
 > **🔄 Umzug zu Codeberg**: Die aktive Entwicklung und Kollaboration findet jetzt auf [Codeberg](https://codeberg.org/Sergius/dotfiles) statt. GitHub dient nur als Mirror.
 > 
-> **📦 Hauptprojekt**: [SARBS](https://github.com/Sergi-us/SARBS)
+> **📦 Hauptprojekt**: [SARBS](https://codeberg.org/Sergius/SARBS) hier zur [Homepage](https://sarbs.xyz/sarbs/)
 
 Minimalistische Linux-Desktop-Umgebung auf Suckless-Basis mit automatischem Tiling Window Management.
 
 ## 🎯 Kernkomponenten
 
-- **dwm** - Dynamic Window Manager
-- **st** - Simple Terminal  
+- **dwm** - Dynamic Window Manager [auf Codeberg,](https://codeberg.org/Sergius/DWM) [auf GitHub](https://github.com/Sergi-us/dwm)
+- **st** - Simple Terminal [auf Codeberg,](https://codeberg.org/Sergius/st) [auf GitHub](https://github.com/Sergi-us/st)
 - **lf** - Terminal File Manager
 - **zsh** - Shell mit [Konfiguration](.config/zsh/README.md)
 - **neovim** - Editor mit [Lua-Setup](.config/nvim/README.md)
 - **pywal** - Dynamische Farbschemata
-- **polybar** - Statusleiste mit 30+ Modulen
 - **rmpc** - MPD Client mit Cava-Visualisierung
-
+
 ## 📁 Repository-Struktur
 
-```
+```bash
 dotfiles/
 ├── .config/     # XDG-konforme Anwendungskonfigurationen
 │   ├── nvim/    # Neovim-Konfiguration
@@ -36,7 +35,7 @@ dotfiles/
 ├── .x11/        # X11-bezogene Konfigurationen
 └── README.md    # Diese Datei
 ```
-
+
 ## ⚡ Installation & Updates
 
 ### Automatisch mit SARBS (empfohlen)
@@ -58,7 +57,7 @@ dotfiles-home  # Erstellt Hardlinks zu $HOME
 ```
 
 **Hinweis**: `dotfiles-home` erstellt Hardlinks und überschreibt bestehende Konfigurationen.
-
+
 ## 🛠️ Features & Anpassungen
 
 ### Wichtige Features
@@ -75,12 +74,12 @@ dotfiles-home
 ```
 
 **Tipp**: Alle Skripte und Konfigurationsdateien enthalten ausführliche Kommentare zur Funktionsweise und Anpassung.
-
+
 ## 📚 Weitere Ressourcen
 
-- **[SARBS Hauptprojekt](https://github.com/Sergi-us/SARBS)** - Auto-Rice Bootstrapping Scripts
-- **[dwm Build](https://github.com/Sergi-us/dwm)** - Angepasster Window Manager
-- **[st Build](https://github.com/Sergi-us/st)** - Terminal-Konfiguration
+- **[SARBS Hauptprojekt](https://codeberg.org/Sergius/SARBS)** - Auto-Rice Bootstrapping Scripts
+- **[dwm Build](https://codeberg.org/Sergius/DWM)** - Angepasster Window Manager
+- **[st Build](https://codeberg.org/Sergius/st)** - Terminal-Konfiguration
 - **[dmenu Build](https://github.com/Sergi-us/dmenu)** - Application Launcher
 
 ## 🤝 Credits & Inspiration
@@ -95,7 +94,7 @@ Diese Konfiguration ist unter der [MIT Lizenz](LICENSE) verfügbar.
 
 ---
 
-**📧 Kontakt**: 
+**📧 Kontakt**:
 - [Codeberg Issues](https://codeberg.org/Sergius/dotfiles/issues) für Fragen und Feedback
 - [GitHub Issues](https://github.com/Sergi-us/dotfiles/issues) (Mirror)
 - [Sarbs Homepage/Kontakt](https://sarbs.xyz/kontakt/)
