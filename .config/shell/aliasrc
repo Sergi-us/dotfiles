@@ -111,4 +111,5 @@ alias talk='env \
   firefox --new-window --kiosk "https://meet.jit.si/Linux-Talk-4-Neu" 2>/dev/null'
 
 # rsync promt um daten von usenet zu verschieben und verzeichnisse zu löschen
-alias usenet="rsync -av --chown=sergi:wheel --chmod=Du=rwx,Dg=rwx,Do= --chmod=Fu=rw,Fg=rw,Fo= /var/lib/sabnzbd/Downloads/complete/ /home/sergi/Downloads/.usenext/  && sudo rm -r /var/lib/sabnzbd/Downloads/complete"
+# Jetzt als Skript verfügbar: ~/.local/bin/usenet
+#alias usenet="rsync -av --chown=sergi:wheel --chmod=Du=rwx,Dg=rwx,Do= --chmod=Fu=rw,Fg=rw,Fo= /var/lib/sabnzbd/Downloads/complete/ /home/sergi/Downloads/.usenext/  && sudo rm -r /var/lib/sabnzbd/Downloads/complete"
