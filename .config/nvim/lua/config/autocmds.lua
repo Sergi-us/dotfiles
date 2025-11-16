@@ -55,6 +55,11 @@ vim.cmd([[
   autocmd BufWritePost ~/.local/src/dwmblocks/config.h !cd ~/.local/src/dwmblocks/; sudo make install && { killall -q dwmblocks;setsid -f dwmblocks }
 ]])
 
+-- dwmblocks-async nach änderungen aktualisieren
+vim.cmd([[
+  autocmd BufWritePost ~/.local/src/dwmblocks-async/config.h !cd ~/.local/src/dwmblocks-async/; sudo make install && { killall -q dwmblocks; setsid dwmblocks & }
+]])
+
 -- ST auto-compile
 vim.cmd([[
   autocmd BufWritePost ~/.local/src/st/config.h !cd ~/.local/src/st/; sudo make install
