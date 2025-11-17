@@ -99,7 +99,7 @@ case $BLOCK_BUTTON in
 esac
 
 if [ "$HIDE_PERCENTAGE" = "true" ]; then
-    echo "[$icon]"
+    echo "$icon"
 else
-    echo "[$icon $vol%]"
+    echo "$icon $vol%"
 fi

@@ -1,119 +1,250 @@
-#!/bin/bash
-## 2025-03-11 SARBS
-# TODO über redshift nachdenken (oder anderweitig automatisieren)
+#!/bin/sh
+## 2025-11-16 SARBS
+# Automatische Farbtemperatur-Anpassung basierend auf Tageszeit
+# Nutzt xsct für sanfte Übergänge zwischen Tag/Nacht-Modi
 
-# Konfigurationsdatei für Farbtemperatur
-CONFIG_DIR="$HOME/.config/xsct"
-TEMP_FILE="$CONFIG_DIR/temp"
-MIN_TEMP=1000   # Wärmste Temperatur (rot)
-MAX_TEMP=10000  # Kälteste Temperatur (blau)
-DEFAULT_TEMP=6500  # Standardwert
-STEP=500        # Temperaturänderung pro Schritt
+# ============================================================================
+# KONFIGURATION - Hier den Tagesrhythmus anpassen
+# ============================================================================
 
-# Erstelle Konfigurationsverzeichnis, falls es nicht existiert
+# Zeitangaben in HH:MM Format
+SUNRISE_TIME="06:00"         # Sonnenaufgang
+SUNSET_TIME="17:00"          # Sonnenuntergang
+
+# Temperaturwerte in Kelvin
+TEMP_NIGHT=2700              # Nachttemperatur (warm/rötlich)
+TEMP_DAY=6500                # Tagtemperatur (neutral/bläulich)
+TEMP_TRANSITION_START=5000   # Starttemperatur für Übergänge
+
+# Übergangsdauer in Stunden
+SUNRISE_DURATION=2           # Dauer des Sonnenaufgang-Übergangs (z.B. 05:00-07:00)
+SUNSET_DURATION=3            # Dauer des Sonnenuntergang-Übergangs (z.B. 17:00-20:00)
+
+# Manuelle Steuerung
+MIN_TEMP=1000                # Minimale Temperatur
+MAX_TEMP=10000               # Maximale Temperatur
+STEP=500                     # Schrittweite für manuell +/-
+
+# ============================================================================
+# SYSTEM - Nicht ändern (außer du weißt was du tust)
+# ============================================================================
+
+CONFIG_DIR="${HOME}/.config/xsct"
+TEMP_FILE="${CONFIG_DIR}/temp"
+AUTO_FILE="${CONFIG_DIR}/auto_enabled"
+
+# Erstelle Konfigurationsverzeichnis
 mkdir -p "$CONFIG_DIR"
 
-# Erstelle/Lese Temperatur-Datei
+# Initialisiere Temperatur-Datei falls nicht vorhanden
 if [ ! -f "$TEMP_FILE" ]; then
-    echo "$DEFAULT_TEMP" > "$TEMP_FILE"
+    echo "$TEMP_DAY" > "$TEMP_FILE"
 fi
 
 current_temp=$(cat "$TEMP_FILE")
 
 # Prüfe ob xsct installiert ist
-if ! command -v xsct &> /dev/null; then
+if ! command -v xsct >/dev/null 2>&1; then
     notify-send "󰨞 XSCT nicht gefunden" "Bitte installiere xsct mit deinem Paketmanager"
     echo "󰨞"
     exit 1
 fi
 
-# Funktion zum Anpassen der Farbtemperatur
-adjust_temperature() {
-    case $1 in
+# ============================================================================
+# FUNKTIONEN
+# ============================================================================
+
+# Konvertiere HH:MM zu Minuten seit Mitternacht
+time_to_minutes() {
+    echo "$1" | awk -F: '{print ($1 * 60) + $2}'
+}
+
+# Berechne automatische Temperatur basierend auf Tageszeit
+calculate_auto_temp() {
+    current_time=$(date +%H:%M)
+    current_min=$(time_to_minutes "$current_time")
+
+    sunrise_min=$(time_to_minutes "$SUNRISE_TIME")
+    sunset_min=$(time_to_minutes "$SUNSET_TIME")
+
+    # Berechne Start-Zeiten für Übergänge
+    sunrise_start_min=$((sunrise_min - (SUNRISE_DURATION * 60)))
+    sunset_end_min=$((sunset_min + (SUNSET_DURATION * 60)))
+
+    # Stelle sicher dass Zeiten im 24h-Bereich bleiben
+    [ $sunrise_start_min -lt 0 ] && sunrise_start_min=$((1440 + sunrise_start_min))
+    [ $sunset_end_min -ge 1440 ] && sunset_end_min=$((sunset_end_min - 1440))
+
+    # Entscheide welche Phase
+    if [ $current_min -ge $sunrise_start_min ] && [ $current_min -lt $sunrise_min ]; then
+        # Sonnenaufgang-Phase: TEMP_NIGHT -> TEMP_DAY
+        elapsed=$((current_min - sunrise_start_min))
+        total=$((SUNRISE_DURATION * 60))
+        temp_diff=$((TEMP_DAY - TEMP_NIGHT))
+        auto_temp=$((TEMP_NIGHT + (temp_diff * elapsed / total)))
+
+    elif [ $current_min -ge $sunrise_min ] && [ $current_min -lt $sunset_min ]; then
+        # Tag-Phase
+        auto_temp=$TEMP_DAY
+
+    elif [ $current_min -ge $sunset_min ] && [ $current_min -lt $sunset_end_min ]; then
+        # Sonnenuntergang-Phase: TEMP_DAY -> TEMP_NIGHT
+        elapsed=$((current_min - sunset_min))
+        total=$((SUNSET_DURATION * 60))
+        temp_diff=$((TEMP_DAY - TEMP_NIGHT))
+        auto_temp=$((TEMP_DAY - (temp_diff * elapsed / total)))
+
+    else
+        # Nacht-Phase
+        auto_temp=$TEMP_NIGHT
+    fi
+
+    echo "$auto_temp"
+}
+
+# Wende Temperatur an
+apply_temp() {
+    local temp=$1
+    xsct "$temp" 2>/dev/null
+    echo "$temp" > "$TEMP_FILE"
+}
+
+# Toggle Auto-Modus
+toggle_auto() {
+    if [ -f "$AUTO_FILE" ]; then
+        # Auto-Modus deaktivieren
+        rm -f "$AUTO_FILE"
+        notify-send "󰨞 Auto-Modus deaktiviert" "Manuelle Steuerung aktiv\nAktuelle Temperatur: ${current_temp}K"
+    else
+        # Auto-Modus aktivieren
+        touch "$AUTO_FILE"
+        new_temp=$(calculate_auto_temp)
+        apply_temp "$new_temp"
+        notify-send " Auto-Modus aktiviert" "Automatische Anpassung aktiv\nTemperatur: ${new_temp}K"
+    fi
+}
+
+# Manuelle Temperatur-Anpassung (deaktiviert Auto-Modus)
+adjust_manual() {
+    local direction=$1
+
+    # Deaktiviere Auto-Modus wenn aktiv
+    if [ -f "$AUTO_FILE" ]; then
+        rm -f "$AUTO_FILE"
+    fi
+
+    case $direction in
         inc)
-            # Erhöhe Temperatur (kälter/blauer)
             new_temp=$((current_temp + STEP))
-            if [ "$new_temp" -gt "$MAX_TEMP" ]; then
-                new_temp=$MAX_TEMP
-            fi
+            [ $new_temp -gt $MAX_TEMP ] && new_temp=$MAX_TEMP
             ;;
         dec)
-            # Verringere Temperatur (wärmer/roter)
             new_temp=$((current_temp - STEP))
-            if [ "$new_temp" -lt "$MIN_TEMP" ]; then
-                new_temp=$MIN_TEMP
-            fi
-            ;;
-        reset)
-            # Zurücksetzen auf Standard
-            new_temp=$DEFAULT_TEMP
-            ;;
-        toggle)
-            # Toggle zwischen DEFAULT_TEMP und einem warmen Wert
-            if [ "$current_temp" -eq "$DEFAULT_TEMP" ]; then
-                new_temp=3000  # Warme Temperatur für den Abend
-            else
-                new_temp=$DEFAULT_TEMP
-            fi
+            [ $new_temp -lt $MIN_TEMP ] && new_temp=$MIN_TEMP
             ;;
         *)
-            notify-send "󰨞 Ungültige Operation"
-            exit 1
+            return
             ;;
     esac
 
-    # Temperatur anwenden
-    xsct $new_temp
-    echo "$new_temp" > "$TEMP_FILE"
+    apply_temp "$new_temp"
 }
 
-# Zeige aktuellen Status mit Icon an
+# Reset: Deaktiviere Auto und setze auf Tag-Temperatur
+reset_temp() {
+    rm -f "$AUTO_FILE"
+    apply_temp "$TEMP_DAY"
+    notify-send "󰨞 Zurückgesetzt" "Farbtemperatur: ${TEMP_DAY}K\nAuto-Modus: AUS"
+}
+
+# Zeige Status-Icon
 show_status() {
-    # Unterschiedliche Symbole je nach Temperaturbereich
-    if [ "$current_temp" -le 3500 ]; then
-        temp_icon=""  # Thermometer für alle Temperaturen
-    elif [ "$current_temp" -le 5500 ]; then
-        temp_icon=""  # Thermometer für alle Temperaturen
+    if [ -f "$AUTO_FILE" ]; then
+        # Auto-Modus: Berechne und setze Temperatur
+        new_temp=$(calculate_auto_temp)
+
+        # Nur anwenden wenn Unterschied > 100K (verhindert unnötige Updates)
+        temp_diff=$((new_temp - current_temp))
+        [ $temp_diff -lt 0 ] && temp_diff=$((temp_diff * -1))
+
+        if [ $temp_diff -gt 100 ]; then
+            apply_temp "$new_temp"
+            current_temp=$new_temp
+        fi
+
+        echo ""  # Auto-Icon
     else
-        temp_icon=""  # Thermometer für alle Temperaturen
+        # Manueller Modus: Icon nach Temperatur
+        if [ "$current_temp" -le 3500 ]; then
+            echo ""  # Warm
+        elif [ "$current_temp" -le 5500 ]; then
+            echo ""  # Mittel
+        else
+            echo ""  # Kalt
+        fi
+    fi
+}
+
+# Info-Nachricht
+show_info() {
+    local auto_status="AUS (Manuell)"
+    local next_change="Keine"
+
+    if [ -f "$AUTO_FILE" ]; then
+        auto_status="AN (Automatisch)"
+
+        current_time=$(date +%H:%M)
+        current_min=$(time_to_minutes "$current_time")
+        sunrise_min=$(time_to_minutes "$SUNRISE_TIME")
+        sunset_min=$(time_to_minutes "$SUNSET_TIME")
+
+        if [ $current_min -lt $sunrise_min ]; then
+            next_change="Sonnenaufgang um $SUNRISE_TIME"
+        elif [ $current_min -lt $sunset_min ]; then
+            next_change="Sonnenuntergang um $SUNSET_TIME"
+        else
+            next_change="Sonnenaufgang um $SUNRISE_TIME (morgen)"
+        fi
     fi
 
-    # Temperatur in Kelvin anzeigen, formatiert mit Dezimalpunkt
-    temp_k=$(awk "BEGIN {printf \"%.1fK\", $current_temp/1000}")
-    echo "$temp_icon"
-    # echo "[$temp_icon $temp_k]"
+    notify-send "󰨞 Farbtemperatur-Modul" "\
+Aktuelle Temperatur: ${current_temp}K
+Auto-Modus: ${auto_status}
+Nächste Änderung: ${next_change}
+
+Konfiguration:
+Sonnenaufgang: $SUNRISE_TIME (${TEMP_DAY}K)
+Sonnenuntergang: $SUNSET_TIME (${TEMP_NIGHT}K)
+
+󱕒 Steuerung:
+L-󰍽 Auto-Modus ein/aus
+M-󰍽 Zurücksetzen (${TEMP_DAY}K)
+R-󰍽 Diese Infobox
+󰍽 Temperatur ±${STEP}K (deaktiviert Auto)"
 }
 
-# Hauptlogik
+# ============================================================================
+# HAUPTPROGRAMM
+# ============================================================================
+
+# Verarbeite Kommandozeilen-Argumente (für Tests)
 case $1 in
-    inc)
-        adjust_temperature inc
-        ;;
-    dec)
-        adjust_temperature dec
-        ;;
-    reset)
-        adjust_temperature reset
-        ;;
-    toggle)
-        adjust_temperature toggle
-        ;;
-    *)
-        # Standardfunktion zeigt Status an
-        show_status
-        ;;
+    auto) toggle_auto ;;
+    reset) reset_temp ;;
+    inc) adjust_manual inc ;;
+    dec) adjust_manual dec ;;
+    info) show_info ;;
 esac
 
 # DWMBLOCKS Mausaktionen
 case $BLOCK_BUTTON in
-    1) adjust_temperature toggle ;;  # Linksklick: Toggle zwischen Tag/Nacht
-    2) adjust_temperature reset ;;   # Mittelklick: Zurücksetzen
-    3) notify-send "󰨞 Farbtemperatur" "Aktuelle Temperatur: ${current_temp}K
-󱕒 Temperatur anpassen
-L-󰍽 Tag/Nacht wechseln
-M-󰍽 Zurücksetzen
-R-󰍽 diese Infobox" ;;  # Rechtsklick: Info
-    4) adjust_temperature inc ;;     # Scroll hoch: Temperatur erhöhen
-    5) adjust_temperature dec ;;     # Scroll runter: Temperatur verringern
-    6) setsid -f "$TERMINAL" -e "$EDITOR" "$0" ;;  # Shift+Rechtsklick: Skript bearbeiten
+    1) toggle_auto; pkill -RTMIN+11 dwmblocks ;;
+    2) reset_temp; pkill -RTMIN+11 dwmblocks ;;
+    3) show_info ;;
+    4) adjust_manual inc; pkill -RTMIN+11 dwmblocks ;;
+    5) adjust_manual dec; pkill -RTMIN+11 dwmblocks ;;
+    6) setsid -f "$TERMINAL" -e "$EDITOR" "$0" ;;
 esac
+
+# Zeige Status (wird von dwmblocks aufgerufen)
+show_status

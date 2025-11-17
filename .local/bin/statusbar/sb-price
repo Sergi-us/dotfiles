@@ -1,5 +1,5 @@
 #!/bin/sh
-## 2025-01-09 SARBS
+## 2025-11-17   SARBS
 
 # Cryptocurrency Price Checker
 # SARBS 09.11.2024
@@ -10,17 +10,16 @@
 # Es speichert auch Preishistorien und kann Preisgrafiken anzeigen.
 #
 # Verwendung:
-#   price <Basiswährung-Zierwährung> <"Währungsname"> <Icon> <Signal>
+#   price <Basiswährung-Zierwährung> <"Währungsname"> <Icon>
 #
 # Beispiel:
-#   price bat-btc "Basic Attention Token" 🦁 24
-#   Zeigt den BAT-Preis in BTC an und aktualisiert bei Signal 24
+#   price bat-usd "Basic Attention Token" 󰞘
+#   Zeigt den BAT-Preis in USD an
 #
 # Parameter:
-#   $1 - Währungspaar (z.B. 'bat-btc')
+#   $1 - Währungspaar (z.B. 'btc-usd', 'eth-eur')
 #   $2 - Anzeigename der Währung (optional, Standard ist $1)
-#   $3 - Anzeigesymbol (optional, Standard ist 💰)
-#   $4 - Signal für Updates (optional)
+#   $3 - Anzeigesymbol (optional, Standard ist 󰠓)
 
 # Überprüfung auf erforderliche Parameter
 [ -z "$1" ] && exit 1
@@ -30,17 +29,27 @@ url="${CRYPTOURL:-rate.sx}"
 target="${1%%-*}"
 denom="${1##*-}"
 name="${2:-$1}"
-icon="${3:-💰}"
+icon="${3:-󰠓}"
+
+# Icon-Mapping für Nerd Font Symbole
+# Ersetzt problematische Unicode-Symbole durch Nerd Font Varianten
+case "$icon" in
+	"₿"|"21") icon="󰠓" ;;  # Bitcoin Nerd Font Symbol (nf-md-bitcoin)
+	"Ξ"|"23") icon="󰠗" ;;  # Ethereum Nerd Font Symbol (nf-md-ethereum)
+	"Ɱ"|"24") icon="" ;;  # Monero Nerd Font Symbol (nf-md-xmr)
+	"₮") icon="" ;;       # Tether (nutze Bitcoin-Icon als Fallback)
+	*) ;;                  # Behalte Original-Icon
+esac
 # Währungssymbol-Konfiguration
 case "$denom" in
 	"$target"|usd) denom="usd"; symb="$" ;;
 	gbp) symb="£" ;;
 	eur) symb="€" ;;
-	btc) symb="" ;;
+	btc) symb="₿" ;;
 	*) denom="eur"; symb="€" ;; # Fallback zu Euro als Standardwährung
 esac
 
-# Konfiguration für Preishistorie
+# Konfiguration für Preishistorie ("@1M" = Monatshistorie)
 interval="@1M"	# History contained in chart preceded by '@' (7d = 7 days)
 
 # Verzeichnis- und Dateikonfiguration
@@ -72,9 +81,9 @@ case $BLOCK_BUTTON in
 	2) setsid "$TERMINAL" -e less -Srf "$chartfile" ;;
     3) uptime="$(date -d "$filestat" '+%D at %T' | sed "s|$(date '+%D')|Heute|")"
        notify-send "$icon $name Modul" "\- <b>Exakter Preis: \$$(cat "$pricefile")</b>
-- M-󰍽 für Preisverlauf
-- L-󰍽 zum Aktualisieren
-- Zeigt  während der Aktualisierung
+- M-Klick für Preisverlauf
+- L-Klick zum Aktualisieren
+- Zeigt 󰋚 während der Aktualisierung
 - <b>Letzte Aktualisierung:
     $uptime</b>" ;;
     4) ;;
@@ -89,4 +98,35 @@ esac
 
 # Setze das LC_NUMERIC-Format für printf
 LC_NUMERIC=C
-[ -f "$pricefile" ] && printf "%s%s\n" "$icon " "$(cat "$pricefile" | awk '{ printf "%\047d,%02d", int($1), ($1-int($1))*100 }' | sed 's/,/./; s/\B(?=(\d{3})+(?!\d))/./g')$symb"
+
+# Formatiere und zeige Preis an
+if [ -f "$pricefile" ]; then
+	price="$(cat "$pricefile")"
+
+	# Formatiere Preis: maximal 4 Ziffern gesamt
+	formatted="$(awk -v p="$price" '
+	BEGIN {
+		integer_part = int(p)
+		decimal_part = (p - integer_part) * 100
+
+		# Wenn integer_part >= 10000 (5+ Stellen), zeige in K
+		if (integer_part >= 10000) {
+			kilo = p / 1000
+			printf "%.1fK", kilo
+		} else if (integer_part >= 1000) {
+			# 4 Stellen: zeige nur Ganzzahl (z.B. 3764 statt 3764,46)
+			printf "%\047d", integer_part
+		} else if (integer_part >= 100) {
+			# 3 Stellen: zeige 1 Dezimalstelle (z.B. 263.1)
+			printf "%.1f", p
+		} else if (integer_part >= 10) {
+			# 2 Stellen: zeige 2 Dezimalstellen (z.B. 26.31)
+			printf "%.2f", p
+		} else {
+			# 1 Stelle: zeige 3 Dezimalstellen (z.B. 1.234)
+			printf "%.3f", p
+		}
+	}')"
+
+	printf "%s%s%s\n" "$icon " "$formatted" "$symb"
+fi

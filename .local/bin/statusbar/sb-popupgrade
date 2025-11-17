@@ -4,7 +4,10 @@
 printf "Beginne mit Upgrade.\\n"
 
 yay -Syu
-pkill -RTMIN+8 "${STATUSBAR:-dwmblocks}"
+
+# Aktualisiere Statusbar-Module nach dem Update
+pkill -RTMIN+5 "${STATUSBAR:-dwmblocks}"   # sb-pacpackages (Update-Symbol entfernen)
+pkill -RTMIN+8 "${STATUSBAR:-dwmblocks}"   # sb-news
 
 printf "\\nUpgrade komplett.\\ndrücke <Enter> um Fenster zu verlassen.\\n\\n"
 read -r _

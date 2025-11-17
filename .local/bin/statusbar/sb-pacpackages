@@ -16,9 +16,10 @@ case $BLOCK_BUTTON in
 	6) setsid -f "$TERMINAL" -e "$EDITOR" "$0" ;; # Strg + Rechtsklick zum Bearbeiten
 esac
 
-pacman -Qu | grep -Fcv "[ignored]" | sed "s/^0$//g"
+# Anzahl der Updates ermitteln
+updates=$(pacman -Qu | grep -Fcv "[ignored]")
 
-# Nur anzeigen wenn Updates verfügbar sind
+# Nur anzeigen wenn Updates verfügbar sind (> 0)
 if [ "$updates" -gt 0 ]; then
-	echo "󰏖 $updates X"
+	echo " $updates"
 fi
