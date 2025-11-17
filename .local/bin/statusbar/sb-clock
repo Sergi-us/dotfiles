@@ -29,7 +29,7 @@ case $BLOCK_BUTTON in
 	6) setsid -f "$TERMINAL" -e "$EDITOR" "$0" ;;
 esac
 
-date "+[%H:%M %a KW%V %d.%b]"
+date "+%a %d.%b %H:%M"
 # Unterschiedliche Darstellung
 ## KW03 (Di) 14.Jan.2025 14:20
 #date "+KW%V (%a) %d.%b.%Y %H:%M"

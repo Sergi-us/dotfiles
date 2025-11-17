@@ -1,51 +1,83 @@
 #!/bin/sh
-## 2025-01-09 SARBS
+## 2025-11-16 SARBS
 
-# Displays today's precipication chance (☔), and daily low (🥶) and high (🌞).
-# Usually intended for the statusbar.
+# SARBS Wettermodul
+# zeigt in der Statusleistte eine Mitteltemperatur aus Tages- höchst und Tiefstwerten
+# Rechtscklick zeigt die ersten 7 Zeilen aus lokalen dem Wetterreport an (Buggy)
+# Mittelcklick aktualisiert die Vorhersage
+
+# Standort für Wettervorhersage (leer lassen für IP-basierte Ortung)
+# TODO IP-Ortung ist Buggy
+# Testurl: curl -sf 'wttr.in/Berlin'
+LOCATION="Esslingen"
+
 
 url="${WTTRURL:-wttr.in}"
 weatherreport="${XDG_CACHE_HOME:-$HOME/.cache}/weatherreport"
 
-# Get a weather report from 'wttr.in' and save it locally.
-getforecast() { timeout --signal=1 2s curl -sf "$url/$LOCATION" > "$weatherreport" || exit 1; }
+# Wettervorhersage von 'wttr.in' abrufen und lokal speichern.
+getforecast() {
+	location="${LOCATION}"
+	timeout --signal=1 2s curl -sf "$url/$location" > "$weatherreport" || exit 1
+}
 
-# Forecast should be updated only once a day.
+# Vorhersage soll nur einmal täglich aktualisiert werden.
 checkforecast() {
 	[ -s "$weatherreport" ] && [ "$(stat -c %y "$weatherreport" 2>/dev/null |
 		cut -d' ' -f1)" = "$(date '+%Y-%m-%d')" ]
 }
 
 getprecipchance() {
-	echo "$weatherdata" | sed '16q;d' |    # Extract line 16 from file
-		grep -wo "[0-9]*%" |           # Find a sequence of digits followed by '%'
-		sort -rn |                     # Sort in descending order
-		head -1q                       # Extract first line
+	echo "$weatherdata" | sed '16q;d' |    # Zeile 16 aus Datei extrahieren
+		grep -wo "[0-9]*%" |           # Zahlenfolge gefolgt von '%' finden
+		sort -rn |                     # Absteigend sortieren
+		head -1q                       # Erste Zeile extrahieren
 }
 
 getdailyhighlow() {
-	echo "$weatherdata" | sed '13q;d' |      # Extract line 13 from file
-		grep -o "m\\([-+]\\)*[0-9]\\+" | # Find temperatures in the format "m<signed number>"
-		sed 's/[+m]//g' |                # Remove '+' and 'm'
-		sort -g |                        # Sort in ascending order
-		sed -e 1b -e '$!d'               # Extract the first and last lines
+	echo "$weatherdata" | sed '13q;d' |      # Zeile 13 aus Datei extrahieren
+		grep -o "m\\([-+]\\)*[0-9]\\+" | # Temperaturen im Format "m<Vorzeichen><Zahl>" finden
+		sed 's/[+m]//g' |                # '+' und 'm' entfernen
+		sort -g |                        # Aufsteigend sortieren
+		sed -e 1b -e '$!d'               # Erste und letzte Zeile extrahieren
 }
 
 readfile() { weatherdata="$(cat "$weatherreport")" ;}
 
 showweather() {
 	readfile
-	printf " %s  %s°  %s°\n" "$(getprecipchance)" $(getdailyhighlow)
+	temps=$(getdailyhighlow | tr '\n' ' ')
+	low=$(echo $temps | cut -d' ' -f1)
+	high=$(echo $temps | cut -d' ' -f2)
+	avg=$(( (low + high) / 2 ))
+	printf "%s󰔄\n" "$avg"
+}
+
+showtodayforecast() {
+	readfile
+	# Ort und Wetterbeschreibung (Zeile 1 und 3)
+	location=$(sed -n '1p' "$weatherreport" | sed 's/Weather report: //')
+	condition=$(sed -n '3p' "$weatherreport" | sed 's/\x1b\[[0-9;]*m//g' | sed 's/.*[[:space:]]\{2,\}//' | cut -c1-35)
+	
+	# Temperaturen
+	temps=$(getdailyhighlow | tr '\n' ' ')
+	low=$(echo $temps | cut -d' ' -f1)
+	high=$(echo $temps | cut -d' ' -f2)
+	
+	# Niederschlag
+	precip=$(getprecipchance)
+	
+	notify-send "🌈 Wetter: $location" "Bedingungen: $condition
+	
+🥶 Tief: ${low}°C
+🌞 Hoch: ${high}°C
+☔ Niederschlag: ${precip:-0%}"
 }
 
 case $BLOCK_BUTTON in
 	1) setsid -f "$TERMINAL" -e less -Sf "$weatherreport" ;;
 	2) getforecast && showweather ;;
-	3) notify-send "🌈 Weather module" "\- Left click for full forecast.
-- Middle click to update forecast.
-☔: Chance of rain/snow
-🥶: Daily low
-🌞: Daily high" ;;
+	3) showtodayforecast ;;
 	6) setsid -f "$TERMINAL" -e "$EDITOR" "$0" ;;
 esac
 

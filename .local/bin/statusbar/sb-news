@@ -23,4 +23,4 @@ case $BLOCK_BUTTON in
 esac
 
 # Zeige Update-Indikator oder Anzahl ungelesener Nachrichten
-cat /tmp/newsupdate 2>/dev/null || echo "$(newsraft -e print-unread-items-count | awk '{ if($1>0) print $1}')$(cat "${XDG_CONFIG_HOME:-$HOME/.config}"/newsraft/.update 2>/dev/null)"
+cat /tmp/newsupdate 2>/dev/null || echo "$(newsraft -e print-unread-items-count | awk '{ if($1>0) print $1}')$(cat "${XDG_CONFIG_HOME:-$HOME/.config}"/newsraft/.update 2>/dev/null)"
