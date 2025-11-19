@@ -7,7 +7,7 @@
 readonly SABNZBD_SERVICE="sabnzbd.service"
 readonly NZBHYDRA_SERVICE="nzbhydra2.service"
 readonly SOURCE_DIR="/var/lib/sabnzbd/Downloads/complete/"
-readonly TARGET_DIR="/home/sergi/Downloads/.usenext/"
+readonly TARGET_DIR="/home/sergi/Downloads/usenext/"
 readonly VERSION="1.0"
 
 # Farben für Ausgabe
@@ -47,19 +47,19 @@ service_status() {
 # Services starten
 services_starten() {
 	log "Starte Usenet Services..."
-	
+
 	if sudo systemctl start "$SABNZBD_SERVICE"; then
 		erfolg "sabnzbd.service gestartet"
 	else
 		fehler "Konnte sabnzbd.service nicht starten"
 	fi
-	
+
 	if sudo systemctl start "$NZBHYDRA_SERVICE"; then
 		erfolg "nzbhydra2.service gestartet"
 	else
 		fehler "Konnte nzbhydra2.service nicht starten"
 	fi
-	
+
 	log ""
 	log "Status:"
 	printf "  sabnzbd:  " && service_status "$SABNZBD_SERVICE" && printf "\n"
@@ -69,19 +69,19 @@ services_starten() {
 # Services stoppen
 services_stoppen() {
 	log "Stoppe Usenet Services..."
-	
+
 	if sudo systemctl stop "$SABNZBD_SERVICE"; then
 		erfolg "sabnzbd.service gestoppt"
 	else
 		warnung "Konnte sabnzbd.service nicht stoppen (läuft evtl. nicht)"
 	fi
-	
+
 	if sudo systemctl stop "$NZBHYDRA_SERVICE"; then
 		erfolg "nzbhydra2.service gestoppt"
 	else
 		warnung "Konnte nzbhydra2.service nicht stoppen (läuft evtl. nicht)"
 	fi
-	
+
 	log ""
 	log "Status:"
 	printf "  sabnzbd:  " && service_status "$SABNZBD_SERVICE" && printf "\n"
@@ -92,36 +92,36 @@ services_stoppen() {
 downloads_sync() {
 	log "Synchronisiere Downloads..."
 	log ""
-	
+
 	# Prüfe ob Quellverzeichnis existiert und Dateien enthält
 	if [ ! -d "$SOURCE_DIR" ]; then
 		fehler "Quellverzeichnis existiert nicht: $SOURCE_DIR"
 	fi
-	
+
 	# Zähle Dateien im Quellverzeichnis
 	file_count=$(find "$SOURCE_DIR" -type f 2>/dev/null | wc -l)
-	
+
 	if [ "$file_count" -eq 0 ]; then
 		warnung "Keine Dateien zum Synchronisieren gefunden"
 		log "Verzeichnis: $SOURCE_DIR"
 		return 0
 	fi
-	
+
 	log "Gefundene Dateien: $file_count"
 	log "Von: $SOURCE_DIR"
 	log "Nach: $TARGET_DIR"
 	log ""
-	
+
 	# Erstelle Zielverzeichnis falls nicht vorhanden
 	mkdir -p "$TARGET_DIR" || fehler "Konnte Zielverzeichnis nicht erstellen"
-	
+
 	# Rsync mit Erklärung der Optionen:
 	# -a  = Archiv-Modus (erhält Rechte, Zeiten, etc.)
 	# -v  = Verbose (zeigt was kopiert wird)
 	# --chown=sergi:wheel = Setzt Besitzer auf sergi:wheel
 	# --chmod=Du=rwx,Dg=rwx,Do= = Verzeichnisse: rwx für User, rwx für Gruppe, keine Rechte für Others
 	# --chmod=Fu=rw,Fg=rw,Fo= = Dateien: rw für User, rw für Gruppe, keine Rechte für Others
-	
+
 	if rsync -av \
 		--chown=sergi:wheel \
 		--chmod=Du=rwx,Dg=rwx,Do= \
@@ -131,7 +131,7 @@ downloads_sync() {
 	else
 		fehler "Rsync fehlgeschlagen"
 	fi
-	
+
 	log ""
 	read -p "Quellverzeichnis löschen? [j/N]: " antwort
 	case "$antwort" in
@@ -206,14 +206,14 @@ SERVICES:
 SYNC DETAILS:
     Quelle: $SOURCE_DIR
     Ziel:   $TARGET_DIR
-    
+
     Rsync Optionen:
       -a                       Archiv-Modus (erhält Rechte, Zeiten)
       -v                       Verbose (zeigt Fortschritt)
       --chown=sergi:wheel      Setzt Besitzer
       --chmod=Du=rwx,Dg=rwx    Verzeichnisse: rwx für User+Gruppe
       --chmod=Fu=rw,Fg=rw      Dateien: rw für User+Gruppe
-      
+
     Nach erfolgreichem Sync kann das Quellverzeichnis gelöscht werden.
 
 EOF
@@ -336,7 +336,7 @@ Status anzeigen
 Beenden
 MENU
 		)
-		
+
 		case "$auswahl" in
 			"Services starten"*) services_starten ;;
 			"Services stoppen"*) services_stoppen ;;
@@ -344,7 +344,7 @@ MENU
 			"Status anzeigen"*) status_anzeigen; read -p "Enter drücken..." ;;
 			"Beenden"|"") exit 0 ;;
 		esac
-		
+
 		[ "$auswahl" != "Status anzeigen"* ] && [ -n "$auswahl" ] && read -p "Enter drücken..."
 	done
 }
@@ -359,7 +359,7 @@ main() {
 		interaktives_menu
 		exit 0
 	fi
-	
+
 	# Parse Argumente
 	case "$1" in
 		-s|--start)

@@ -29,21 +29,17 @@ case $BLOCK_BUTTON in
 	6) setsid -f "$TERMINAL" -e "$EDITOR" "$0" ;;
 esac
 
-date "+%a %d.%b %H:%M"
-# Unterschiedliche Darstellung
-## KW03 (Di) 14.Jan.2025 14:20
-#date "+KW%V (%a) %d.%b.%Y %H:%M"
-## [22:25 󱑖 Di 14.Jan KW03]
-#date "+[%H:%M $icon %a %d.%b KW%V]"
-## [22:25 󱑖 Di 14.Jan KW03]
-# date "+[%H:%M $icon %a %d.%b KW%V]"
-## (Di) 14.Jan [03] 14:20
-# date "+[%a %d.%b KW%V %H:%M]"
-## 14.Jan [03] 🕛 14:20
-#date "+%a %d.%b [%V] $icon %H:%M"
-## 14.Jan.2025 14:20
-#date "+%d.%b.%Y %H:%M"
-## 14.Jan.2025 🕛 14:20
-#date "+%d.%b.%Y $icon %H:%M"
-## 14:20
-#date "+%H:%M"
+date "+%H:%M"
+# $icon Zeigt die Miniuhr an
+# %a    Wochentag kurz
+# %A    Wochentag lang
+# %b    Monat kurz
+# %h    Monat kurz
+# %B    Monat lang
+# %d    Datum Tag (day)
+# %D    Monat/Tag/Jahr (Amerikanisches Kurzformat)
+# %H    Stunde
+# %M    Minute
+# %y    Jahr kurz
+# %Y    Jahr lang
+# %V    Kalenderwoche
