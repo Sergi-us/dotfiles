@@ -3,18 +3,50 @@
 # keys	filename										# Beschreibung
 bf	${XDG_CONFIG_HOME:-$HOME/.config}/shell/bm-files	# Diese Datei
 bd	${XDG_CONFIG_HOME:-$HOME/.config}/shell/bm-dirs		# Eine Liste Verzeichnissen "Favoriten" weden von lf und nvim
-cfx	${XDG_CONFIG_HOME:-$HOME/.config}/x11/xresources	# Farben, Themes und Variablen für X11
-cfs	~/.local/share/sarbs/snippets						# wird für Snippets genutzt
 
-# These do not update automatically, but on the next new instance of a program:
+# Nutzerdaten (nu-)
+nu-xresources	${XDG_CONFIG_HOME:-$HOME/.config}/x11/xresources			# Farben, Themes und Variablen für X11
+nu-snippets		${XDG_DATA_HOME:-$HOME/.local/share}/sarbs/snippets			# wird für Snippets genutzt
 
-cfv	${XDG_CONFIG_HOME:-$HOME/.config}/nvim/init.lua				# vim/neovim config
-cfz	$ZDOTDIR/.zshrc												# zsh (shell) config
-cfa	${XDG_CONFIG_HOME:-$HOME/.config}/shell/aliasrc				# aliases used by zsh (and potentially other shells)
-cfp	${XDG_CONFIG_HOME:-$HOME/.config}/shell/profile				# profile file for login settings for zsh
-cfm	${XDG_CONFIG_HOME:-$HOME/.config}/mutt/muttrc				# mutt (email client) config
-cfn	${XDG_CONFIG_HOME:-$HOME/.config}/newsraft/config			# newsboat (RSS reader)
-cfu	${XDG_CONFIG_HOME:-$HOME/.config}/newsraft/feeds			# RSS urls for newsboat
-cfl	${XDG_CONFIG_HOME:-$HOME/.config}/lf/lfrc					# lf (file browser) config
-cfL	${XDG_CONFIG_HOME:-$HOME/.config}/lf/scope					# lf's scope/preview file
-cfX	${XDG_CONFIG_HOME:-$HOME/.config}/nsxiv/exec/key-handler	# nsxiv (image viewer) key/script handler
+# Konfigurationsdateien (cf-)
+# Shell & Terminal
+cf-zsh			$ZDOTDIR/.zshrc												# zsh (shell) config
+cf-aliasrc		${XDG_CONFIG_HOME:-$HOME/.config}/shell/aliasrc				# aliases für zsh
+cf-profile		${XDG_CONFIG_HOME:-$HOME/.config}/shell/profile				# profile für login settings
+cf-inputrc		${XDG_CONFIG_HOME:-$HOME/.config}/shell/inputrc				# readline config
+
+# Editor
+cf-nvim			${XDG_CONFIG_HOME:-$HOME/.config}/nvim/init.lua				# neovim config
+
+# Dateimanager & Viewer
+cf-lf			${XDG_CONFIG_HOME:-$HOME/.config}/lf/lfrc					# lf (file browser) config
+cf-lf-scope		${XDG_CONFIG_HOME:-$HOME/.config}/lf/scope					# lf's scope/preview file
+cf-nsxiv		${XDG_CONFIG_HOME:-$HOME/.config}/nsxiv/exec/key-handler	# nsxiv (image viewer) key-handler
+cf-zathura		${XDG_CONFIG_HOME:-$HOME/.config}/zathura/zathurarc			# zathura (PDF viewer)
+cf-lsd			${XDG_CONFIG_HOME:-$HOME/.config}/lsd/config.yaml			# lsd (ls alternative)
+
+# Media
+cf-mpd			${XDG_CONFIG_HOME:-$HOME/.config}/mpd/mpd.conf				# music player daemon
+cf-ncmpcpp		${XDG_CONFIG_HOME:-$HOME/.config}/ncmpcpp/config				# ncmpcpp (mpd client)
+cf-rmpc			${XDG_CONFIG_HOME:-$HOME/.config}/rmpc/config.ron			# rmpc (mpd client)
+cf-mpv			${XDG_CONFIG_HOME:-$HOME/.config}/mpv/input.conf				# mpv keybindings
+
+# Internet & Kommunikation
+cf-newsraft		${XDG_CONFIG_HOME:-$HOME/.config}/newsraft/config			# newsraft (RSS reader)
+cf-feeds		${XDG_CONFIG_HOME:-$HOME/.config}/newsraft/feeds				# RSS feeds
+cf-qutebrowser	${XDG_CONFIG_HOME:-$HOME/.config}/qutebrowser/config.py		# qutebrowser
+cf-tut			${XDG_CONFIG_HOME:-$HOME/.config}/tut/config.toml			# tut (mastodon client)
+
+# Desktop & Appearance
+cf-picom		${XDG_CONFIG_HOME:-$HOME/.config}/picom/picom.conf			# compositor
+cf-polybar		${XDG_CONFIG_HOME:-$HOME/.config}/polybar/config.ini		# statusbar
+cf-rofi			${XDG_CONFIG_HOME:-$HOME/.config}/rofi/config.rasi			# launcher
+cf-gtk3			${XDG_CONFIG_HOME:-$HOME/.config}/gtk-3.0/settings.ini		# GTK3 theme
+cf-kvantum		${XDG_CONFIG_HOME:-$HOME/.config}/Kvantum/kvantum.kvconfig	# Qt theme
+
+# System & Tools
+cf-fastfetch	${XDG_CONFIG_HOME:-$HOME/.config}/fastfetch/config.jsonc	# system info
+cf-wget			${XDG_CONFIG_HOME:-$HOME/.config}/wget/wgetrc				# wget config
+cf-python		${XDG_CONFIG_HOME:-$HOME/.config}/python/pythonrc			# python startup
+cf-wikiman		${XDG_CONFIG_HOME:-$HOME/.config}/wikiman/wikiman.conf		# wikiman config
+cf-mimeapps		${XDG_CONFIG_HOME:-$HOME/.config}/mimeapps.list				# default applications

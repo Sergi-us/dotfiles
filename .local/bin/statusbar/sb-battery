@@ -1,41 +1,194 @@
 #!/bin/sh
-## 2025-03-25 SARBS
-
-# TODO Entscheiden ob brightnessctl oder xbacklight zum einsatz kommt
-# TODO Code Vereinfachen
+## 2025-11-21 SARBS
 
 # Zeigt den aggregierten Batteriestand mit Symbolen entsprechend dem Ladestand an
+# Inklusive automatischer Helligkeitsanpassung nach Tagesrhythmus
 
-adjust_brightness() {
-    if command -v brightnessctl &> /dev/null; then
-        tool="brightnessctl"
-    elif command -v xbacklight &> /dev/null; then
-        tool="xbacklight"
+# ============================================================================
+# KONFIGURATION - Tagesrhythmus für Helligkeit
+# ============================================================================
+
+# Zeitangaben in HH:MM Format
+BRIGHTNESS_SUNRISE="06:00"       # Beginn der Aufhellphase
+BRIGHTNESS_DAY_START="08:00"     # Volle Tageshelligkeit
+BRIGHTNESS_SUNSET="19:00"        # Beginn der Abdunkelphase
+BRIGHTNESS_NIGHT_START="21:00"   # Volle Nachthelligkeit
+
+# Helligkeitswerte in Prozent
+BRIGHTNESS_NIGHT=10             # Nachthelligkeit
+BRIGHTNESS_DAY=100              # Tageshelligkeit
+BRIGHTNESS_DEFAULT=80           # Standard beim Reset
+
+# Manuelle Steuerung
+BRIGHTNESS_MIN=10                # Minimale Helligkeit
+BRIGHTNESS_MAX=100              # Maximale Helligkeit
+BRIGHTNESS_STEP=10               # Schrittweite für manuell +/-
+
+# ============================================================================
+# SYSTEM - Cache-Verzeichnis nach XDG-Spezifikation
+# ============================================================================
+
+CACHE_DIR="${XDG_CACHE_HOME:-$HOME/.cache}/brightness"
+AUTO_FILE="${CACHE_DIR}/auto_enabled"
+
+# Erstelle Cache-Verzeichnis falls nicht vorhanden
+mkdir -p "$CACHE_DIR"
+
+# ============================================================================
+# HELLIGKEITS-FUNKTIONEN
+# ============================================================================
+
+# Ermittle verfügbares Helligkeitstool
+get_brightness_tool() {
+    if command -v brightnessctl >/dev/null 2>&1; then
+        echo "brightnessctl"
+    elif command -v xbacklight >/dev/null 2>&1; then
+        echo "xbacklight"
     else
-        notify-send " Kein Helligkeitstool gefunden"
-        exit 1
+        echo ""
     fi
+}
 
-    case $1 in
-        inc)
-            if [ "$tool" = "brightnessctl" ]; then
-                brightnessctl set +5%
-            else
-                xbacklight -inc 10
-            fi
+# Aktuelle Helligkeit auslesen (0-100)
+get_current_brightness() {
+    tool=$(get_brightness_tool)
+    case $tool in
+        brightnessctl)
+            brightnessctl -m | cut -d',' -f4 | tr -d '%'
             ;;
-        dec)
-            if [ "$tool" = "brightnessctl" ]; then
-                brightnessctl set 5%-
-            else
-                xbacklight -dec 10
-            fi
+        xbacklight)
+            xbacklight -get | cut -d'.' -f1
             ;;
         *)
-            notify-send " Ungültige Operation"
-            exit 1
+            echo "50"
             ;;
     esac
+}
+
+# Helligkeit setzen (Prozent)
+set_brightness() {
+    local value=$1
+    tool=$(get_brightness_tool)
+
+    [ -z "$tool" ] && {
+        notify-send " Kein Helligkeitstool gefunden"
+        return 1
+    }
+
+    # Grenzen einhalten
+    [ "$value" -lt "$BRIGHTNESS_MIN" ] && value=$BRIGHTNESS_MIN
+    [ "$value" -gt "$BRIGHTNESS_MAX" ] && value=$BRIGHTNESS_MAX
+
+    case $tool in
+        brightnessctl)
+            brightnessctl set "${value}%" >/dev/null
+            ;;
+        xbacklight)
+            xbacklight -set "$value"
+            ;;
+    esac
+}
+
+# Konvertiere HH:MM zu Minuten seit Mitternacht
+time_to_minutes() {
+    echo "$1" | awk -F: '{print ($1 * 60) + $2}'
+}
+
+# Berechne automatische Helligkeit basierend auf Tageszeit
+calculate_auto_brightness() {
+    current_time=$(date +%H:%M)
+    current_min=$(time_to_minutes "$current_time")
+
+    sunrise_min=$(time_to_minutes "$BRIGHTNESS_SUNRISE")
+    day_start_min=$(time_to_minutes "$BRIGHTNESS_DAY_START")
+    sunset_min=$(time_to_minutes "$BRIGHTNESS_SUNSET")
+    night_start_min=$(time_to_minutes "$BRIGHTNESS_NIGHT_START")
+
+    if [ $current_min -ge $sunrise_min ] && [ $current_min -lt $day_start_min ]; then
+        # Morgen-Phase: NIGHT -> DAY
+        elapsed=$((current_min - sunrise_min))
+        total=$((day_start_min - sunrise_min))
+        diff=$((BRIGHTNESS_DAY - BRIGHTNESS_NIGHT))
+        auto_brightness=$((BRIGHTNESS_NIGHT + (diff * elapsed / total)))
+
+    elif [ $current_min -ge $day_start_min ] && [ $current_min -lt $sunset_min ]; then
+        # Tag-Phase
+        auto_brightness=$BRIGHTNESS_DAY
+
+    elif [ $current_min -ge $sunset_min ] && [ $current_min -lt $night_start_min ]; then
+        # Abend-Phase: DAY -> NIGHT
+        elapsed=$((current_min - sunset_min))
+        total=$((night_start_min - sunset_min))
+        diff=$((BRIGHTNESS_DAY - BRIGHTNESS_NIGHT))
+        auto_brightness=$((BRIGHTNESS_DAY - (diff * elapsed / total)))
+
+    else
+        # Nacht-Phase
+        auto_brightness=$BRIGHTNESS_NIGHT
+    fi
+
+    echo "$auto_brightness"
+}
+
+# Toggle Auto-Modus
+toggle_auto_brightness() {
+    if [ -f "$AUTO_FILE" ]; then
+        # Auto-Modus deaktivieren
+        rm -f "$AUTO_FILE"
+        current=$(get_current_brightness)
+        notify-send " Auto-Helligkeit AUS" "Helligkeit: ${current}%"
+    else
+        # Auto-Modus aktivieren
+        touch "$AUTO_FILE"
+        new_brightness=$(calculate_auto_brightness)
+        set_brightness "$new_brightness"
+        notify-send " Auto-Helligkeit AN" "Helligkeit: ${new_brightness}%"
+    fi
+}
+
+# Manuelle Helligkeits-Anpassung (deaktiviert Auto-Modus)
+adjust_brightness() {
+    local direction=$1
+
+    # Deaktiviere Auto-Modus wenn aktiv
+    [ -f "$AUTO_FILE" ] && rm -f "$AUTO_FILE"
+
+    current=$(get_current_brightness)
+
+    case $direction in
+        inc)
+            new_brightness=$((current + BRIGHTNESS_STEP))
+            ;;
+        dec)
+            new_brightness=$((current - BRIGHTNESS_STEP))
+            ;;
+        *)
+            return
+            ;;
+    esac
+
+    set_brightness "$new_brightness"
+}
+
+# Reset: Deaktiviere Auto und setze auf Standard-Helligkeit
+reset_brightness() {
+    rm -f "$AUTO_FILE"
+    set_brightness "$BRIGHTNESS_DEFAULT"
+    notify-send " Helligkeit Reset" "${BRIGHTNESS_DEFAULT}%"
+}
+
+# Wende Auto-Helligkeit an (wird bei jedem Statusbar-Update aufgerufen)
+apply_auto_brightness() {
+    [ -f "$AUTO_FILE" ] || return
+
+    new_brightness=$(calculate_auto_brightness)
+    current=$(get_current_brightness)
+
+    # Nur anwenden wenn Unterschied > 2% (verhindert unnötige Updates)
+    diff=$((new_brightness - current))
+    [ $diff -lt 0 ] && diff=$((diff * -1))
+
+    [ $diff -gt 2 ] && set_brightness "$new_brightness"
 }
 
 # Sammelt Informationen über alle Batterien
@@ -53,25 +206,25 @@ get_all_batteries_info() {
 get_battery_symbol() {
     capacity=$1
     if [ "$capacity" -le 10 ]; then
-        echo "󰂃"
+        echo "󰂃 "
     elif [ "$capacity" -le 20 ]; then
-        echo "󰁺"
+        echo "󰁺 "
     elif [ "$capacity" -le 30 ]; then
-        echo "󰁻"
+        echo "󰁻 "
     elif [ "$capacity" -le 40 ]; then
-        echo "󰁼"
+        echo "󰁼 "
     elif [ "$capacity" -le 50 ]; then
-        echo "󰁽"
+        echo "󰁽 "
     elif [ "$capacity" -le 60 ]; then
-        echo "󰁾"
+        echo "󰁾 "
     elif [ "$capacity" -le 70 ]; then
-        echo "󰁿"
+        echo "󰁿 "
     elif [ "$capacity" -le 80 ]; then
-        echo "󰂀"
+        echo "󰂀 "
     elif [ "$capacity" -le 90 ]; then
-        echo "󰂁"
+        echo "󰂁 "
     else
-        echo "󰁹"
+        echo "󰁹 "
     fi
 }
 
@@ -109,16 +262,56 @@ get_connection_status() {
 }
 
 case $BLOCK_BUTTON in
-    1) ;;
-    2) ;;
+    1) toggle_auto_brightness; pkill -RTMIN+22 dwmblocks ;;
+    2) reset_brightness; pkill -RTMIN+22 dwmblocks ;;
     3)
         all_batteries=$(get_all_batteries_info)
-        notify-send "Batteriemodul" "
+        current_brightness=$(get_current_brightness)
+
+        # Auto-Status ermitteln
+        if [ -f "$AUTO_FILE" ]; then
+            auto_status="AN (Automatisch)"
+            current_time=$(date +%H:%M)
+            current_min=$(time_to_minutes "$current_time")
+            day_start_min=$(time_to_minutes "$BRIGHTNESS_DAY_START")
+            sunset_min=$(time_to_minutes "$BRIGHTNESS_SUNSET")
+            night_start_min=$(time_to_minutes "$BRIGHTNESS_NIGHT_START")
+            sunrise_min=$(time_to_minutes "$BRIGHTNESS_SUNRISE")
+
+            if [ $current_min -lt $sunrise_min ]; then
+                next_change="Aufhellung um $BRIGHTNESS_SUNRISE"
+            elif [ $current_min -lt $day_start_min ]; then
+                next_change="Volle Helligkeit um $BRIGHTNESS_DAY_START"
+            elif [ $current_min -lt $sunset_min ]; then
+                next_change="Abdunkeln um $BRIGHTNESS_SUNSET"
+            elif [ $current_min -lt $night_start_min ]; then
+                next_change="Nachtmodus um $BRIGHTNESS_NIGHT_START"
+            else
+                next_change="Aufhellung um $BRIGHTNESS_SUNRISE (morgen)"
+            fi
+        else
+            auto_status="AUS (Manuell)"
+            next_change="Keine"
+        fi
+
+        notify-send "Batteriemodul" "\
 Batteriestand:
 ${all_batteries}
-- 󱕒 Scrollen, um Helligkeit zu ändern." ;;
-    4) adjust_brightness inc ;;
-    5) adjust_brightness dec ;;
+Helligkeit: ${current_brightness}%
+Auto-Modus: ${auto_status}
+Nächste Änderung: ${next_change}
+
+Konfiguration:
+Tag (${BRIGHTNESS_DAY_START}-${BRIGHTNESS_SUNSET}): ${BRIGHTNESS_DAY}%
+Nacht (${BRIGHTNESS_NIGHT_START}-${BRIGHTNESS_SUNRISE}): ${BRIGHTNESS_NIGHT}%
+
+󱕒 Steuerung:
+L-󰍽 Auto-Helligkeit ein/aus
+M-󰍽 Zurücksetzen (${BRIGHTNESS_DEFAULT}%)
+R-󰍽 Diese Infobox
+󰍽 Helligkeit ±${BRIGHTNESS_STEP}% (deaktiviert Auto)" ;;
+    4) adjust_brightness inc; pkill -RTMIN+22 dwmblocks ;;
+    5) adjust_brightness dec; pkill -RTMIN+22 dwmblocks ;;
     6) setsid -f "$TERMINAL" -e "$EDITOR" "$0" ;;
 esac
 
@@ -141,6 +334,9 @@ else
     symbol=$(get_battery_symbol "$overall_capacity")
 fi
 
+# Wende Auto-Helligkeit an (bei jedem Statusbar-Update)
+apply_auto_brightness
+
 # Warnsymbol und kritische Benachrichtigung, wenn Akkuladung <= 10%
 if [ "$overall_capacity" -le 3 ]; then
     warn=" "
@@ -149,6 +345,13 @@ else
     warn=""
 fi
 
+# Auto-Brightness-Symbol (Zusatz zum Batterie-Icon)
+if [ -f "$AUTO_FILE" ]; then
+    auto_symbol=""  # Kleines Sonnen-Symbol für Auto-Modus
+else
+    auto_symbol=" "
+fi
+
 # output="$symbol$warn$overall_capacity%"
-output="$symbol$warn"
-echo " $output"
+output="$symbol$auto_symbol$warn"
+echo "$output"

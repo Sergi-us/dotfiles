@@ -36,7 +36,7 @@ display_stats() {
     TOP_VIDEO_COMMENTS=$(jq -r '.videos[0].comment_count' "$YT_STATS_FILE")
 
     # Ausgabeformat für die Statusbar - wähle aus, was angezeigt werden soll
-echo "[$SUBS  $COMMENTS]"
+echo "$SUBS  $COMMENTS"
 
     # Alternative Anzeigeformate (auskommentiert)
     # echo "$SUBS  $COMMENTS | $VIEWS Aufrufe"

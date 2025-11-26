@@ -6,7 +6,6 @@
 #
 # Beschreibung:
 # Dieses Skript ruft Kryptowährungspreise von rate.sx ab und zeigt sie formatiert an.
-# TODO rate.sx kommt mit $ als Standartwährung daher, eine umstellung auf eur ist mir nicht gelungen
 # Es speichert auch Preishistorien und kann Preisgrafiken anzeigen.
 #
 # Verwendung:

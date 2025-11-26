@@ -10,7 +10,7 @@ for i in {0..255} ; do
     fi
 done
 
-echo "farbtest 10Bit"
+echo "farbtest 24Bit TRUECOLOR"
 awk -v term_cols="${width:-$(tput cols || echo 80)}" 'BEGIN{
     s="/\\";
     for (colnum = 0; colnum<term_cols; colnum++) {

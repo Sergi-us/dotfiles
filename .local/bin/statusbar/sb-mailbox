@@ -48,11 +48,11 @@ mail_dir="${XDG_DATA_HOME:-$HOME/.local/share}/mail"
 unread="$(find "$mail_dir"/*/[Ii][Nn][Bb][Oo][Xx]/new/* -type f 2>/dev/null | wc -l)"
 
 # Prüfen, ob mbsync läuft und entsprechendes Icon setzen
-pidof mbsync >/dev/null 2>&1 && sync_icon=" 󰁪 "
+pidof mbsync >/dev/null 2>&1 && sync_icon="󰁪"
 
 # Mail-Icons: geschlossener und geöffneter Briefumschlag
-closed_icon="󰇰"
-open_icon="󰗯"
+closed_icon="󰇰 "
+open_icon="󰗯 "
 
 # Ausgabe mit entsprechendem Icon je nach Status
 if [ "$unread" = "0" ]; then
@@ -60,5 +60,5 @@ if [ "$unread" = "0" ]; then
     [ -n "$sync_icon" ] && echo "$closed_icon$sync_icon" || echo "$closed_icon"
 else
     # Ungelesene Mails: geöffneter Briefumschlag mit Anzahl
-    echo "$open_icon $unread$sync_icon"
+    echo "$open_icon$unread$sync_icon"
 fi

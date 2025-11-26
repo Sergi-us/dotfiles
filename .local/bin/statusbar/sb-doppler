@@ -1,13 +1,47 @@
 #!/bin/sh
 ## 2025-01-09 SARBS
 
-# Show a Doppler RADAR of a user's preferred location.
+# Zeigt ein Doppler-RADAR für den bevorzugten Standort des Benutzers.
 
-secs=600 # Download a new doppler radar if one hasn't been downloaded in $secs seconds.
+secs=6000 # Lade ein neues Doppler-Radar herunter, wenn seit $secs Sekunden keines geladen wurde.
 radarloc="${XDG_CACHE_HOME:-$HOME/.cache}/radar"
 doppler="${XDG_CACHE_HOME:-$HOME/.cache}/doppler.gif"
 
-pickloc() { chosen="$(echo "US: CONUS: Continental United States
+pickloc() { chosen="$(echo "DE: BAW: Baden-Württemberg
+DE: BAY: Bayern
+DE: BBB: Berlin
+DE: BBB: Brandenburg
+DE: HES: Hessen
+DE: MVP: Mecklenburg-Vorpommern
+DE: NIB: Niedersachsen
+DE: NIB: Bremen
+DE: NRW: Nordrhein-Westfalen
+DE: RPS: Rheinland-Pfalz
+DE: RPS: Saarland
+DE: SAC: Sachsen
+DE: SAA: Sachsen-Anhalt
+DE: SHH: Schleswig-Holstein
+DE: SHH: Hamburg
+DE: THU: Thüringen
+DE: BRD: Deutschland (Gesamt)
+EU: Europe
+EU: GB: Great Brittain
+EU: SCAN: Scandinavia. Norway, Sweden And Denmark
+EU: ALPS: The Alps
+EU: NL: The Netherlands
+EU: SP: Spain
+EU: FR: France
+EU: IT: Italy
+EU: PL: Poland
+EU: GR: Greece
+EU: TU: Turkey
+EU: RU: Russia
+EU: BA: Bahrain
+EU: BC: Botswana
+EU: SE: Republic of Seychelles
+EU: HU: Hungary
+EU: UK: Ukraine
+US: CONUS: Continental United States
 US: Northeast
 US: Southeast
 US: PacNorthWest
@@ -224,38 +258,22 @@ AF: TZ: Tanzania
 AF: TN: Tunisia
 AF: ZM: Zambia
 AF: KE: Kenya
-AF: AO: Angola
-DE: BAW: Baden-Württemberg
-DE: BAY: Bavaria
-DE: BBB: Berlin
-DE: BBB: Brandenburg
-DE: HES: Hesse
-DE: MVP: Mecklenburg-Western Pomerania
-DE: NIB: Lower Saxony
-DE: NIB: Bremen
-DE: NRW: North Rhine-Westphalia
-DE: RPS: Rhineland-Palatinate
-DE: RPS: Saarland
-DE: SAC: Saxony
-DE: SAA: Saxony-Anhalt
-DE: SHH: Schleswig-Holstein
-DE: SHH: Hamburg
-DE: THU: Thuringia" | dmenu -r -i -l 50 -p "Select a radar to use as default:" | tr "[:lower:]" "[:upper:]")"
+AF: AO: Angola" | dmenu -r -i -l 50 -p "Wähle ein Radar als Standard:" | tr "[:lower:]" "[:upper:]")"
 
-# Ensure user did not escape.
+# Sicherstellen, dass der Benutzer nicht abgebrochen hat.
 [ -z "$chosen" ] && exit 1
 
-# Set continent code and radar code.
+# Setze Kontinentcode und Radarcode.
 continentcode=${chosen%%:*}
 radarcode=${chosen#* } radarcode=${radarcode%:*}
 
-# Print codes to $radarloc file.
- printf "|%s,%s\\n" "$continentcode" "$radarcode" > "$radarloc" ;}
+# Schreibe Codes in $radarloc Datei.
+ printf "%s,%s\\n" "$continentcode" "$radarcode" > "$radarloc" ;}
 
 getdoppler() {
-	cont=$(cut -c -2 "$radarloc")
-	loc=$(cut -c 4- "$radarloc")
-	notify-send "🌦️ Doppler RADAR" "Pulling most recent Doppler RADAR for $loc."
+	cont=$(cut -d',' -f1 "$radarloc")
+	loc=$(cut -d',' -f2 "$radarloc")
+	notify-send "🌦️ Doppler RADAR" "Lade aktuellstes Doppler-RADAR für $loc."
 	case "$cont" in
 		"US") curl -sL "https://radar.weather.gov/ridge/standard/${loc}_loop.gif" > "$doppler" ;;
 		"EU") curl -sL "https://api.sat24.com/animated/${loc}/rainTMC/2/" > "$doppler" ;;
@@ -272,10 +290,10 @@ case $BLOCK_BUTTON in
 	[ $(($(date '+%s') - $(stat -c %Y "$doppler"))) -gt "$secs" ] && getdoppler
 	showdoppler ;;
 	2) pickloc && getdoppler && showdoppler ;;
-	3) notify-send "🗺️ Doppler RADAR module" "\- Left click for local Doppler RADAR.
-- Middle click to update RADAR location.
-After $secs seconds, new clicks will also automatically update the doppler RADAR."  ;;
+	3) notify-send "🗺️ Doppler RADAR Modul" "\- Linksklick für lokales Doppler-RADAR.
+- Mittelklick zum Ändern des RADAR-Standorts.
+Nach $secs Sekunden wird das Doppler-RADAR automatisch aktualisiert."  ;;
 	6) setsid -f "$TERMINAL" -e "$EDITOR" "$0" ;;
 esac
 
-echo "|"
+echo " "

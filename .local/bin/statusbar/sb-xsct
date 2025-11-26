@@ -172,7 +172,7 @@ show_status() {
             current_temp=$new_temp
         fi
 
-        echo ""  # Auto-Icon
+        echo " "  # Auto-Icon
     else
         # Manueller Modus: Icon nach Temperatur
         if [ "$current_temp" -le 3500 ]; then
@@ -238,11 +238,11 @@ esac
 
 # DWMBLOCKS Mausaktionen
 case $BLOCK_BUTTON in
-    1) toggle_auto; pkill -RTMIN+11 dwmblocks ;;
-    2) reset_temp; pkill -RTMIN+11 dwmblocks ;;
+    1) toggle_auto; pkill -RTMIN+30 dwmblocks ;;
+    2) reset_temp; pkill -RTMIN+30 dwmblocks ;;
     3) show_info ;;
-    4) adjust_manual inc; pkill -RTMIN+11 dwmblocks ;;
-    5) adjust_manual dec; pkill -RTMIN+11 dwmblocks ;;
+    4) adjust_manual inc; pkill -RTMIN+30 dwmblocks ;;
+    5) adjust_manual dec; pkill -RTMIN+30 dwmblocks ;;
     6) setsid -f "$TERMINAL" -e "$EDITOR" "$0" ;;
 esac
 

@@ -1,7 +1,10 @@
 #!/bin/sh
 ## 2025-02-10 SARBS
 
-filter() { sed "/^volume:/d;s/\\[paused\\].*/󰏤/g;/\\[playing\\].*/d;/^ERROR/Q" | paste -sd ' ' -;}
+filter() {
+    output=$(mpc status | sed "/^volume:/d;s/\\[paused\\].*/󰏤/g;/\\[playing\\].*/d;/^ERROR/Q" | paste -sd ' ' -)
+    echo "${output}"
+}
 
 pidof -x sb-mpdup >/dev/null 2>&1 || sb-mpdup >/dev/null 2>&1 &
 
@@ -13,7 +16,7 @@ notify_song() {
     # Cover aus aktuell spielendem Song extrahieren
     coverpath="/tmp/mpd_cover.jpg"
 
-    # MPD's readpicture nutzen (funktioniert besser)
+    # MPD's readpicture nutzen
     music_dir="$HOME/Musik"  # <- Dein MPD Musik-Verzeichnis
     current_file=$(mpc current -f '%file%')
 
@@ -41,14 +44,15 @@ notify_song() {
 }
 
 case $BLOCK_BUTTON in
-    1) mpc toggle | filter ; notify-send "󰽴 Musik-Modul" "Pause" ;;
-    2) mpc status | filter ; setsid -f "$TERMINAL" -e rmpc ;;
-    3) mpc status | filter ; notify-send "󰽴 Musik-Modul" "\- Zeigt aktuellen Song.
+    1) mpc toggle >/dev/null ; notify-send "󰽴 Musik-Modul" "Pause" ;;
+    2) setsid -f "$TERMINAL" -e rmpc ;;
+    3) notify-send "󰽴 Musik-Modul" "\- Zeigt aktuellen Song.
 - L-󰍽  Pause
 - M-󰍽 Musikplayer
 - 󱕒 ändert Track.";;
-    4) mpc prev | filter ; notify_song ;;
-    5) mpc next | filter ; notify_song ;;
-    6) mpc status | filter ; setsid -f "$TERMINAL" -e "$EDITOR" "$0" ;;
-    *) mpc status | filter ;;
+    4) mpc prev >/dev/null ; notify_song ;;
+    5) mpc next >/dev/null ; notify_song ;;
+    6) setsid -f "$TERMINAL" -e "$EDITOR" "$0" ;;
 esac
+
+filter

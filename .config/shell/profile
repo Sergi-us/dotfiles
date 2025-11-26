@@ -23,6 +23,7 @@ export TERMINAL_PROG="st"
 export BROWSER="qutebrowser"
 export MANPAGER="sh -c 'col -bx | bat -l man -p'"
 export MANROFFOPT="-c"
+export COLORTERM=truecolor
 
 # ============================================================================
 # XDG Base Directory Specification (v0.8, 2021)

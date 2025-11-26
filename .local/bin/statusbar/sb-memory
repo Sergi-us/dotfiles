@@ -13,9 +13,9 @@ calc_ram_percentage() {
 ram_percent=$(calc_ram_percentage)
 
 case $BLOCK_BUTTON in
-    1) notify-send " RAM tops" "$ram_tops" ;;
+    1) notify-send " RAM tops" "$ram_tops" ;;
     2) setsid -f "$TERMINAL" -e btop ;;
-    3) notify-send " RAM Modul" "\- ${ram_percent}% oder $ram_usage
+    3) notify-send " RAM Modul" "\- ${ram_percent}% oder $ram_usage
 - L-󰍽 Topverbraucher.
 - M-󰍽 öffnet btop." ;;
     4) ;;
@@ -24,17 +24,17 @@ case $BLOCK_BUTTON in
 esac
 
 # Darstellung
-free --mebi | sed -n '2{p;q}' | awk -v rp="$ram_percent" '{printf " %s%%", rp}'
-# free --mebi | sed -n '2{p;q}' | awk '{printf " ${ram_percent}%"}'
-# free --mebi | sed -n '2{p;q}' | awk '{printf (" %2.1fGB", ( $3 / 1024), ($2 / 1024))}'
+free --mebi | sed -n '2{p;q}' | awk -v rp="$ram_percent" '{printf " %s%%", rp}'
+# free --mebi | sed -n '2{p;q}' | awk '{printf " ${ram_percent}%"}'
+# free --mebi | sed -n '2{p;q}' | awk '{printf (" %2.1fGB", ( $3 / 1024), ($2 / 1024))}'
 
 #### vorversion...
 ####case $BLOCK_BUTTON in
-####    1) notify-send "  RAM tops" "$(ps axch -o cmd:15,%mem --sort=-%mem | head)" ;;
+####    1) notify-send "  RAM tops" "$(ps axch -o cmd:15,%mem --sort=-%mem | head)" ;;
 ####    2) setsid -f "$TERMINAL" -e btop ;;
-####    3) notify-send "  RAM Modul" "\- zeigt RAM-verbrauch.
+####    3) notify-send "  RAM Modul" "\- zeigt RAM-verbrauch.
 ####- L-󰍽 Topverbraucher.
 ####- M-󰍽 öffnet btop." ;;
 ####    6) setsid -f "$TERMINAL" -e "$EDITOR" "$0" ;;
 ####esac
-####free --mebi | sed -n '2{p;q}' | awk '{printf (" %2.1fGB", ( $3 / 1024), ($2 / 1024))}'
+####free --mebi | sed -n '2{p;q}' | awk '{printf (" %2.1fGB", ( $3 / 1024), ($2 / 1024))}'

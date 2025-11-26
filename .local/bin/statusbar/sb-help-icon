@@ -4,20 +4,21 @@
 # The clickable help menu. Middle click to restart wm.
 
 # If dwm is running, use dwm's readme and restart.
-pidof dwm >/dev/null &&
+if pidof dwm >/dev/null; then
     READMEFILE=/usr/local/share/dwm/larbs.mom
-    restartwm() { pkill -HUP dwm ;} ||
-        restartwm() { i3 restart ;}
+    restartwm() { pkill -HUP dwm ;}
+else
+    restartwm() { i3 restart ;}
+fi
 
 case $BLOCK_BUTTON in
     1) restartwm ;;
     2) qutebrowser "https://sarbs.xyz/handbuch/" ;;
-    3) notify-send " Hilfe Modul" "\- M-󰍽 für SARBS Online-Hilfe.
+    3) notify-send " Hilfe Modul" "\- M-󰍽 für SARBS Online-Hilfe.
 - L-󰍽 DWM aktualisieren" ;;
     4) ;;
     5) ;;
     6) setsid -f "$TERMINAL" -e "$EDITOR" "$0" ;;
 esac;
 
-# echo " "
-echo "󰺴 "
+echo " 󰋗 "

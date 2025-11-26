@@ -31,7 +31,7 @@ if [ "$temp" -ge "$TEMP_THRESHOLD" ]; then
     icon=""  # Warnsymbol bei hoher Temperatur
     notify-send "Achtung Temperaturüberschreitung"
 else
-    icon=""  # Normales Symbol
+    icon=" "  # Normales Symbol
 fi
 
 # Hier kannst du die Ausgabe nach Belieben zusammenstellen
