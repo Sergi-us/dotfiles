@@ -4,28 +4,41 @@
 # Ermittelt Ihre öffentliche IP-Adresse (IPv4 oder IPv6), prüft, in welchem Land Sie sich befinden,
 # und zeigt diese Information in der Statusleiste an
 
-set -e
 ifinstalled "geoip"
 
-# IP-Adresse abrufen (unterstützt sowohl IPv4 als auch IPv6)
-ip=$(curl -s ifconfig.me)
+getipinfo() {
+	# IP-Adresse abrufen (unterstützt sowohl IPv4 als auch IPv6)
+	ip=$(curl -s ifconfig.me)
 
-# Prüfen, ob es sich um eine IPv6-Adresse handelt
-if echo "$ip" | grep -q ':'; then
-    # IPv6
-    addr=$(geoiplookup6 -f /usr/share/GeoIP/GeoIPv6.dat "$ip" 2>/dev/null)
-else
-    # IPv4
-    addr=$(geoiplookup -f /usr/share/GeoIP/GeoIP.dat "$ip" 2>/dev/null)
-fi
+	# Prüfen, ob es sich um eine IPv6-Adresse handelt
+	if echo "$ip" | grep -q ':'; then
+		# IPv6
+		addr=$(geoiplookup6 -f /usr/share/GeoIP/GeoIPv6.dat "$ip" 2>/dev/null)
+	else
+		# IPv4
+		addr=$(geoiplookup -f /usr/share/GeoIP/GeoIP.dat "$ip" 2>/dev/null)
+	fi
 
-# Extrahieren des Ländernamens
-name="${addr##*, }"
+	# Extrahiere Ländercode (z.B. "DE") und Ländername
+	country_code="${addr#*: }"
+	country_code="${country_code%%,*}"
+	country_name="${addr##*, }"
 
-# Suche nach der Flagge für das Land
-flag=$(grep "flag: $name" "${XDG_DATA_HOME:-$HOME/.local/share}/sarbs/flags")
-flag="${flag%% *}"
+	# Gebe alle Infos zurück
+	printf "%s|%s|%s" "$ip" "$country_code" "$country_name"
+}
 
-# Ausgabe
-# printf "%s %s\\n" "$flag" "$name"
-printf "%s %s\\n" "$flag"
+case $BLOCK_BUTTON in
+	1) notify-send "🌍 IP-Standort" "$(getipinfo | awk -F'|' '{print "IP: "$1"\nLand: "$3" ("$2")"}')" ;;
+	3) info=$(getipinfo)
+	   ip=$(echo "$info" | cut -d'|' -f1)
+	   code=$(echo "$info" | cut -d'|' -f2)
+	   name=$(echo "$info" | cut -d'|' -f3)
+	   notify-send "🌍 IP-Standort - Vollständige Informationen" "IP-Adresse: $ip\n\nLändercode: $code\nLand: $name\n\nTyp: $(echo "$ip" | grep -q ':' && echo "IPv6" || echo "IPv4")" ;;
+	6) setsid -f "$TERMINAL" -e "$EDITOR" "$0" ;;
+esac
+
+# Statusleisten-Ausgabe: Zeige nur Ländercode
+info=$(getipinfo)
+country_code=$(echo "$info" | cut -d'|' -f2)
+printf "%s\\n" "[$country_code]"

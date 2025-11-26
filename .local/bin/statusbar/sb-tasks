@@ -1,19 +1,29 @@
 #!/bin/sh
 ## 2025-01-09 SARBS
-# TODO Funktioniert nicht...
 
-# This block displays the number running background tasks.
-# Requires tsp.
+# Zeigt die Anzahl laufender und wartender Hintergrund-Tasks.
+# Benötigt tsp (task-spooler).
 
 num=$(tsp -l | awk -v numr=0 -v numq=0 '{if (/running/)numr++; if (/queued/)numq++} END{print numr+numq"("numq")"}')
 
-# Handle mouse clicks
+# Mausklicks verarbeiten
 case $BLOCK_BUTTON in
-	1) setsid -f "$TERMINAL" -e tsp -l ;;
-	3) notify-send "Tasks module" "🤖: number of running/queued background tasks
-- Left click opens tsp" ;; # Right click
+	1) setsid -f "$TERMINAL" -e sh -c 'tsp -l; printf "\nDrücke ENTER zum Schließen..."; read _' ;;
+	2) setsid -f "$TERMINAL" -e sh -c 'tsp -C; printf "Fertige Tasks gelöscht. Drücke ENTER..."; read _' ;;
+	3) notify-send "🤖 Task-Verwaltung Modul" "🤖: Anzahl laufender/wartender Hintergrund-Tasks
+- Linksklick öffnet tsp Liste
+- Mittelklick löscht fertige Tasks
+- Rechtsklick für diese Hilfe
+- Shift+Linksklick öffnet Editor
+
+Format: Gesamt(Wartend)
+Beispiel: 3(2) = 3 Tasks total, 2 in Warteschlange
+
+Nützliche Befehle:
+  tsp sleep 30    - Task zur Queue hinzufügen
+  tsp -r <id>     - Task entfernen
+  tsp -k <id>     - Task abbrechen" ;;
 	6) setsid -f "$TERMINAL" -e "$EDITOR" "$0" ;;
 esac
 
-[ "$num" != "0(0)" ] &&
-	echo "🤖$num"
+[ "$num" != "0(0)" ] && echo "🤖$num"

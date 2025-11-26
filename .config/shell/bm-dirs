@@ -1,5 +1,5 @@
 # You can add comments to these files with #
-D		${XDG_DATA_HOME:-$HOME/Downloads}
+D		${XDG_DOWNLOAD_DIR:-$HOME/Downloads}
 bb		${XDG_PICTURES_DIR:-$HOME/Bilder}
 d		${XDG_DOCUMENTS_DIR:-$HOME/Dokumente}
 m		${XDG_MUSIC_DIR:-$HOME/Musik}
@@ -15,4 +15,3 @@ h		$HOME
 mn		/mnt
 sc		$HOME/.local/bin
 src		$HOME/.local/src
-

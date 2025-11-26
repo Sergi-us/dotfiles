@@ -1,0 +1,189 @@
+#!/bin/sh
+## 2025-11-26 SARBS
+
+# Ermittelt Codestatistiken für C-Projekte: LOC (Lines of Code),
+# Kommentar-Verhältnis, Dateianzahl etc. Ignoriert Build-Artefakte,
+# Git-Verzeichnisse und andere irrelevante Dateien.
+
+# Verwendung: c-stats [VERZEICHNIS]
+# Falls kein Verzeichnis angegeben wird, verwendet das Skript das aktuelle Verzeichnis.
+
+# Ignorier-Liste für Dateien/Verzeichnisse
+IGNORE_PATTERNS="
+.git
+*.o
+*.a
+*.so
+*.dylib
+*.exe
+*.out
+a.out
+*.obj
+*.elf
+build
+bin
+obj
+.cache
+compile_commands.json
+"
+
+# Zielverzeichnis - nutze pwd wenn kein Argument übergeben wurde
+target_dir="${1:-$(pwd)}"
+
+[ ! -d "${target_dir}" ] && echo "Fehler: '${target_dir}' ist kein Verzeichnis." && exit 1
+
+cd "${target_dir}" || exit 1
+
+echo "==================================="
+echo "  C-Code Statistiken"
+echo "  Verzeichnis: $(pwd)"
+echo "==================================="
+echo ""
+
+# Temporäre Datei für find-Ergebnisse
+tmpfile=$(mktemp)
+
+# Build find Kommando mit Ignorier-Mustern
+find_cmd="find . -type f"
+
+# Ignorier-Muster hinzufügen
+for pattern in ${IGNORE_PATTERNS}; do
+	case "${pattern}" in
+		.*) # Verzeichnisse wie .git
+			find_cmd="${find_cmd} ! -path '*/${pattern}/*' ! -name '${pattern}'"
+			;;
+		*\**) # Dateimuster wie *.o
+			pattern_clean="${pattern#\*}"
+			find_cmd="${find_cmd} ! -name '*${pattern_clean}'"
+			;;
+		*) # Normale Verzeichnisse
+			find_cmd="${find_cmd} ! -path '*/${pattern}/*' ! -name '${pattern}'"
+			;;
+	esac
+done
+
+# Nur C/H Dateien
+find_cmd="${find_cmd} \( -name '*.c' -o -name '*.h' \)"
+
+# Find ausführen
+eval "${find_cmd}" > "${tmpfile}"
+
+# Prüfen ob Dateien gefunden wurden
+file_count=$(wc -l < "${tmpfile}")
+
+if [ "${file_count}" -eq 0 ]; then
+	echo "Keine C-Dateien gefunden."
+	rm -f "${tmpfile}"
+	exit 0
+fi
+
+echo "Gefundene Dateien: ${file_count}"
+echo ""
+
+# Zähler initialisieren
+total_lines=0
+code_lines=0
+comment_lines=0
+blank_lines=0
+in_multiline_comment=0
+
+# Jede Datei durchgehen
+while IFS= read -r file; do
+	[ ! -f "${file}" ] && continue
+
+	while IFS= read -r line; do
+		total_lines=$((total_lines + 1))
+
+		# Leerzeilen
+		if echo "${line}" | grep -qE '^\s*$'; then
+			blank_lines=$((blank_lines + 1))
+			continue
+		fi
+
+		# Prüfe auf Multi-Line Kommentare (/* ... */)
+		case "${line}" in
+			*"/*"*)
+				comment_lines=$((comment_lines + 1))
+				case "${line}" in
+					*"*/"*)
+						# Kommentar beginnt und endet in derselben Zeile
+						in_multiline_comment=0
+						;;
+					*)
+						# Kommentar beginnt
+						in_multiline_comment=1
+						;;
+				esac
+				continue
+				;;
+			*"*/"*)
+				# Kommentar endet
+				comment_lines=$((comment_lines + 1))
+				in_multiline_comment=0
+				continue
+				;;
+		esac
+
+		# Innerhalb eines Multi-Line Kommentars
+		if [ "${in_multiline_comment}" -eq 1 ]; then
+			comment_lines=$((comment_lines + 1))
+			continue
+		fi
+
+		# Single-Line Kommentare (//)
+		if echo "${line}" | grep -qE '^\s*//'; then
+			comment_lines=$((comment_lines + 1))
+			continue
+		fi
+
+		# Code-Zeile (alles andere)
+		code_lines=$((code_lines + 1))
+
+	done < "${file}"
+
+	# Reset für nächste Datei
+	in_multiline_comment=0
+
+done < "${tmpfile}"
+
+# Verhältnisse berechnen
+if [ "${code_lines}" -gt 0 ]; then
+	comment_ratio=$((comment_lines * 100 / code_lines))
+else
+	comment_ratio=0
+fi
+
+# Ausgabe
+echo "Gesamt-Zeilen:     ${total_lines}"
+echo "Code-Zeilen:       ${code_lines}"
+echo "Kommentar-Zeilen:  ${comment_lines}"
+echo "Leer-Zeilen:       ${blank_lines}"
+echo ""
+echo "Kommentar-Verhältnis: ${comment_ratio}% (Kommentare/Code)"
+echo ""
+
+# Durchschnitte
+if [ "${file_count}" -gt 0 ]; then
+	avg_lines=$((total_lines / file_count))
+	avg_code=$((code_lines / file_count))
+	echo "Durchschnitt pro Datei:"
+	echo "  Gesamt:  ${avg_lines} Zeilen"
+	echo "  Code:    ${avg_code} Zeilen"
+fi
+
+# Top 5 größte Dateien
+echo ""
+echo "Top 5 größte Dateien (nach Zeilen):"
+while IFS= read -r file; do
+	[ ! -f "${file}" ] && continue
+	lines=$(wc -l < "${file}" 2>/dev/null || echo 0)
+	echo "${lines} ${file}"
+done < "${tmpfile}" | sort -rn | head -5 | while read -r lines file; do
+	printf "  %5d  %s\n" "${lines}" "${file}"
+done
+
+# Aufräumen
+rm -f "${tmpfile}"
+
+echo ""
+echo "==================================="

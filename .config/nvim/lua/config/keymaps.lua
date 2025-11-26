@@ -39,8 +39,7 @@ map("n", "S", ":%s//g<Left><Left>", { desc = "Substitute in ganzer Datei" })
 map("n", "<leader>bn", ":bnext<CR>", { desc = "Nächster Puffer" })
 map("n", "<leader>bp", ":bprevious<CR>", { desc = "Vorheriger Puffer" })
 
--- Keybinding für nvim-tree
-map("n", "<leader>n", ":NvimTreeToggle<CR>", { noremap = true, silent = true })
+-- Keybinding für nvim-tree (definiert in plugins/nerd-tree.lua)
 
 -- Datumstempel
 map('n', '<leader>dt', ':put=strftime(\'## %Y-%m-%d\')<CR>', { noremap = true })

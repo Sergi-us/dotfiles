@@ -50,7 +50,7 @@ showweather() {
 	low=$(echo $temps | cut -d' ' -f1)
 	high=$(echo $temps | cut -d' ' -f2)
 	avg=$(( (low + high) / 2 ))
-	printf "%s󰔄\n" "$avg"
+	printf "%s󰔄 \n" "$avg"
 }
 
 showtodayforecast() {
@@ -58,17 +58,17 @@ showtodayforecast() {
 	# Ort und Wetterbeschreibung (Zeile 1 und 3)
 	location=$(sed -n '1p' "$weatherreport" | sed 's/Weather report: //')
 	condition=$(sed -n '3p' "$weatherreport" | sed 's/\x1b\[[0-9;]*m//g' | sed 's/.*[[:space:]]\{2,\}//' | cut -c1-35)
-	
+
 	# Temperaturen
 	temps=$(getdailyhighlow | tr '\n' ' ')
 	low=$(echo $temps | cut -d' ' -f1)
 	high=$(echo $temps | cut -d' ' -f2)
-	
+
 	# Niederschlag
 	precip=$(getprecipchance)
-	
+
 	notify-send "🌈 Wetter: $location" "Bedingungen: $condition
-	
+
 🥶 Tief: ${low}°C
 🌞 Hoch: ${high}°C
 ☔ Niederschlag: ${precip:-0%}"

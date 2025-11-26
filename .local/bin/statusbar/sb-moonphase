@@ -78,11 +78,11 @@ case "$icon" in
 	"") name="Abnehmende Sichel 3" ;;
 	"") name="Abnehmende Sichel 4" ;;
 	"") name="Abnehmende Sichel 5" ;;
-	"") name="Abnehmende Sichel 6" ;;
+	" ") name="Abnehmende Sichel 6" ;;
 	*) name="Unbekannt" ;;
 esac
 
-echo "${icon}"
+echo "${icon} "
 
 case $BLOCK_BUTTON in
 	3) notify-send " Mondphasen Modul" "Zeigt die aktuelle Mondphase an.

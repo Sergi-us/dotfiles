@@ -37,6 +37,6 @@ return {
   end,
   -- Optional: Keys für nvim-tree
   keys = {
-    { "<leader>n", ":NvimTreeToggle<CR>", desc = "Toggle NvimTree", noremap = true, silent = true },
+    { "<leader>n", ":NvimTreeFindFileToggle<CR>", desc = "Toggle NvimTree", noremap = true, silent = true },
   },
 }
