@@ -1,0 +1,17 @@
+NAME=wal
+BG=%%background%%
+FG=%%foreground%%
+MENU_BG=%%background%%
+MENU_FG=%%foreground%%
+SEL_BG=%%color1%%
+SEL_FG=%%background%%
+TXT_BG=%%background%%
+TXT_FG=%%foreground%%
+BTN_BG=%%color2%%
+BTN_FG=%%foreground%%
+HDR_BTN_BG=%%color3%%
+HDR_BTN_FG=%%foreground%%
+GTK3_GENERATE_DARK=True
+ROUNDNESS=0
+SPACING=3
+GRADIENT=0.0

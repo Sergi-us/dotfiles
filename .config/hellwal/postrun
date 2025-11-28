@@ -1,0 +1,41 @@
+#!/bin/bash
+# Postrun script for hellwal
+
+waldir="${XDG_CACHE_HOME:-$HOME/.cache}/wal"
+
+# Reload Xresources
+xrdb -merge "$waldir/colors.Xresources" 2>/dev/null
+
+# Symlink dunstrc and zathurarc to config dirs
+dunstconf="${XDG_CONFIG_HOME:-$HOME/.config}/dunst/dunstrc"
+zathuraconf="${XDG_CONFIG_HOME:-$HOME/.config}/zathura/zathurarc"
+
+mkdir -p "${dunstconf%/*}" "${zathuraconf%/*}"
+ln -sf "$waldir/dunstrc" "$dunstconf"
+ln -sf "$waldir/zathurarc" "$zathuraconf"
+
+# Copy tut theme to config
+tutdir="${XDG_CONFIG_HOME:-$HOME/.config}/tut/themes"
+mkdir -p "$tutdir"
+cp "$waldir/tut.toml" "$tutdir/pywal-generated.toml"
+
+# Fix terminal sequences (additional color indices)
+fix_sequences() {
+    e=$'\e'
+    sequences=$(cat)
+    foreground_color="$(echo -e "${sequences}\c" | grep --color=never -Eo "${e}]10[^${e}\\\\]*?${e}\\\\" | grep --color=never -Eo "#[0-9A-Fa-f]{6}")"
+    background_color="$(echo -e "${sequences}\c" | grep --color=never -Eo "${e}]11[^${e}\\\\]*?${e}\\\\" | grep --color=never -Eo "#[0-9A-Fa-f]{6}")"
+    cursor_color="$(echo -e "${sequences}\c" | grep --color=never -Eo "${e}]12[^${e}\\\\]*?${e}\\\\" | grep --color=never -Eo "#[0-9A-Fa-f]{6}")"
+
+    for term in /dev/pts/{0..9}*; do
+        echo -e "\e]4;256;${cursor_color}\a\c" > "${term}" 2>/dev/null
+        echo -e "\e]4;258;${background_color}\a\c" > "${term}" 2>/dev/null
+        echo -e "\e]4;259;${foreground_color}\a\c" > "${term}" 2>/dev/null
+    done
+}
+
+fix_sequences <"$waldir/sequences"
+
+# Restart dunst
+pkill dunst
+setsid -f dunst >/dev/null 2>&1

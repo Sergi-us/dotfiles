@@ -1,102 +1,146 @@
 #!/bin/sh
 ## 2025-03-27 SARBS
 
-# TODO Standard widergabegerät wird noc nicht angezeigt
+# TODO Standard widergabegerät wird noch nicht angezeigt
 
 # Konfiguration
 # Auf "true" setzen, um die Prozentanzeige auszublenden
 HIDE_PERCENTAGE="true"
 
-# Get the current volume, mute status and device name
-vol_info=$(wpctl get-volume @DEFAULT_AUDIO_SINK@)
-vol=$(echo "$vol_info" | awk '{print $2}')
-muted=$(echo "$vol_info" | grep -q MUTED && echo "yes" || echo "no")
-
-# Get current audio device name
-current_device=$(pactl get-default-sink | xargs pactl list sinks | grep -A 2 "Name: " | grep "Description" | sed 's/.*Description: //')
-
-# Convert volume to percentage
-vol=$(awk -v vol="$vol" 'BEGIN{printf "%.0f\n", vol * 100}')
-
-# Determine the icon
-if [ "$muted" = "yes" ]; then
-    icon="󰖁"
-elif [ "$vol" -ge 70 ]; then
-    icon="󰕾"
-elif [ "$vol" -ge 30 ]; then
-    icon="󰖀"
-elif [ "$vol" -ge 1 ]; then
-    icon="󰕿"
-else
-    icon="󰝟"
-fi
-
 # Funktion für Benachrichtigung mit Pegelanzeige
+# Bereiche: 0-100 = low, 101-200 = normal (anpassbar im Code)
 show_volume_notification() {
     local new_vol=$1
     local urgency="normal"
 
-    if [ "$new_vol" -gt 100 ]; then
-        urgency="critical"
-    elif [ "$new_vol" -eq 0 ]; then
+    # Bereich 0-100: low urgency
+    # Bereich 101-200: normal urgency
+    if [ "$new_vol" -le 100 ]; then
         urgency="low"
+    else
+        urgency="normal"
     fi
 
     dunstify -u "$urgency" -h "int:value:$new_vol" --replace=69420 "Lautstärke" "$new_vol%"
 }
 
+# Funktion zum Holen und Formatieren der aktuellen Volume-Info
+# Setzt globale Variablen: vol, muted
+get_volume_info() {
+    _vol_info=$(wpctl get-volume @DEFAULT_AUDIO_SINK@)
+    vol=$(echo "$_vol_info" | awk '{print $2}')
+    muted=$(echo "$_vol_info" | grep -q MUTED && echo "yes" || echo "no")
+    vol=$(awk -v vol="$vol" 'BEGIN{printf "%.0f\n", vol * 100}')
+}
+
+# Funktion zur Icon-Bestimmung
+# Setzt globale Variable: icon
+get_icon() {
+    if [ "$muted" = "yes" ]; then
+        icon="󰖁"
+    elif [ "$vol" -ge 70 ]; then
+        icon="󰕾"
+    elif [ "$vol" -ge 30 ]; then
+        icon="󰖀"
+    elif [ "$vol" -ge 1 ]; then
+        icon="󰕿"
+    else
+        icon="󰝟"
+    fi
+}
+
 # Prüfe ob das Skript durch Signal 55 (von DWM) aufgerufen wurde
 if [ "$1" = "55" ]; then
     # Lautstärke wurde über DWM-Tastaturkürzel geändert
-    new_vol_info=$(wpctl get-volume @DEFAULT_AUDIO_SINK@)
-    new_vol_decimal=$(echo "$new_vol_info" | awk '{print $2}')
-    new_vol=$(awk -v vol="$new_vol_decimal" 'BEGIN{printf "%.0f\n", vol * 100}')
-    show_volume_notification "$new_vol"
+    get_volume_info
+    show_volume_notification "$vol"
     exit 0
 fi
 
+# Handle button clicks
 case $BLOCK_BUTTON in
     1)
         wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle
-        # Neuen Status holen
-        new_vol_info=$(wpctl get-volume @DEFAULT_AUDIO_SINK@)
-        new_muted=$(echo "$new_vol_info" | grep -q MUTED && echo "yes" || echo "no")
-        if [ "$new_muted" = "yes" ]; then
-            dunstify -u "low" --replace=69420 "Lautstärke" "Stummgeschaltet"
+        # Nach Toggle: neuen Status holen und anzeigen
+        get_volume_info
+        get_icon
+        if [ "$muted" = "yes" ]; then
+            dunstify -u "normal" --replace=69420 " Stummgeschaltet"
         else
-            new_vol_decimal=$(echo "$new_vol_info" | awk '{print $2}')
-            new_vol=$(awk -v vol="$new_vol_decimal" 'BEGIN{printf "%.0f\n", vol * 100}')
-            show_volume_notification "$new_vol"
+            show_volume_notification "$vol"
+        fi
+        # Icon sofort ausgeben, dann Signal senden
+        if [ "$HIDE_PERCENTAGE" = "true" ]; then
+            echo "$icon"
+        else
+            echo "$icon $vol%"
         fi
         pkill -RTMIN+21 "${STATUSBAR:-dwmblocks}"
+        exit 0
         ;;
-    2) setsid -w -f "$TERMINAL" -e pulsemixer; pkill -RTMIN+21 "${STATUSBAR:-dwmblocks}" ;;
-    3) notify-send "Lautstärke Modul" "\- Zeigt Lautsärke 🔊 $vol%,
+    2)
+        setsid -w -f "$TERMINAL" -e pulsemixer
+        pkill -RTMIN+21 "${STATUSBAR:-dwmblocks}"
+        exit 0
+        ;;
+    3)
+        # Aktuelle Werte für Info-Anzeige holen
+        get_volume_info
+        get_icon
+        current_device=$(pactl list sinks | awk -v sink="$(pactl get-default-sink)" '$0 ~ "Name: "sink{flag=1} flag && /Description:/{sub(/.*Description: /, ""); print; exit}')
+        notify-send "Lautstärke Modul" "\- Zeigt Lautsärke 🔊 $vol%,
 - Aktives Gerät: $current_device
 - L 󰍽 Stumm
 - M 󰍽 Pulsmixer
 - 󱕒 Lautstärke ändern
-" ;;
+"
+        # Icon sofort ausgeben vor exit
+        if [ "$HIDE_PERCENTAGE" = "true" ]; then
+            echo "$icon"
+        else
+            echo "$icon $vol%"
+        fi
+        exit 0
+        ;;
     4)
         wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%+
-        # Neue Lautstärke holen für Benachrichtigung
-        new_vol_info=$(wpctl get-volume @DEFAULT_AUDIO_SINK@)
-        new_vol_decimal=$(echo "$new_vol_info" | awk '{print $2}')
-        new_vol=$(awk -v vol="$new_vol_decimal" 'BEGIN{printf "%.0f\n", vol * 100}')
-        show_volume_notification "$new_vol"
+        # Nach Änderung: neuen Wert holen und anzeigen
+        get_volume_info
+        get_icon
+        show_volume_notification "$vol"
+        # Icon sofort ausgeben, dann Signal senden
+        if [ "$HIDE_PERCENTAGE" = "true" ]; then
+            echo "$icon"
+        else
+            echo "$icon $vol%"
+        fi
         pkill -RTMIN+21 "${STATUSBAR:-dwmblocks}"
+        exit 0
         ;;
     5)
         wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-
-        # Neue Lautstärke holen für Benachrichtigung
-        new_vol_info=$(wpctl get-volume @DEFAULT_AUDIO_SINK@)
-        new_vol_decimal=$(echo "$new_vol_info" | awk '{print $2}')
-        new_vol=$(awk -v vol="$new_vol_decimal" 'BEGIN{printf "%.0f\n", vol * 100}')
-        show_volume_notification "$new_vol"
+        # Nach Änderung: neuen Wert holen und anzeigen
+        get_volume_info
+        get_icon
+        show_volume_notification "$vol"
+        # Icon sofort ausgeben, dann Signal senden
+        if [ "$HIDE_PERCENTAGE" = "true" ]; then
+            echo "$icon"
+        else
+            echo "$icon $vol%"
+        fi
         pkill -RTMIN+21 "${STATUSBAR:-dwmblocks}"
+        exit 0
         ;;
-    6) setsid -f "$TERMINAL" -e "$EDITOR" "$0" ;;
+    6)
+        setsid -f "$TERMINAL" -e "$EDITOR" "$0"
+        exit 0
+        ;;
 esac
+
+# Normale Anzeige (für Statusbar-Updates)
+get_volume_info
+get_icon
 
 if [ "$HIDE_PERCENTAGE" = "true" ]; then
     echo "$icon"
