@@ -9,13 +9,13 @@
     line_height = 4
     frame_width = 2
     corner_radius = 8
-    separator_height = 2
+    separator_height = 1
     separator_color = frame
     padding = 8
     horizontal_padding = 12
     text_icon_padding = 15
-    transparency = 10
-    gap_size = 5
+    transparency = 5
+    gap_size = 4
     icon_theme = Adwaita
     min_icon_size = 48
     max_icon_size = 64
@@ -29,15 +29,15 @@
     mouse_right_click = context
 
 [urgency_low]
-    background = "#%%color8%%"
+    background = "#%%color9%%"
     foreground = "#%%color15%%"
-    frame_color = "#%%color8%%"
+    frame_color = "#%%color9%%"
     timeout = 3
 
 [urgency_normal]
-    background = "#%%color7%%"
+    background = "#%%color13%%"
     foreground = "#%%color8%%"
-    frame_color = "#%%color13%%"
+    frame_color = "#%%color9%%"
     timeout = 5
 
 [urgency_critical]

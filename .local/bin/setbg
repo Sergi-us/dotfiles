@@ -23,9 +23,9 @@ shift $((OPTIND - 1))
 
 trueloc="$(readlink -f "$1")" &&
 case "$(file --mime-type -b "$trueloc")" in
-	image/* ) ln -sf "$trueloc" "$bgloc" && [ -z "$silent" ] && notify-send -i "$bgloc" "ändere Hintergrundbild..." ;;
-	inode/directory ) ln -sf "$(find "$trueloc" -iregex '.*.\(jpg\|jpeg\|png\|gif\)' -type f | shuf -n 1)" "$bgloc" && [ -z "$silent" ] && notify-send -i "$bgloc" "zufälliges Hintergrundbild gewählt." ;;
-	*) [ -z "$silent" ] && notify-send " Fehler" "kein gültiges Bild oder Verzeichnis." ; exit 1;;
+	image/* ) ln -sf "$trueloc" "$bgloc" ; bgmsg="ändere Hintergrundbild..." ;;
+	inode/directory ) ln -sf "$(find "$trueloc" -iregex '.*.\(jpg\|jpeg\|png\|gif\)' -type f | shuf -n 1)" "$bgloc" ; bgmsg="zufälliges Hintergrundbild gewählt." ;;
+	*) [ -z "$silent" ] && notify-send " Fehler" "kein gültiges Bild oder Verzeichnis." ; exit 1;;
 esac
 
 # Falls hellwal installiert ist, benutze es.
@@ -48,3 +48,6 @@ xwallpaper --zoom "$bgloc"
 # Falls dwm läuft, sende Signal zum Aktualisieren des Farbschemas.
 # pidof dwm >/dev/null && xdotool key super+F5
 pidof dwm >/dev/null && kill -USR1 $(pidof dwm)
+
+# Notification NACH hellwal/postrun senden, damit dunst-Neustart sie nicht killt
+[ -z "$silent" ] && [ -n "$bgmsg" ] && notify-send -i "$bgloc" "$bgmsg"
