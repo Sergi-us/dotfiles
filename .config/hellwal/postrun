@@ -1,5 +1,6 @@
-#!/bin/bash
+#!/bin/sh
 # Postrun script for hellwal
+## 2025-11-29 SARBS
 
 waldir="${XDG_CACHE_HOME:-$HOME/.cache}/wal"
 
@@ -36,6 +37,14 @@ fix_sequences() {
 
 fix_sequences <"$waldir/sequences"
 
-# Restart dunst
-pkill dunst
+# Restart dunst - sicherstellen dass alle Instanzen beendet werden
+# Erst sanft versuchen
+pkill -TERM dunst
+# Kurz warten bis Prozess beendet ist
+sleep 0.2
+# Falls noch läuft, härter zuschlagen
+pkill -KILL dunst 2>/dev/null
+# Nochmal kurz warten
+sleep 0.1
+# Neu starten
 setsid -f dunst >/dev/null 2>&1

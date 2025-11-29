@@ -60,8 +60,14 @@ return {
           file:close()
         end
 
-        -- Immer benachrichtigen
-        vim.notify("Theme: " .. theme_name, vim.log.levels.INFO)
+        -- Benachrichtigung mit Verzögerung für bessere Sichtbarkeit
+        vim.defer_fn(function()
+          -- Echo in Commandline (immer sichtbar)
+          vim.cmd('echohl MoreMsg | echo "Theme: ' .. theme_name .. '" | echohl None')
+          -- Zusätzlich notify für moderne UIs
+          vim.notify("Theme: " .. theme_name, vim.log.levels.INFO)
+        end, 100)
+        
         return true
       end
 
