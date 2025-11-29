@@ -17,7 +17,6 @@ MASTER_DPI=96
 #   288 = 3.0× (für sehr hohe DPI Displays)
 
 # Zusätzlicher Skalierungsfaktor für Feintuning (1.25 oder 1.5 oder integer 2.0 usw..)
-# einfach testen
 SCALE_FACTOR=1
 # Multipliziert mit DPI für finale Skalierung
 # Bei zu großer darstellung greift das whrapper-Skript
@@ -37,14 +36,15 @@ export GDK_DPI_SCALE=$SCALE_FACTOR
 # GDK_SCALE nicht setzen - würde Integer-Only Skalierung erzwingen
 
 # DPI-Only: Alle GTK-Skalierung deaktivieren
-unset GDK_DPI_SCALE                                     # dpi-only lösung (Würde DPI-Wert multiplizieren - wollen wir nicht!)
-unset GDK_SCALE                                         # Integer-Skalierung - nicht nötig bei DPI-Only
+# unset GDK_DPI_SCALE                                     # dpi-only lösung (Würde DPI-Wert multiplizieren - wollen wir nicht!)
+# unset GDK_SCALE                                         # Integer-Skalierung - nicht nötig bei DPI-Only
 
 # Qt Settings - nur eine Platform Theme Variable pro Qt-Version!
 export QT_QPA_PLATFORMTHEME=qt6ct                       # Qt6 Theme-Integration
 export QT5_QPA_PLATFORMTHEME=qt5ct                      # Qt5 Theme-Integration (parallel installierbar)
 export QT_FONT_DPI=$MASTER_DPI                          # Explizit setzen - manche Qt-Apps ignorieren xrandr
 export QT_SCALE_FACTOR=$SCALE_FACTOR                    # Zusätzliche Qt-Skalierung
+# export QT_SCALE_FACTOR=$SCALE_FACTOR                    # Zusätzliche Qt-Skalierung
 # unset QT_SCALE_FACTOR                                   # DPI-Only - Keine zusätzliche Skalierung!
 export QT_SCALE_FACTOR_ROUNDING_POLICY=PassThrough      # Bestimmt, wie nicht-ganzzahlige Skalierungsfaktoren behandelt werden
 # PassThrough ist nur relevant wenn QT_SCALE_FACTOR gesetzt wäre - schadet aber nicht
