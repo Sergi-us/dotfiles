@@ -27,6 +27,7 @@ readonly EXCLUDES=(
     "*.bac"
     "*.~*~"
     "$MARKER_FILE"
+    "AGENTS.md"
 )
 
 # Flags

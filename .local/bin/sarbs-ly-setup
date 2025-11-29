@@ -1,0 +1,117 @@
+#!/bin/sh
+## 2025-11-29 SARBS
+# Konfiguriert ly Display Manager für SARBS
+# Voraussetzung: ly muss bereits installiert sein
+
+# Prüfe ob ly installiert ist
+# Arch-Paket nutzt 'ly-dm', Source-Build nutzt 'ly'
+if ! command -v ly-dm >/dev/null 2>&1 && ! command -v ly >/dev/null 2>&1; then
+	echo "Fehler: ly ist nicht installiert!"
+	echo ""
+	echo "Installation:"
+	echo "  Arch Linux:  sudo pacman -S ly"
+	echo "  Von Source:  siehe https://github.com/fairyglade/ly"
+	exit 1
+fi
+
+# Prüfe ob SARBS-Config existiert
+if [ ! -f "${XDG_CONFIG_HOME:-$HOME/.config}/ly/config.ini" ]; then
+	echo "Fehler: SARBS ly-Konfiguration nicht gefunden!"
+	echo "Erwarteter Pfad: ${XDG_CONFIG_HOME:-$HOME/.config}/ly/config.ini"
+	exit 1
+fi
+
+echo "=== SARBS Ly Setup ==="
+echo ""
+
+# Kopiere SARBS-Konfiguration nach /etc
+echo "→ Kopiere SARBS ly-Konfiguration..."
+sudo mkdir -p /etc/ly
+
+# Prüfe ob Example-Config existiert (für Paket-Installationen)
+if [ -f /etc/ly/config.ini.example ]; then
+	# Nutze Example als Basis und patche SARBS-Werte
+	echo "  ℹ Nutze /etc/ly/config.ini.example als Basis"
+	sudo cp /etc/ly/config.ini.example /etc/ly/config.ini
+	sudo sed -i 's/^lang = en$/lang = de/' /etc/ly/config.ini
+	sudo sed -i 's|^xinitrc = ~/.xinitrc$|xinitrc = ~/.config/x11/xinitrc|' /etc/ly/config.ini
+	sudo sed -i 's/^animation = none$/animation = matrix/' /etc/ly/config.ini
+	echo "  ✓ SARBS-Anpassungen: lang=de, xinitrc=~/.config/x11/xinitrc, animation=matrix"
+else
+	# Fallback: Nutze User-Config (für Source-Builds)
+	echo "  ℹ Nutze User-Config (Source-Build)"
+	sudo cp "${XDG_CONFIG_HOME:-$HOME/.config}/ly/config.ini" /etc/ly/config.ini
+fi
+
+echo "  ✓ /etc/ly/config.ini"
+
+# Erkenne Init-System und aktiviere Service
+echo ""
+echo "→ Aktiviere ly Service..."
+
+if command -v systemctl >/dev/null 2>&1; then
+	# systemd
+	# Erstelle Override für tty1 (statt tty2)
+	sudo mkdir -p /etc/systemd/system/ly.service.d
+	sudo tee /etc/systemd/system/ly.service.d/tty1.conf > /dev/null << 'EOF'
+[Unit]
+Description=TUI display manager (SARBS - tty1)
+After=getty@tty1.service
+Conflicts=getty@tty1.service
+
+[Service]
+TTYPath=/dev/tty1
+EOF
+	
+	# Getty-Services anpassen
+	sudo systemctl disable getty@tty1.service  # tty1 für ly freigeben
+	sudo systemctl enable getty@tty2.service   # tty2 als Fallback
+	
+	# Service aktivieren
+	sudo systemctl enable ly.service
+	sudo systemctl daemon-reload
+	
+	echo "  ✓ systemd service aktiviert"
+	echo "  ✓ ly läuft auf tty1"
+	echo "  ✓ getty@tty1 deaktiviert"
+	echo "  ✓ getty@tty2 aktiviert (Fallback)"
+	
+elif command -v rc-update >/dev/null 2>&1; then
+	# OpenRC
+	sudo rc-update add ly
+	sudo rc-update del agetty.tty2 2>/dev/null || true
+	echo "  ✓ OpenRC service aktiviert"
+	echo "  ✓ agetty.tty2 deaktiviert"
+	
+elif [ -d /var/service ]; then
+	# runit
+	sudo ln -sf /etc/sv/ly /var/service/ 2>/dev/null || true
+	sudo rm -f /var/service/agetty-tty2 2>/dev/null || true
+	echo "  ✓ runit service aktiviert"
+	echo "  ✓ agetty-tty2 deaktiviert"
+	
+elif command -v dinitctl >/dev/null 2>&1; then
+	# dinit
+	sudo dinitctl enable ly
+	echo "  ✓ dinit service aktiviert"
+	echo "  ! Bitte /etc/dinit.d/config/console.conf manuell anpassen"
+	
+else
+	echo "  ! Init-System nicht erkannt - Service muss manuell aktiviert werden"
+fi
+
+echo ""
+echo "=== Setup abgeschlossen ==="
+echo ""
+echo "TTY-Layout nach Reboot:"
+echo "  • tty1: ly Display Manager (Hauptzugang)"
+echo "  • tty1: Fallback zu startx (falls ly nicht läuft)"
+echo "  • tty2: getty Text-Login (Notfall-Zugang)"
+echo "  • tty2: Startet auch X wenn eingeloggt"
+echo ""
+echo "WICHTIG:"
+echo "  • ly Config-Änderungen in ~/.config/ly/config.ini NICHT unterstützt"
+echo "  • Nur /etc/ly/config.ini wird von ly gelesen"
+echo "  • Bei Änderungen: sarbs-ly-setup erneut ausführen"
+echo ""
+echo "Neustart empfohlen: sudo reboot"
