@@ -1,4 +1,5 @@
 #!/bin/sh
+## 2025-11-29   SARBS
 
 # xinitrc wird automatisch ausgeführt, wenn Sie startx verwenden.
 # Es gibt einige kleine, aber wichtige Befehle, die ausgeführt werden müssen,
