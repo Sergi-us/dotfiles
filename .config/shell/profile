@@ -132,8 +132,27 @@ export LESSOPEN="| /usr/bin/highlight -O ansi %s 2>/dev/null"	# Syntax-Hervorheb
 # === Prüfe, ob die Shortcut-Konfiguration ===
 [ ! -f "$XDG_CONFIG_HOME/shell/shortcutrc" ] && setsid -f shortcuts >/dev/null 2>&1
 
-# === Starte X11 auf tty1 des Benutzers ===
-[ "$(tty)" = "/dev/tty1" ] && ! pidof -s Xorg >/dev/null 2>&1 && exec startx "$XINITRC"
+# === Starte X11 mit ly-Fallback ===
+# Fallback-Strategie: ly bevorzugt, aber robuster Notfall-Zugang
+case "$(tty)" in
+    /dev/tty1)
+        # Auf tty1: Nur starten wenn ly nicht installiert oder nicht läuft
+        if ! pidof -s Xorg >/dev/null 2>&1; then
+            # Prüfe auf ly-dm (Arch-Paket) oder ly (Source-Build)
+            if ! command -v ly-dm >/dev/null 2>&1 && ! command -v ly >/dev/null 2>&1; then
+                # ly nicht installiert -> starte X direkt
+                exec startx "$XINITRC"
+            elif ! pidof -s ly-dm >/dev/null 2>&1 && ! pidof -s ly >/dev/null 2>&1; then
+                # ly installiert aber läuft nicht -> starte X als Fallback
+                exec startx "$XINITRC"
+            fi
+        fi
+        ;;
+    /dev/tty2)
+        # Auf tty2: Immer X starten wenn nicht schon läuft (Notfall-Zugang)
+        ! pidof -s Xorg >/dev/null 2>&1 && exec startx "$XINITRC"
+        ;;
+esac
 
 # === Tastaturanpassungen ===
 # sudo -n loadkeys "$XDG_DATA_HOME/sarbs/ttymaps.kmap" 2>/dev/null
