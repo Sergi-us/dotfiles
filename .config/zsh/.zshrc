@@ -281,8 +281,14 @@ if command -v zvm_version &> /dev/null; then
         # Strg+R explizit binden
         # bindkey '^r' _atuin_search_widget
 
-        # Custom Keybindings wiederherstellen
-        bindkey '^f' fzf-file-widget
+        # FZF Keybindings wiederherstellen (werden von vi-mode überschrieben)
+        # Standard: ^T=Dateisuche, ^R=History, Alt+C=cd
+        # Custom: ^F=Dateisuche (statt ^T), ^G=cd (statt Alt+C, da in DWM belegt)
+        bindkey '^f' fzf-file-widget      # Strg+F für Dateisuche
+        bindkey '^r' fzf-history-widget   # Strg+R für History
+        bindkey '^g' fzf-cd-widget        # Strg+G für Verzeichniswechsel (Alt+C in DWM belegt)
+        
+        # Weitere Custom Keybindings
         bindkey '^e' edit-command-line
         bindkey -s '^o' '^ulfcd\n'
         bindkey -s '^a' '^ubc -lq\n'
@@ -322,39 +328,31 @@ zle -N edit-command-line
 
 # Custom Keybindings (falls Plugin sie nicht überschreibt)
 if [[ "$VI_MODE_PLUGIN_ACTIVE" != "true" ]]; then
-    bindkey '^f' fzf-file-widget
+    # FZF Keybindings
+    bindkey '^f' fzf-file-widget      # Strg+F für Dateisuche
+    bindkey '^r' fzf-history-widget   # Strg+R für History
+    bindkey '^g' fzf-cd-widget        # Strg+G für Verzeichniswechsel (Alt+C in DWM belegt)
+    
+    # Weitere Custom Keybindings
     bindkey '^e' edit-command-line
     bindkey -s '^o' '^ulfcd\n'
     bindkey -s '^a' '^ubc -lq\n'
 fi
 
-# FZF Integration (manuell)
+# ============================================================================
+# FZF Integration (Key-Bindings & Completion)
+# ============================================================================
+# Custom Keybindings (siehe unten in zvm_after_init):
+#   Strg+F - Dateisuche (rekursiv im aktuellen Verzeichnis)
+#   Strg+R - History-Suche (durchsuchbare Befehlshistorie)
+#   Strg+G - Verzeichniswechsel (fuzzy cd)
+
+# FZF Completion laden
 [ -f /usr/share/fzf/completion.zsh ] && source /usr/share/fzf/completion.zsh
 
-# FZF History-Suche direkt einbinden
-if command -v fzf >/dev/null 2>&1; then
-    # FZF History Widget
-    fzf-history-widget() {
-        local selected num
-        setopt localoptions noglobsubst noposixbuiltins pipefail no_aliases 2> /dev/null
-        selected=( $(fc -rl 1 | 
-            FZF_DEFAULT_OPTS="--height ${FZF_TMUX_HEIGHT:-40%} --reverse --scheme=history --bind=ctrl-r:toggle-sort ${FZF_CTRL_R_OPTS-} --query=${(qqq)LBUFFER} +m" \
-            fzf) )
-        local ret=$?
-        if [ -n "$selected" ]; then
-            num=${selected[1]}
-            if [ -n "$num" ]; then
-                zle vi-fetch-history -n $num
-            else
-                LBUFFER="$selected"
-            fi
-        fi
-        zle reset-prompt
-        return $ret
-    }
-    zle -N fzf-history-widget
-    bindkey '^R' fzf-history-widget
-fi
+# FZF Key-Bindings laden (definiert fzf-file-widget, fzf-cd-widget, fzf-history-widget)
+# WICHTIG: Dies muss VOR den Custom-Bindings in zvm_after_init() geladen werden!
+[ -f /usr/share/fzf/key-bindings.zsh ] && source /usr/share/fzf/key-bindings.zsh
 
 # ============================================================================
 # ZSH Optionen
