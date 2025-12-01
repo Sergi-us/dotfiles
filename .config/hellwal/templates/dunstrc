@@ -14,7 +14,7 @@
     padding = 8
     horizontal_padding = 12
     text_icon_padding = 15
-    transparency = 5
+    transparency = 0
     gap_size = 4
     icon_theme = Adwaita
     min_icon_size = 48
