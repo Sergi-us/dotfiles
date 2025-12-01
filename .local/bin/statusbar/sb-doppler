@@ -258,7 +258,7 @@ AF: TZ: Tanzania
 AF: TN: Tunisia
 AF: ZM: Zambia
 AF: KE: Kenya
-AF: AO: Angola" | dmenu -r -i -l 50 -p "Wähle ein Radar als Standard:" | tr "[:lower:]" "[:upper:]")"
+AF: AO: Angola" | dmenu -r -i -l 30 -p "Wähle ein Radar als Standard:" | tr "[:lower:]" "[:upper:]")"
 
 # Sicherstellen, dass der Benutzer nicht abgebrochen hat.
 [ -z "$chosen" ] && exit 1

@@ -61,7 +61,13 @@ indent_size = 2
 # PROGRAMMIERSPRACHEN - STANDARD (4 Leerzeichen)
 ###############################################################################
 # Systemnahe und traditionelle Sprachen
-[*.{c,cpp,h,hpp,cs,java}]
+[*.{c,h}]
+indent_style = tab
+indent_size = 4
+# Kommentar: C folgt Suckless/Linux-Kernel-Konventionen: Tabs (Anzeige: 4 Zeichen)
+
+# C++ und andere
+[*.{cpp,hpp,cs,java}]
 indent_style = space
 indent_size = 4
 # Kommentar: Diese Sprachen verwenden traditionell 4 Leerzeichen
