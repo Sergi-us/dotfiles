@@ -24,16 +24,17 @@ wmpid() {
 
 # Hauptmenü mit verschiedenen Systemaktionen
 # dmenu wird verwendet, um eine grafische Auswahl anzuzeigen
-case "$(printf " Herunterfahren\n Sperren\n $WM verlassen\n $WM erneuern\n󰒲 Ruhezustand\n Neustart\n💤 Schlafmodus\n󰶐  Bildschirm aus" | dmenu -i -p 'Aktion: ')" in
+case "$(printf " Herunterfahren\n Sperren\n $WM verlassen\n $WM erneuern\n󰒲 Ruhezustand\n Neustart\n󰒲 Schlafmodus\n󰶐  Bildschirm aus" | dmenu -i -p 'Aktion: ')" in
     ' Sperren')
         slock ;;  # Bildschirm sperren
-    " $WM verlassen")
+    " $WM verlassen")
+        killall dwmblocks 2>/dev/null  # Beende Statusbar zuerst
         kill -TERM "$(wmpid)" ;;  # Beende den Fenstermanager
     " $WM erneuern")
         kill -HUP "$(wmpid)" ;;   # Lade den Fenstermanager neu
     '󰒲 Ruhezustand')
         slock $ctl hibernate -i ;;  # Aktiviere den Ruhezustand und sperre den Bildschirm
-    '💤 Schlafmodus')
+    '󰒲 Schlafmodus')
         slock $ctl suspend -i ;;    # Aktiviere den Schlafmodus und sperre den Bildschirm
     ' Neustart')
         $ctl reboot -i ;;           # Starte das System neu
