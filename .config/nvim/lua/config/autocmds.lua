@@ -75,6 +75,11 @@ vim.cmd([[
   autocmd BufWritePost ~/.local/src/dmenu/config.h !cd ~/.local/src/dmenu/; sudo make install
 ]])
 
+-- TABBED auto-compile
+vim.cmd([[
+  autocmd BufWritePost ~/.local/src/tabbed/config.h !cd ~/.local/src/tabbed/; sudo make install
+]])
+
 -- aktualisiert shortcust nach dem ändern von bm-files und bm-dirs
 vim.cmd([[
   autocmd BufWritePost bm-files,bm-dirs !shortcuts
