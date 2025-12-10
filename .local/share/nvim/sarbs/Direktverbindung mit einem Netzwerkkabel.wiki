@@ -1,0 +1,74 @@
+= Die Anleitung ist für die Direktverbindung 2 Rechner nur mit einem Netzwerkkabel =
+
+== Einrichtung auf T480 ==
+Als erstes den Netzwerkadapter identifizieren
+{{{
+ip addr show
+# beim T480 ist es:
+2: enp0s31f6: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc fq_codel state UP group default qlen 1000
+    link/ether e8:6a:64:88:79:fe brd ff:ff:ff:ff:ff:ff
+    altname enxe86a648879fe
+}}}
+
+IP für die Direktverbindung setzen:
+{{{
+sudo ip addr add 192.168.1.1/24 dev enp0s31f6
+}}}
+
+prüfen
+{{{
+ip addr show enp0s31f6
+# beim T480 ist es:
+2: enp0s31f6: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc fq_codel state UP group default qlen 1000
+    link/ether e8:6a:64:88:79:fe brd ff:ff:ff:ff:ff:ff
+    altname enxe86a648879fe
+    inet 192.168.1.1/24 scope global enp0s31f6
+       valid_lft forever preferred_lft forever
+}}}
+
+# Interface aktivieren:
+{{{
+sudo ip link set enp0s31f6 up
+}}}
+
+== Einrichtung auf Dell ==
+im grunde das gleiche nur als IP-Adresse etwas anderes wählen:
+
+{{{
+sudo ip addr add 192.168.1.2/24 dev en01
+sudo ip link set eno1 up
+}}}
+
+== Verbindung Testen ==
+{{{
+von T480 zum dell
+ping 192.168.1.2
+}}}
+
+== .ssh/config eintrag hinzufügen ==
+
+== Netzwerkprofil erstellen ==
+
+auf T480
+{{{
+nmcli connection add type ethernet con-name "Direktverbindung" \
+ifname enp0s31f6 ip4 192.168.1.1/24 ipv4.method manual \
+ipv4.gateway "" ipv4.dns ""
+}}}
+
+Auf Dell
+{{{
+nmcli connection add type ethernet con-name "Direktverbindung" \
+ifname eno0 ip4 192.168.1.2/24 ipv4.method manual \
+ipv4.gateway "" ipv4.dns ""
+}}}
+
+# Parameter erklärt:
+con-name "Direktverbindung"		--> Name in nmtui
+ifname enp0s31f6				--> dein Ethernet-Interface (oder eno1 beim dell)
+ip4 192.168.1.1/24				--> deine IP im direkten Netz
+ipv4.method manual				--> statische IP (kein DHCP)
+ipv4.gateway ""					--> kein Gateway (direkte Verbindung)
+ipv4.dns ""						-->keine DNS-Server (direkte Verbindung)
+
+== Jetzt kann die Direktverbindung in nmcli aktiviert und deaktiviert wedern! ==

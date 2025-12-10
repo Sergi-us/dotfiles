@@ -1,0 +1,36 @@
+= Distrobox Installation und Verwendung =
+
+== Installation ==
+{{{class="brush: bash"
+sudo pacman -S distrobox
+}}}
+
+== Container erstellen (Beispiele) ==
+{{{class="brush: bash"
+distrobox create -n fedora-39 --nvidia --image fedora:39
+distrobox create -n arch --nvidia --image archlinux:latest
+distrobox create -n ubuntu --nvidia --image ubuntu:latest
+distrobox create -n fedora-39-custom --nvidia --image fedora:39 --no-home
+distrobox create -n cent --nvidia --image centos:stream8
+distrobox create -n rocky-9 --nvidia --image rockylinux:9
+}}}
+
+== Grundbefehle ==
+{{{class="brush: bash"
+distrobox list # Alle Container anzeigen
+distrobox enter <NAME> # Container betreten
+distrobox stop <NAME> # Container stoppen
+distrobox rm <NAME> # Container entfernen
+}}}
+
+== Container stoppen ==
+{{{class="brush: bash"
+distrobox rm -f <Name>
+}}}
+== Tipps ==
+
+    Distribution prüfen: cat /etc/*release*
+    Bei Berechtigungsproblemen: Container neu erstellen
+    --no-home verhindert das Einbinden des Host-Home-Verzeichnisses
+
+[[index]]

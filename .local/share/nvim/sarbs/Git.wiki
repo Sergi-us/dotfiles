@@ -1,0 +1,8 @@
+ = Git auf dem System einrichten =
+
+ssh Verbindung mit GitHub testen
+{{{class="brush: bash"
+ssh -T git@github.com
+}}}
+
+[[index]]

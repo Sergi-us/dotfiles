@@ -1,0 +1,28 @@
+[Desktop Entry]
+Version=1.0
+Name=󰨡 Chromium
+# Only KDE 4 seems to use GenericName, so we reuse the KDE strings.
+# From Ubuntu's language-pack-kde-XX-base packages, version 9.04-20090413.
+GenericName=Web Browser
+GenericName[de]=Internet-Browser
+Comment=Access the Internet
+Comment[de]=Internetzugriff
+Exec=chromium %U
+StartupNotify=true
+Terminal=false
+Icon=chromium
+Type=Application
+Categories=Network;WebBrowser;
+MimeType=application/rdf+xml;application/xhtml+xml;application/xhtml_xml;text/html;text/xml;x-scheme-handler/http;x-scheme-handler/https;
+Actions=new-window;new-private-window;
+# Gnome and KDE 3 uses Comment.
+
+[Desktop Action new-window]
+Name=New Window
+Name[de]=Neues Fenster
+Exec=/usr/bin/chromium
+
+[Desktop Action new-private-window]
+Name=New Incognito Window
+Name[de]=Neues Inkognito-Fenster
+Exec=/usr/bin/chromium --incognito

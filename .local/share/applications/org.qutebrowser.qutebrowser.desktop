@@ -1,8 +1,9 @@
 [Desktop Entry]
 Version=1.0
 Type=Application
-Name=Qutebrowser
+Name=󰨡 Qutebrowser
 GenericName=Webbrowser
+GenericName[de]=Internet-Browser
 Comment=Ein tastaturgesteuerter, vim-ähnlicher Browser basierend auf Python und Qt
 Exec=qutebrowser %u
 Terminal=false

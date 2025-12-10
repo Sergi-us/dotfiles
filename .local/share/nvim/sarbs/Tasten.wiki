@@ -1,0 +1,40 @@
+
+
+|
+| Notation   | Altern. | DWM                | Abkürzung     | Abkürzung   | Funktion                                                         |
+| <Format>   | Visuell |                    | (Deutsch)     | (Englisch)  | Beschreibung                                                     |
+|------------|---------|--------------------|---------------|-------------|------------------------------------------------------------------|
+|            |        | MODKEY             | Windows       | Super       | Windows oder Super Taste                                         |
+| <C>        | ^       | ControlMask        | Strg          | Control     | Steuerungstaste – als Modifier für Tastenkombinationen           |
+| <CR>       | 󰌑       | XK_Return          | Enter         | Return      | Bestätigungs-/Eingabetaste                                       |
+| <S>        | 󰘶       | ShiftMask          | Shift         | Shift       | Umschalttaste (Großschreibung)                                   |
+| <M>        |         |                    | Meta          | Alt         | bei Konflikten oft via <Esc>                                     |
+| <Esc>      | ESC     | XK_Escape          | Escape        | Escape      | Abbruch-/Escape-Taste, oft als Ersatz für Meta-Eingaben          |
+| <Tab>      |        | XK_Tab             | Tabulator     | Tab         | Navigations- oder Einrückungstaste                               |
+| <LF>       |         |                    | Zeilenumbruch | Line Feed   | Zeilenumbruch – seltener separat verwendet, da <CR> meist genügt |
+| <Bksp>     | 󰭜       | XK_BackSpace       | Rücktaste     | Backspace   | Löscht das Zeichen links vom Cursor                              |
+| <Del>      |         | XK_Delete          | Entf          | Delete      | Entfernt das Zeichen vor oder unter dem Cursor                   |
+|            | ^       | XK_dead_circumflex |               |             |                                                                  |
+|            | ~       | XK_grave           |               |             |                                                                  |
+|            | =       | XK_equal           |               |             |                                                                  |
+| <Home>     |         | XK_Home            | Pos1          | Home        | Springt an den Zeilenanfang                                      |
+| <end>      |         |                    | Ende          | End         | Springt ans Zeilenende                                           |
+| <PageUp>   |         | XK_Page_Up         | Bild aus      | Page Up     | Scrollt eine Seite nach oben                                     |
+| <PageDown> |         | XK_Page_Down       | Bild ab       | Page Down   | Scrollt eine Seite nach unten                                    |
+|            |         | XK_Insert          | Einfg         |             | Einfügen                                                         |
+| <Up>       | ↑       |                    | Pfeil hoch    | Up Arrow    | Bewegt den Cursor nach oben                                      |
+| <Down>     | ↓       |                    | Pfeil runter  | Down Arrow  | Bewegt den Cursor nach unten                                     |
+| <Left>     | ←       | XK_Left            | Pfeil links   | Left Arrow  | Bewegt den Cursor nach links                                     |
+| <Right>    | →       | XK_Right           | Pfeil rechts  | Right Arrow | Bewegt den Cursor nach rechts                                    |
+| <F1>       |         | XK_F1              | F1            | F1          | Funktionstaste (z. B. häufig für Hilfe)                          |
+| <F2>       |         | XK_F2              | F2            | F2          | Funktionstaste                                                   |
+|            | /       | XK_backslash       |               |             |                                                                  |
+|            |         | XK_numbersign      |               |             |                                                                  |
+|            |         | XK_semicolon       |               |             |                                                                  |
+|            |         | XK_apostrophe      |               |             |                                                                  |
+|            | ,       | XK_comma           | Komma         |             |                                                                  |
+|            | .       | XK_period          | Punkt         |             |                                                                  |
+|            | -       | XK_minus           |               |             |                                                                  |
+|            |         | XK_space           | Leertaste     |             |                                                                  |
+|            |         | XK_Print           | Druck         |             |                                                                  |
+|            |         |                    |               |             |                                                                  |

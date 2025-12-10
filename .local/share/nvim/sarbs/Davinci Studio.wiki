@@ -1,0 +1,79 @@
+ = Davinci Resolve Studio =
+Installationsanleitung für Arch und AUR
+gilt für die Studio Version, aber funktioniert auch für die Free nit ein paar anpassungen.
+
+hier der Github Link:
+https://github.com/Sergi-us/davinci
+
+hier gehts zum YouTube Video:
+https://youtu.be/rVyU9vTkvcI
+
+== Davinci Resolve Studio Runderladen ==
+{{{class="brush: bash"
+yay -S davinci-resolve-studio
+8. jre21-openjdk
+}}}
+
+YAY lädt die Software runder und ein PKGBUILD (was aneine art Bauanleitung fungiert) Die Installation schlägt fehl, was völlig inordnung ist, wir brauchen das PKGBUILD und die Davinci.zip
+
+Es kommt die Meldung:
+
+{{{class="brush: bash"
+Abhängigkeiten werden aufgelöst …
+Nach in Konflikt stehenden Paketen wird gesucht …
+}}}
+
+an dieser Stelle können wir die Installation abbrechen. Wichtig ist das dein AUR Helfer Davinci rundergeladen hat...
+{{{class="brush: bash"
+cd ~/.cache/yay/davinci-resolve-studio/
+# Extrahiere die  DaVinci_Resolve_Studio_XX.X.X_Linux.zip um die Version zu erfahren
+# ändere die *zip auf die Version der *.run
+# ermittele die sha256sum
+sha256sum DaVinci_Resolve_Studio_XX.X.X_Linux.zip
+}}}
+
+== PKGBUILD Anpassen ==
+
+Die sha256sum der version 19.1.2 ist
+7361335fb530103e455f6b4b2c5b7a49cfa8288864fb9775173845c7910e28ef
+Jetzt geht es zur anpassung der PGKBUIL
+
+{{{class="brush: bash"
+cd ~/.cache/yay/davinci-resolve-studio/
+nvim PKGBUILD
+# Version anpassen
+pkgname=davinci-resolve-studio
+major_version=19
+minor_version=1
+release_version=2
+# diese Zeile (Auf die richtige edition achten, Studio oder Free)
+  sha256sums=('53faec4c738c4941bd1f898020142b57c2112ca8ca3d9ef2c6e89f1d38c732cc')
+# ändern der sha256sum zu der vorher ermittelten zip
+  sha256sums=('7361335fb530103e455f6b4b2c5b7a49cfa8288864fb9775173845c7910e28ef')
+
+# Ändern der benötigten Packete: (bei mir verursachen diese Packete probleme)
+makedepends=('libarchive' 'xdg-user-dirs' 'patchelf')
+# entferne `patchelf` aus der Liste
+makedepends=('libarchive' 'patchelf')
+:wq
+}}}
+
+Bevor wir die Studio Version starten, müssen noch Berechtigungen für den Lizensordner angepasst werden
+{{{class="brush: bash"
+sudo chmod 7777 /opt/resolve/.license
+}}}
+
+== Davinici Instalieren ==
+{{{class="brush: bash"
+makepkg -si
+}}}
+
+
+== Davinci starten ==
+mit: (ACHTUNG nur wenn du das gleiche GPU Setup hast)
+{{{class="brush: bash"
+__NV_PRIME_RENDER_OFFLOAD=1 __GLX_VENDOR_LIBRARY_NAME=nvidia /opt/resolve/bin/resolve
+}}}
+----
+SARBS nutzer haben alles bereit integriert
+[[index]]

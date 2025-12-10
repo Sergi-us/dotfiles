@@ -90,7 +90,7 @@ dotfiles-home
 
 ## 📄 Lizenz
 
-Diese Konfiguration ist unter der [MIT Lizenz](LICENSE) verfügbar.
+Diese Konfiguration ist unter der [MIT Lizenz](LICENSE) verfügbar...
 
 ---
 

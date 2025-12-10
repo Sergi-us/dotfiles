@@ -1,0 +1,99 @@
+ = Nutzung =
+[[Pass - Passwörter generieren]]
+
+ = PASS einrichten und Nutzen =
+[[https://wiki.archlinux.org/title/Pass|Arch-wiki PASS]]
+[[https://www.passwordstore.org/|Pass Webseite]]
+
+=== Packete instalieren (in SARBS bereits instaliert) ===
+{{{class="brush: bash"
+sudo pacman -S pass
+}}}
+
+=== GPG einrichten ===
+{{{class="brush: bash"
+gpg --full-gen-key
+(1) RSA RSA (default)
+4096 bit's länge
+0 = Schlüssel verfällt nicht
+Real Name: irgent ein name
+Email-Adresse <sergius@sarbs.xyz>
+Comment: Was du willst
+(O)kay
+Passwort zum Absichern der Schlüsselrings angeben
+}}}
+
+=== oder vorhandene Schlüssel importieren ===
+{{{class="brush: bash"
+gpg --import privat-key.asc
+gpg --import public-key.asc
+}}}
+
+=== Schlüssel Bearbeiten (optional) ===
+{{{class="brush: bash"
+pgp -k
+gpg --edit-key <KEY-ID>
+gpg> trust
+gpg> passwd
+quit
+}}}
+
+=== Pass einrichten ===
+{{{class="brush: bash"
+pass init <sergius@sarbs.xyz>
+}}}
+
+=== Passwörter in PASS speichern ===
+{{{class="brush: bash"
+pass add <name>
+Enter password for <name>:
+Retype password for <name>:
+}}}
+
+=== Nutzung von PASS ===
+{{{class="brush: bash"
+pass
+}}}
+
+=== pam-gnupg einrichten ===
+{{{class="brush: bash"
+yay -S pam-gnupg
+sudo nvim /etc/pam.d/system-local-login
+# folgende punkte hinzufügen
+auth     optional  pam_gnupg.so store-only
+session  optional  pam_gnupg.so
+ZZ
+nvim ~/.gnupg/gpg-agent.conf
+allow-preset-passphrase
+max-cache-ttl 34560000
+default-cache-ttl 34560000
+ZZ
+# neustarten des Agents
+gpg-connect-agent reloadagent /bye
+# testen der Konfiguration
+gpg-connect-agent preset_passphrase /bye
+}}}
+
+=== autocommand für rofi-pass einrichten ===
+Weitere Dokumetation unter Features wie Autotype, OTP, uvm...
+https://github.com/carnager/rofi-pass
+
+{{{
+pass edit <name>
+# Einträge anlegen, zb. url: user:
+url: https://webseite.de
+user: nutzername
+autotype: user :tab pass :delay :enter
+}}}
+
+==== Verfügbare Autotype-Kommandos: ====
+
+:tab - Tab-Taste
+:enter - Enter-Taste
+:space - Leertaste
+:delay - Kurze Pause
+user - Benutzername
+pass - Passwort
+
+=== TOTP in Rofi-pass einrichten ===
+das muss ich noch genauer verstehen

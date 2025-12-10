@@ -1,0 +1,99 @@
+ = YubiKey =
+
+pacman -S yubikey-manager
+
+== pcscd und scdaemon konflikt ==
+Ich muss rausfinden was das ist:
+sergi     396695  0.0  0.0 229136  5060 ?        SLsl 07:49   0:00 /usr/bin/gpg-agent --supervised
+sergi     396697  0.0  0.0 238592  6092 ?        SLl  07:49   0:00 scdaemon --multi-server
+
+damit pcscd läuft
+
+pacman -S pcsc-tools
+sudo systemctl status pcscd
+sudo systemctl start pcscd.service
+sudo systemctl stop pcscd.service
+
+
+
+ykman list
+    YubiKey 5 NFC FIPS (5.4.3) [OTP+FIDO+CCID] Serial: 23281831
+        5       Generation
+        4.3     Firmware version
+        NFC     Near Feald Communikation
+        FIPS    Federal Information Processing Standards
+        OTP     One Time Password
+        FIDO    Fast Identity Online
+        CCID    Chip Card Interface Device (Der YubiKey verhält sich wie ein Smartcard-Lesegerät)
+
+ykman info
+    Device type: YubiKey 5 NFC FIPS
+    Serial number: 23281831
+    Firmware version: 5.4.3
+    Form factor: Keychain (USB-A)
+    Enabled USB interfaces: OTP, FIDO, CCID
+    NFC transport is enabled
+
+    Applications    USB             NFC
+    Yubico OTP      Enabled         Enabled
+    FIDO U2F        Enabled         Enabled
+    FIDO2           Enabled         Enabled
+    OATH            Enabled         Enabled
+    PIV             Enabled         Enabled
+    OpenPGP         Enabled         Enabled
+    YubiHSM Auth    Disabled        Disabled
+
+== OTP (One-Time Password) ==
+ykman otp info
+    Slot 1: programmed
+    Slot 2: programmed
+
+== FIDO2 / U2F ==
+ykman fido info
+    PIN:                8 attempt(s) remaining
+    Minimum PIN length: 6
+
+_Technisch werden pro Dienst nur wenige Metadaten auf dem Key gespeichert, der
+Großteil liegt wie erwähnt auf dem Server des jeweiligen Dienstes. Praktisch
+kannst du also sehr viele FIDO-Dienste mit einem einzigen Key nutzen._
+
+== OATH (z. B. TOTP/HOTP) ==
+ykman oath accounts list
+    WARNING: PC/SC not available. Smart card (CCID) protocols will not function.
+    ERROR: Unable to list devices for connection
+    ERROR: Failed to connect to YubiKey.
+
+Veränderbar:    JA
+_Hier kannst du je nach Modell zig TOTP-/HOTP-Einträge speichern.
+Die Grenze liegt meist in der Größenordnung von 32 oder mehr Einträgen._
+
+== pgp ==
+Typischerweise Platz für ein Hauptschlüssel-Paar und drei Subkeys (Signieren, Verschlüsseln, Authentifizierung).
+
+
+
+== gpg ==
+Veränderbar: Ja
+gpg --card-status
+    Reader ...........: 1050:0407:X:0
+    Application ID ...: D2760001240100000006232818310000
+    Application type .: OpenPGP
+    Version ..........: 3.4
+    Manufacturer .....: Yubico
+    Serial number ....: 23281831
+    Name of cardholder: [nicht gesetzt]
+    Language prefs ...: [nicht gesetzt]
+    Salutation .......:
+    URL of public key : [nicht gesetzt]
+    Login data .......: [nicht gesetzt]
+    Signature PIN ....: nicht zwingend
+    Key attributes ...: rsa2048 rsa2048 rsa2048
+    Max. PIN lengths .: 127 127 127
+    PIN retry counter : 2 0 0
+    Signature counter : 0
+    KDF setting ......: off
+    UIF setting ......: Sign=off Decrypt=off Auth=off
+    Signature key ....: [none]
+    Encryption key....: [none]
+    Authentication key: [none]
+    General key info..: [none]

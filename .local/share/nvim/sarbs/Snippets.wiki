@@ -1,0 +1,31 @@
+== Snippets verwaltung in LARBS ==
+
+- Snippet's Datei hinzufügen
+{{{
+nvim ~/.local/share/sarbs/snippets
+}}}
+oder aus Backup wiederherstellen
+
+mit __Super+Insert__ (Super+Einfüfügen) kannst du die Liste übers dmenu aufrufen.
+
+# Kurzbefehl zum Öffnen der snippets Datei
+	$ `nvim ~/.config/shell/bm-files` oder einfach `bf` im Terminal eingeben.
+		`sn	~/.local/share/larbs/snippets` hinzufügen
+	nun lässt sich `snippets` mit der eingabe von `sn` öffnen und bearbeiten
+
+# Skript [bookmarkthis sh](bookmarkthis.sh)
+	mit `sc` in den Skriptordner wechseln `cd ~/.local/bin/`
+	$ `touch bookmarkthis` erstellt eine neue Datei im sc verzeichniss
+	$ `chmod +x bookmarkthis` macht die Datei ausführbar
+	$ `nvim bookmarkthis` öffnet die leere Datei
+
+# bookmarkthis soll auf `mod+Shift+B` gelegt werden
+	$ `v ~/.local/src/dwm/config.h`
+	`/XK_b` um die richtige Zeile zu finden
+`	{ MODKEY|ShiftMask,		XK_b,		spawn,		{.v = (const char*[]){ "bookmarkthis", NULL} } },`
+
+# DWM neu kompilieren.
+	$ cd ~/.local/scr/dwm
+	$ sudo make install
+
+...

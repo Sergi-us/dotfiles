@@ -1,0 +1,54 @@
+Nur Kleinbuchstaben (schwach):
+
+tr -dc 'a-z' </dev/urandom | head -c 16; echo
+
+a-z = nur Kleinbuchstaben
+26 mögliche Zeichen
+Gut für einfache Codes
+
+Groß- und Kleinbuchstaben (mittel):
+tr -dc 'A-Za-z' </dev/urandom | head -c 20; echo
+
+A-Z = Großbuchstaben, a-z = Kleinbuchstaben
+52 mögliche Zeichen
+Schon deutlich sicherer
+
+Alphanumerisch (gut):
+tr -dc 'A-Za-z0-9' </dev/urandom | head -c 24; echo
+
+Buchstaben + Zahlen (0-9)
+62 mögliche Zeichen
+Standard für viele Dienste
+
+{{{
+# mit gängigen Sonderzeichen (sehr gut):
+tr -dc 'A-Za-z0-9!@#$%^&*()_+-=' </dev/urandom | head -c 28; echo
+}}}
+
+Buchstaben + Zahlen + häufige Sonderzeichen
+~76 mögliche Zeichen
+Sehr sicher
+
+{{{
+# Mit vielen Sonderzeichen (maximal):
+# Alle gängigen Sonderzeichen
+# ~90+ mögliche Zeichen ohne ^ (erfordert ein doppelcklick)
+tr -dc 'A-Za-z0-9!@#$%&*()_+-=[]{}|;:,.<>?' </dev/urandom | head -c 32; echo
+}}}
+
+
+{{{
+# Nur Zahlen (PIN):
+# Gut für PINs oder numerische Codes
+tr -dc '0-9' </dev/urandom | head -c 8; echo
+}}}
+
+
+Erklärung der Teile:
+
+tr -dc '...' = "delete complement" → behalte NUR diese Zeichen
+</dev/urandom = Zufallsdaten vom System
+head -c 20 = nimm die ersten 20 Zeichen
+echo = Zeilenumbruch am Ende
+
+Tipp: Je länger und vielfältiger, desto sicherer! Ein 32-Zeichen-Passwort mit allen Zeichen ist quasi unknackbar.

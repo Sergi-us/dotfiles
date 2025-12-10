@@ -1,0 +1,173 @@
+= Podman (Rootless) Installation und Konfiguration =
+
+== Pakete installieren ==
+{{{class="brush: bash"
+sudo pacman -S podman
+1) crun
+
+# für rootless konfiguration sinnfoll
+sudo pacman -S fuse-overlayfs slirp4netns
+}}}
+Podman Konfiguration anlegen und bearbeiten
+{{{class="brush: bash"
+mkdir -p ~/.config/containers
+nvim ~/.config/containers/containers.conf
+[engine]
+cgroup_manager = "cgroupfs"
+:wq
+}}}
+
+Podman Systemdienst Aktivieren und Starten:
+{{{class="brush: bash"
+systemctl --user enable podman.socket
+systemctl --user start podman.socket
+systemctl --user status podman.socket
+}}}
+
+Podman testen:
+{{{class="brush: bash"
+podman run hello-world
+}}}
+
+Container Hart Stoppen
+{{{class="brush: bash"
+podman kill -s KILL <Containername>
+}}}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+== Gruppen anpassen ==
+{{{class="brush: bash"
+sudo usermod -aG systemd-journal,kvm,input $USER
+newgrp input groups $USER
+}}}
+
+== Verzeichnisse erstellen und berechtigen ==
+{{{class="brush: bash"
+mkdir -p ~/.config/containers
+mkdir -p ~/.local/share/containers
+chmod 700 ~/.local/share/containers
+chmod 700 ~/.local/share/containers/storage
+chown -R $USER:wheel ~/.local/share/containers
+}}}
+
+== storage.conf anlegen ==
+Pfad: ~/.config/containers/storage.conf
+{{{class="brush: bash"
+[storage]
+driver = "overlay"
+graphroot = "/home/<BENUTZERNAME>/.local/share/containers/storage"
+runroot = "/run/user/1000/containers"
+
+[storage.options]
+mount_program = "/usr/bin/fuse-overlayfs"
+
+[storage.options.overlay]
+mountopt = "nodev,fsync=0"
+ignore_chown_errors = "true"
+}}}
+
+== containers.conf anlegen ==
+Pfad: ~/.config/containers/containers.conf
+{{{class="brush: bash"
+[engine]
+cgroup_manager = "cgroupfs"
+events_logger = "file"
+runtime = "crun"
+
+[engine.runtimes]
+crun = [
+    "/usr/bin/crun"
+]
+
+[network]
+network_backend = "netavark"
+default_network = "podman"
+
+[storage]
+driver = "overlay"
+graphroot = "/home/sergi/.local/share/containers/storage"
+runroot = "/run/user/1000/containers"
+
+[storage.options]
+mount_program = "/usr/bin/fuse-overlayfs"
+
+[storage.options.overlay]
+mount_program = "/usr/bin/fuse-overlayfs"
+mountopt = "nodev,fsync=0"
+
+[containers]
+log_driver = "file"
+volumes = [
+    "/home/sergi:/home/sergi:rslave"
+]
+default_capabilities = [
+    "CAP_AUDIT_WRITE",
+    "CAP_CHOWN",
+    "CAP_DAC_OVERRIDE",
+    "CAP_FOWNER",
+    "CAP_FSETID",
+    "CAP_KILL",
+    "CAP_MKNOD",
+    "CAP_NET_BIND_SERVICE",
+    "CAP_NET_RAW",
+    "CAP_SETGID",
+    "CAP_SETPCAP",
+    "CAP_SETUID",
+    "CAP_SYS_CHROOT"
+]
+}}}
+
+== Globale Konfiguration umbenennen ==
+{{{class="brush: bash"
+sudo mv /etc/containers/containers.conf /etc/containers/containers.conf.backup
+sudo mv /usr/share/containers/containers.conf /usr/share/containers/containers.conf.backup
+}}}
+
+
+== Socket aktivieren ==
+{{{class="brush: bash"
+systemctl --user enable podman.socket
+systemctl --user start podman.socket
+systemctl --user status podman.socket
+}}}
+
+== Socket neu starten (bei Änderungen) ==
+{{{class="brush: bash"
+systemctl --user restart podman.socket
+}}}
+
+
+== Testen ==
+{{{class="brush: bash"
+podman run hello-world
+}}}
+
+
+[[index]]

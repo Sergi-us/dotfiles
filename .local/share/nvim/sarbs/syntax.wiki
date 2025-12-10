@@ -1,0 +1,150 @@
+[[index]]
+[[https://github.com/vimwiki/vimwiki/blob/master/doc/vimwiki.txt|vimwiki.txt auf GitHub]]
+= H1 Hauptüberschrift =
+ = Zentriert =
+== H2 Unterüberschrift ==
+=== H3 Kleine Überschrift ===
+==== H4 ====
+===== H5 =====
+====== H6 ======
+
+*fett* _kursiv_ ~~durchgestrichen~~
+`code` super^hoch^ sub,,tief,,
+
+%% Komentare
+%% TODO DONE STARTED FIXME FIXED XXX
+%% dieser Text erscheint nicht in HTML
+
+== Farben ==
+`#FF0000`  <- in Vimwiki
+== Listen ==
+- Einfache Liste
+- Zweiter Punkt
+  - Eingerückt
+    - Noch weiter eingerückt
+- Zurück auf Ebene 1
+
+Nummerierte Liste
+1. Erster Punkt
+   a) Unterpunkt a
+   b) Unterpunkt b
+      * Gemischte Liste mit Bullet
+      * Weiterer Bullet-Punkt
+   c) Unterpunkt c
+      1. Nummerierter Unterpunkt
+      2. Zweiter nummerierter Unterpunkt
+2. Zweiter Punkt
+
+Mehrzeilige Einträge
+  Der Text wird automatisch eingerückt
+  und kann über mehrere Zeilen gehen
+* Erster Punkt
+  * Unterpunkt mit Fortsetzung
+    Diese Zeile gehört noch zum Unterpunkt
+    Und diese auch
+  * Nächster Unterpunkt
+* Zweiter Punkt
+
+- [ ] Unerledigte Aufgabe
+- [.] Teilweise erledigt
+- [o] Wichtige Aufgabe
+- [X] Erledigte Aufgabe
+
+Begriffsdefinitionen::
+  * Hier steht die Erklärung des Begriffs
+  * Kann auch mehrere Punkte umfassen
+Zweiter Begriff::
+:eins: Erste Definition
+:zwei: Zweite Definition des gleichen Begriffs
+
+== Definitionen ==
+Begriff :eins: Definition
+Zweiter Begriff :zwei: Weitere Definition
+Mehrzeilig :mzl:
+    Diese Definition
+    geht über mehrere
+    Zeilen
+
+== Links ==
+[[Interner Link]]
+[[index]]
+[[Link mit|anderem Text]]
+https://example.com
+[[https://example.com|Externer Link mit Text]]
+[[file:~/path/to/file|lokale Datei]]
+
+== Tabellen ==
+| *Kopf*  | _Kopf 2_ | ~~Kopf 3~~ |
+|---------|----------|------------|
+| Zelle 1 | Zelle 2  | Zelle 3    |
+| A1      | A2       | A3         |
+== Code-Blöcke ==
+{{{class="brush: bash"
+def hello_world():
+    print("Hello, Wiki!")
+}}}
+
+== Zitate ==
+    Dies ist ein Zitat
+    Das über mehrere
+    Zeilen geht
+
+== Trennlinien ==
+----
+
+== Bilder ==
+[[Sergius Logo|{{https://sarbs.sergius.xyz/bilder/logo.png}}]]
+
+== Fußnoten ==
+Hier ist Text mit einer Fußnote[1] und noch einer[2].
+
+[1] Dies ist die erste Fußnote
+[2] Dies ist die zweite Fußnote
+
+== Tags ==
+:tags: wiki, dokumentation, beispiel:
+
+== Mathematische Formeln ==
+{{{math
+f(x) = \sum_{n=0}^{\infty} \frac{f^{(n)}(a)}{n!} (x-a)^n
+}}}
+
+%% Dies ist ein Kommentar der nicht im HTML erscheint
+
+== HTML einbetten ==
+{{{class="brush: html"
+<div style="color: red;">
+    Dieser Text wird rot dargestellt
+</div>
+}}}
+
+== Tastenkombinationen ==
+Drücke `strl`+`alt`+`entf`
+
+{{{class="brush: bash"
+let g:vimwiki_list = [
+	\ {'path': '~/vimwiki/',
+	\  'path_html': '~/www/sarbs/',
+	\  'custom_wiki2html': '',
+	\  'html_filename_parameterization': 1,
+	\  'automatic_nested_syntaxes': 1,
+	\  'nested_syntaxes': {'python': 'python', 'c++': 'cpp'},
+	\  'custom_wiki2html_args': '--toc --css style.css',
+	\  'html_header': '~/vimwiki/template/header.tpl',
+	\  'html_footer': '~/vimwiki/template/footer.tpl',
+	\  'auto_export': 1,
+	\  'auto_toc': 1,
+	\  'auto_tags': 1,
+	\  'auto_generate_links': 1,
+	\  'auto_generate_tags': 1,
+	\  'auto_diary_index': 1,
+	\  'diary_rel_path': 'diary/',
+	\  'diary_index': 'diary',
+	\  'diary_header': 'Diary',
+	\  'template_path': '~/vimwiki/templates/',
+	\  'template_default': 'default',
+	\  'template_ext': '.tpl'}
+	\ ]
+}}}
+
+[[index]] [[mailto:anderer-name@posteo.de|mail]]

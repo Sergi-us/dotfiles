@@ -1,6 +1,6 @@
 [Desktop Entry]
 Type=Application
-Name=Datei Manager
+Name=󰨡 Datei Manager
 GenericName=Explorer in SARBS
 Icon=utilities-terminal
 Exec=/usr/local/bin/st -e lfub %u

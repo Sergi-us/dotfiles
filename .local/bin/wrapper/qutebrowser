@@ -1,23 +1,22 @@
 #!/bin/sh
 ## 2025-12-10   SARBS
-# KeePassXC Wrapper mit Qt5-Skalierung
+# Qutebrowser Wrapper mit Qt-Skalierung
 
 # Manuelle Skalierung (überschreibt Auto-Erkennung)
+# Qutebrowser nutzt eigene Schriftgrößen-Logik in config.py
+# basierend auf DPI - zusätzliche Qt-Skalierung nicht nötig
 SCALE_FACTOR=1
 
 # Lese berechneten Skalierungsfaktor aus State-Datei (falls nicht manuell gesetzt)
-# Bei KeePassXC nutzen wir den manuellen Wert SCALE_FACTOR=1
+# Bei Qutebrowser bleibt SCALE_FACTOR=1 da Skalierung über pt-Größen in config.py erfolgt
 # state_file="${XDG_STATE_HOME:-$HOME/.local/state}/xsession/scale"
 # [ -f "$state_file" ] && SCALE_FACTOR=$(cat "$state_file")
 
-# Fallback falls State-Datei nicht existiert
-# SCALE_FACTOR=${SCALE_FACTOR:-1.0}
-
-# Qt5-Skalierung
+# Qt-Skalierung
 export QT_SCALE_FACTOR=$SCALE_FACTOR
 
-# Optional: Falls KeePassXC zu groß/klein wird
+# Optional: Falls App zu groß/klein wird
 # Override System-DPI für Schriften
-export QT_FONT_DPI=144
+# export QT_FONT_DPI=96
 
-exec /usr/bin/keepassxc "$@"
+exec /usr/bin/qutebrowser "$@"

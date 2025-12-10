@@ -1,10 +1,16 @@
 #!/bin/sh
+## 2025-12-10   SARBS
 # Vivaldi Wrapper (mit Tweaks)
 
-# Variable für einfache Anpassung
-SCALE_FACTOR=1.5
+# Manuelle Skalierung (überschreibt Auto-Erkennung)
+# SCALE_FACTOR=1.5
 
-# SCALE_FACTOR=$(grep "^SCALE_FACTOR=" ~/.config/x11/xprofile | cut -d= -f2)
+# Lese berechneten Skalierungsfaktor aus State-Datei (geschrieben von .xprofile)
+state_file="${XDG_STATE_HOME:-$HOME/.local/state}/xsession/scale"
+[ -f "$state_file" ] && SCALE_FACTOR=$(cat "$state_file")
+
+# Fallback falls State-Datei nicht existiert
+SCALE_FACTOR=${SCALE_FACTOR:-1.5}
 
 exec /usr/bin/vivaldi \
     --high-dpi-support=1 \

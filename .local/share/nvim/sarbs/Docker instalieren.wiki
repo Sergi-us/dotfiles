@@ -1,0 +1,4 @@
+
+
+sudo pacman -S docker
+sudo systemctl enable --now docker

@@ -1,0 +1,30 @@
+ = Benutzer =
+
+Jeder Benutzer hat ein eigenes Konto und eine eindeutige UID (User ID).
+Das Home-Verzeichnis eines Benutzers speichert persönliche Daten und Konfigurationsdateien.
+Standard-Benutzer können normalerweise nur auf ihre eigenen Dateien zugreifen. Wird geregelt durch die [[Rechteverwaltung]]
+
+== Nutzerverwaltung ==
+
+{{{
+# Benutzer anlegen
+sudo useradd -m -s /bin/bash username
+# -m: Erstellt ein Home-Verzeichnis.
+# -s: Legt die Standard-Shell fest.
+
+# Passwort für 'username' festlegen
+sudo passwd username
+
+# Benutzer anzeigen
+cat /etc/passwd | grep username
+
+# Benutzer löschen
+sudo userdel -r username
+# `-r` Löscht auch das Home-Verzeichnis.
+
+# Benutzer zur Gruppe hinzufügen
+sudo usermod gruppe username
+
+sudo usermod -aG weitere-gruppe username
+# -aG Fügt den Benutzer zu einer zusätzlichen Gruppe hinzu.
+}}}

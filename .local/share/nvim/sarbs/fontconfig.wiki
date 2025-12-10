@@ -1,0 +1,11 @@
+ = fontconfig =
+
+warscheinlich lösche ich das Tool
+
+fc-list
+
+fc-list : file family style
+
+fc-cache -fv
+
+fc-match "Sans"

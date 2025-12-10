@@ -1,0 +1,110 @@
+=== X11 Konfiguration für Nvidia und Prime-run (Hybrid-Modus) ===
+
+
+{{{class="brush: bash"
+nvim [[20-nvidia.conf]]
+sudo cp 20-nvidia.conf /etc/X11/xorg.conf.d/
+sudo chmod 644 /etc/X11/xorg.conf.d/20-nvidia.conf
+sudo chown root:root /etc/X11/xorg.conf.d/20-nvidia.conf
+}}}
+
+Fehlersuche mit
+cat /var/log/Xorg.0.log | grep EE
+
+
+== h264_vaapi libva Intel Treiber für die Screencast Hardware Encoding funktionalität ==
+https://youtu.be/1NAMBQYNqq8
+https://wiki.archlinux.org/title/Hardware_video_acceleration
+==== Treiber instalieren ====
+{{{class="brush: bash"
+sudo pacman -S libva libva-intel-driver libva-utils
+sudo pacman -S intel-media-driver
+vainfo
+}}}
+==== Neue Konfiguration für die intel GPU ====
+{{{class="brush: bash"
+sudo nvim /etc/X11/xorg.conf.d/20-intel.conf
+}}}
+==== Inhalt ====
+{{{class="brush: bash"
+Section "Device"
+    Identifier  "Intel Graphics"
+    Driver      "intel"
+    Option      "TearFree" "true"
+EndSection
+}}}
+Diagnose mit dmesg: Prüfe auf Fehler oder Warnungen, die mit der Intel-GPU zusammenhängen:
+{{{
+dmesg | grep -iE 'i915|vaapi|intel|gpu|drm'
+# nur intel GPU
+lsmod | grep i915
+}}}
+# TODO dmesg Fehler angehen
+Verfügbare Geräte prüfen: Die Geräte unter /dev/dri anzeigen:
+{{{
+ls /dev/dri
+}}}
+
+= NVIDIA Treiberinstallation =
+https://wiki.archlinux.org/title/Lenovo_ThinkPad_T480
+https://github.com/erpalma/throttled
+s-tui
+https://aur.archlinux.org/packages/evhz-git
+https://archlinux.org/packages/?name=throttled
+Um die NVIDIA-Grafikkarte deines ThinkPad T480 mit den proprietären Treibern flexibel zu nutzen, müssen wir den Anwendungsfall "Hybrid-Grafik" oder "NVIDIA Optimus" berücksichtigen. Hier ist eine einfache Zusammenfassung der Arch-Wiki-Artikel, angepasst an deine Bedürfnisse:
+https://wiki.archlinux.org/title/NVIDIA#
+== Installation des NVIDIA-Treibers ==
+- Treiber Instalieren
+Pakete installieren:
+{{{class="brush: bash"
+sudo pacman -S nvidia nvidia-utils
+# Optional das Kontrollpanel von nvidia
+# ich nutze ~ nvidia-smi brauche das GUI-Tool nicht
+sudo pacman -S nvidia-settings
+# Mesa-Utils sind nützlich zum Testen der aktuellen einstellungen
+sudo pacman -S mesa-utils
+}}}
+neustart
+
+Kernel-Modul laden: Stelle sicher, dass das Modul nvidia geladen ist:
+{{{class="brush: bash"
+sudo modprobe nvidia
+}}}
+Prüfen mit:
+{{{class="brush: bash"
+lsmod | grep nvidia
+nvidia_drm            135168  2
+nvidia_modeset       1671168  2 nvidia_drm
+drm_ttm_helper         16384  1 nvidia_drm
+nvidia_uvm           3837952  0
+nvidia              77520896  26 nvidia_uvm,nvidia_modeset
+video                  81920  3 thinkpad_acpi,i915,nvidia_modeset
+}}}
+
+Überprüfe die aktuell genutzte GPU:
+{{{class="brush: bash"
+glxinfo | grep "OpenGL renderer"
+}}}
+
+
+
+== NVIDIA Optimus für Hybrid-Grafik ==
+[[https://wiki.archlinux.org/title/NVIDIA_Optimus]]
+https://wiki.archlinux.org/title/PRIME
+https://wiki.archlinux.org/title/PRIME#NVIDIA
+
+Intel wird als primäre GPU verwendet, und du kannst NVIDIA gezielt für Anwendungen einschalten.
+- Installiere nvidia-prime
+{{{class="brush: bash"
+sudo pacman -S nvidia-prime
+}}}
+
+- für Davinci CUDA instalieren
+{{{class="brush: bash"
+sudo pacman -S cuda
+}}}
+
+- Anwendung mit NVIDIA starten
+{{{class="brush: bash"
+prime-run <anwendung>
+}}}

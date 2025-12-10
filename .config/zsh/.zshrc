@@ -32,7 +32,7 @@ source "$ZAP_DIR/zap.zsh"
 # Plugins laden mit Zap
 plug "zsh-users/zsh-syntax-highlighting"
 # plug "zsh-users/zsh-autosuggestions"
-plug "jeffreytse/zsh-vi-mode"  # Vi-mode mit allem drum und dran
+# plug "jeffreytse/zsh-vi-mode"  # DEAKTIVIERT: Verursacht j-Latenz! und hört auf jeden Tastendruck...
 
 # ============================================================================
 # PROMPT PLUGINS - Wähle EINEN aus (oder keinen für Fallback)
@@ -40,8 +40,8 @@ plug "jeffreytse/zsh-vi-mode"  # Vi-mode mit allem drum und dran
 plug "woefe/git-prompt.zsh"             # Simpel, nur Git-Info, sehr schnell, mit SARBS-Prompt
 
 # --- Minimalistische Prompts ---
-# plug "zap-zsh/zap-prompt"        # ⚡➜ ~ Der Standard Zap Prompt
-# plug "zap-zsh/cloud-prompt"      # ☁️ Cloud-themed Prompt
+# plug "zap-zsh/zap-prompt"             # ⚡➜ ~ Der Standard Zap Prompt
+# plug "zap-zsh/cloud-prompt"           # ☁️ Cloud-themed Prompt
 # plug "geometry-zsh/geometry"          # Minimal, konfigurierbar
 # plug "agkozak/agkozak-zsh-prompt"     # Minimal aber informativ, async
 
@@ -63,7 +63,7 @@ plug "woefe/git-prompt.zsh"             # Simpel, nur Git-Info, sehr schnell, mi
 
 plug "Aloxaf/fzf-tab"                   # Tab-Completion mit fzf (mega cool!)
 # plug "unixorn/fzf-zsh-plugin"             # FZF Integration - lädt Keybindings & Completion! (problematisch!)
-plug "agkozak/zsh-z"                  # Pure Zsh Implementation von z (keine Dependencies!)
+# plug "agkozak/zsh-z"                  # Pure Zsh Implementation von z (keine Dependencies!)
 # plug "wfxr/forgit"                      # Git mit fzf Interface (git add -i auf Steroiden!)
 # plug "paulirish/git-open"             # 'git open' öffnet Repo im Browser
 plug "MichaelAquilina/zsh-you-should-use"  # Erinnert dich an Aliases die du hast!
@@ -163,23 +163,32 @@ fi
 # --- Woefe Git-Prompt ---
 if command -v gitprompt &> /dev/null; then
     # Git-Prompt Konfiguration (Nerd Font Symbole)
-    ZSH_GIT_PROMPT_SHOW_UPSTREAM="full"
-    ZSH_GIT_PROMPT_SHOW_STASH=1
-    ZSH_THEME_GIT_PROMPT_PREFIX="%{$fg_bold[magenta]%} "
+    # Nutzt ANSI-Farben (0-15) statt benannte Farben - kompatibel mit hellwal!
+    ZSH_GIT_PROMPT_SHOW_UPSTREAM="no"                                       # no full
+    ZSH_THEME_GIT_PROMPT_PREFIX=""
     ZSH_THEME_GIT_PROMPT_SUFFIX=""
-    ZSH_THEME_GIT_PROMPT_SEPARATOR=" "
-    ZSH_THEME_GIT_PROMPT_BRANCH="⎇ "
-    ZSH_THEME_GIT_PROMPT_STAGED="%{$fg[green]%}✓"
-    ZSH_THEME_GIT_PROMPT_CONFLICTS="%{$fg[red]%}✖"
-    ZSH_THEME_GIT_PROMPT_CHANGED="%{$fg[yellow]%}✚"
-    ZSH_THEME_GIT_PROMPT_UNTRACKED="%{$fg[cyan]%}…"
-    ZSH_THEME_GIT_PROMPT_STASHED="%{$fg[blue]%}⚑"
-    ZSH_THEME_GIT_PROMPT_BEHIND="%{$fg[red]%}↓"
-    ZSH_THEME_GIT_PROMPT_AHEAD="%{$fg[green]%}↑"
+    ZSH_THEME_GIT_PROMPT_SEPARATOR=""
+    ZSH_THEME_GIT_PROMPT_DETACHED="%{$fg_bold[cyan]%}:"
+    ZSH_THEME_GIT_PROMPT_BRANCH=""                                         # 
+    ZSH_THEME_GIT_PROMPT_UPSTREAM_SYMBOL="⟳ "
+    ZSH_THEME_GIT_PROMPT_UPSTREAM_PREFIX="%{$fg[red]%}(%{$fg[yellow]%}"
+    ZSH_THEME_GIT_PROMPT_UPSTREAM_SUFFIX="%{$fg[red]%})"
+    ZSH_THEME_GIT_PROMPT_BEHIND="↓"
+    ZSH_THEME_GIT_PROMPT_AHEAD="↑"
+    ZSH_THEME_GIT_PROMPT_UNMERGED="✖ "
+    ZSH_THEME_GIT_PROMPT_STAGED="●"
+    ZSH_THEME_GIT_PROMPT_UNSTAGED="✚"
+    ZSH_THEME_GIT_PROMPT_UNTRACKED="…"
+    ZSH_THEME_GIT_PROMPT_STASHED="⚑"
+    ZSH_THEME_GIT_PROMPT_CLEAN="✔ "
 
-    # Prompt mit git-prompt.zsh (einzeilig)
-    PROMPT="%B%{$fg[magenta]%}%n@%m%{$reset_color%} %(?:%{$fg_bold[green]%}➜:%{$fg_bold[red]%}✗) %{$fg[cyan]%}%c%{$reset_color%} "
-    RPROMPT='$(container_status)$(gitprompt)%B%F{cyan} [%*]%b%f'
+
+    # Prompt (hellwal-kompatibel mit ANSI-Farben 0-15)
+    # %F{N} = Farbe N, %f = Farbe reset, %B = bold, %b = bold reset
+    PROMPT="%F{5}%n%f%F{2}@%f%F{4}%m%f %(?:%B%F{2}➜%f%b:%B%F{1}✗%f%b) %B%F{6}%c%f%b "
+
+    RPROMPT='$(container_status)$(gitprompt)%F{6}[%*]%f'
+    #                                        └─6=cyan, normal (kein %B)
 fi
 
 # --- Agkozak Prompt ---
@@ -207,21 +216,21 @@ if command -v starship &> /dev/null; then
     eval "$(starship init zsh)"
 fi
 
-# ============================================================================
-# Fallback Prompt (bereinigt)
-# ============================================================================
-
-# Minimal Fallback - nur wenn KEIN Prompt-Plugin geladen ist
-if [[ -z "$PROMPT" ]] && \
-   ! command -v prompt_pure_setup &> /dev/null && \
-   ! command -v starship &> /dev/null && \
-   [[ -z "$functions[_agkozak_prompt]" ]] && \
-   [[ -z "$functions[zap_prompt]" ]]; then
-
-    # Einfacher Prompt OHNE Git (Plugin-free)
-    PROMPT="%B%{$fg[magenta]%}%n@%m%{$reset_color%} %(?:%{$fg_bold[green]%}➜:%{$fg_bold[red]%}✗) %{$fg[cyan]%}%c%{$reset_color%} "
-    RPROMPT='$(container_status)%B%F{cyan}[%*]%b%f'
-fi
+## ============================================================================
+## Fallback Prompt (bereinigt)
+## ============================================================================
+##
+## Minimal Fallback - nur wenn KEIN Prompt-Plugin geladen ist
+#if [[ -z "$PROMPT" ]] && \
+#   ! command -v prompt_pure_setup &> /dev/null && \
+#   ! command -v starship &> /dev/null && \
+#   [[ -z "$functions[_agkozak_prompt]" ]] && \
+#   [[ -z "$functions[zap_prompt]" ]]; then
+#
+#    # Einfacher Prompt OHNE Git (Plugin-free, hellwal-kompatibel)
+#    PROMPT="%F{5}%n@%m%f %(?:%B%F{2}➜%f%b:%B%F{1}✗%f%b) %B%F{6}%c%f%b "
+#    RPROMPT='$(container_status)%F{6}[%*]%f'
+#fi
 
 # ============================================================================
 # Completion System (erweitert aber KISS)
@@ -263,81 +272,47 @@ zstyle ':completion::complete:*' use-cache 1
 zstyle ':completion::complete:*' cache-path "${XDG_CACHE_HOME:-$HOME/.cache}/zsh"
 
 # ============================================================================
-# Vi-Mode Konfiguration (bereinigt)
+# Vi-Mode Konfiguration (Native Zsh, ohne Plugin!)
 # ============================================================================
 
-# --- Plugin-basierter Vi-Mode (jeffreytse/zsh-vi-mode) ---
-if command -v zvm_version &> /dev/null; then
-    # Vi-Mode Plugin Konfiguration
-    ZVM_VI_INSERT_ESCAPE_BINDKEY=jk
-    ZVM_CURSOR_STYLE_ENABLED=true
+# Native Vi-Mode aktivieren
+bindkey -v
+export KEYTIMEOUT=1  # 10ms Timeout für Multi-Key-Sequenzen
 
-    # Custom Keybindings NACH Plugin-Init
-    zvm_after_init() {
-        # 🔥 ATUIN HIER initialisieren, NACH vi-mode!
-        # eval "$(atuin init zsh --disable-up-arrow)"
-        # eval "$(atuin init zsh)"
+# Cursor-Style ändern je nach Mode (Block im Command, Line im Insert)
+function zle-keymap-select {
+    case $KEYMAP in
+        vicmd)      echo -ne '\e[1 q';;  # Block-Cursor
+        viins|main) echo -ne '\e[5 q';;  # Line-Cursor
+    esac
+}
+zle -N zle-keymap-select
+zle-line-init() { echo -ne '\e[5 q' }  # Start mit Line-Cursor
+zle -N zle-line-init
 
-        # Strg+R explizit binden
-        # bindkey '^r' _atuin_search_widget
-
-        # FZF Keybindings wiederherstellen (werden von vi-mode überschrieben)
-        # Standard: ^T=Dateisuche, ^R=History, Alt+C=cd
-        # Custom: ^F=Dateisuche (statt ^T), ^G=cd (statt Alt+C, da in DWM belegt)
-        bindkey '^f' fzf-file-widget      # Strg+F für Dateisuche
-        bindkey '^r' fzf-history-widget   # Strg+R für History
-        bindkey '^g' fzf-cd-widget        # Strg+G für Verzeichniswechsel (Alt+C in DWM belegt)
-        
-        # Weitere Custom Keybindings
-        bindkey '^e' edit-command-line
-        bindkey -s '^o' '^ulfcd\n'
-        bindkey -s '^a' '^ubc -lq\n'
-    }
-    VI_MODE_PLUGIN_ACTIVE=true
-
-# --- Fallback: Built-in Vi-Mode ---
-elif [[ "$VI_MODE_PLUGIN_ACTIVE" != "true" ]]; then
-    bindkey -v
-    export KEYTIMEOUT=1
-
-    # Cursor-Style
-    function zle-keymap-select {
-        case $KEYMAP in
-            vicmd)      echo -ne '\e[1 q';;
-            viins|main) echo -ne '\e[5 q';;
-        esac
-    }
-    zle -N zle-keymap-select
-    zle-line-init() { echo -ne '\e[5 q' }
-    zle -N zle-line-init
-
-    # Completion Menu Navigation
-    bindkey -M menuselect 'h' vi-backward-char
-    bindkey -M menuselect 'k' vi-up-line-or-history
-    bindkey -M menuselect 'l' vi-forward-char
-    bindkey -M menuselect 'j' vi-down-line-or-history
-fi
+# Vi-Navigation im Completion-Menu
+bindkey -M menuselect 'h' vi-backward-char
+bindkey -M menuselect 'k' vi-up-line-or-history
+bindkey -M menuselect 'l' vi-forward-char
+bindkey -M menuselect 'j' vi-down-line-or-history
 
 # ============================================================================
-# Universal Keybindings (bereinigt)
+# Custom Keybindings
 # ============================================================================
 
-# Zeile in Editor bearbeiten
+# Zeile in Editor bearbeiten (Strg+E)
 autoload edit-command-line
 zle -N edit-command-line
+bindkey '^e' edit-command-line
 
-# Custom Keybindings (falls Plugin sie nicht überschreibt)
-if [[ "$VI_MODE_PLUGIN_ACTIVE" != "true" ]]; then
-    # FZF Keybindings
-    bindkey '^f' fzf-file-widget      # Strg+F für Dateisuche
-    bindkey '^r' fzf-history-widget   # Strg+R für History
-    bindkey '^g' fzf-cd-widget        # Strg+G für Verzeichniswechsel (Alt+C in DWM belegt)
-    
-    # Weitere Custom Keybindings
-    bindkey '^e' edit-command-line
-    bindkey -s '^o' '^ulfcd\n'
-    bindkey -s '^a' '^ubc -lq\n'
-fi
+# FZF Keybindings (Custom, da Alt+C in DWM belegt ist)
+bindkey '^f' fzf-file-widget      # Strg+F für Dateisuche
+bindkey '^r' fzf-history-widget   # Strg+R für History
+bindkey '^g' fzf-cd-widget        # Strg+G für Verzeichniswechsel (Alt+C in DWM belegt)
+
+# Schnellzugriffe
+bindkey -s '^o' '^ulfcd\n'        # Strg+O öffnet lf mit cd-Funktion
+bindkey -s '^a' '^ubc -lq\n'      # Strg+A öffnet bc Calculator
 
 # ============================================================================
 # FZF Integration (Key-Bindings & Completion)
@@ -361,24 +336,9 @@ fi
 # Verzeichnis-Navigation
 setopt autocd                       # Automatisch in Verzeichnisse wechseln
 setopt interactive_comments         # Kommentare in interaktiven Shells
-setopt CORRECT                      # Simple Autokorrektur
+# setopt CORRECT                      # Simple Autokorrektur
 
-# ============================================================================
-# Atuin History - Wichtige Keybindings
-# ============================================================================
-# Installation: bash <(curl --proto '=https' --tlsv1.2 -sSf https://setup.atuin.sh)
-# Config: ~/.config/atuin/config.toml
-# Import alte History: atuin import auto
-#
-# KEYBINDINGS IM ATUIN-UI:
-# Strg+R      - Filter-Modi wechseln (Global → Host → Directory → Session)
-# Pfeiltasten - Durch History navigieren
-# Enter       - Befehl ausführen
-# Tab         - Befehl editieren (nicht ausführen)
-# Esc         - Beenden
-# Strg+O      - Inspect-Modus (Details anzeigen)
-
-# History Konfiguration (wieder aktiviert)
+# History Konfiguration
 HISTSIZE=10000000
 SAVEHIST=10000000
 HISTFILE="${XDG_STATE_HOME:-$HOME/.local/state}/zsh/history"
@@ -403,3 +363,6 @@ setopt inc_append_history       # Sofort schreiben
 
 # Strg-s deaktivieren (Terminal-Freeze verhindern)
 stty stop undef
+# XDG Konforme zoxide konfiguration
+export _ZO_DATA_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/zoxide"
+eval "$(zoxide init zsh)"

@@ -85,7 +85,7 @@ esac
 echo "${icon} "
 
 case $BLOCK_BUTTON in
-	3) notify-send " Mondphasen Modul" "Zeigt die aktuelle Mondphase an.
+	3) notify-send " Mondphasen Modul" "Zeigt die aktuelle Mondphase an.
 
 Phase: ${name}
 

@@ -1,0 +1,81 @@
+# ============================================================================
+# TMUX-RESURRECT INSTALLATION
+# ============================================================================
+# Speichert und restauriert tmux Sessions über Neustarts hinweg
+
+# 1. Plugin installieren (manuell, da du dotfiles nutzt)
+git clone https://github.com/tmux-plugins/tmux-resurrect ~/.tmux/plugins/tmux-resurrect
+
+# ============================================================================
+# ZU DEINER ~/.tmux.conf HINZUFÜGEN:
+# ============================================================================
+
+# --- Tmux Resurrect Plugin laden ---
+run-shell ~/.tmux/plugins/tmux-resurrect/resurrect.tmux
+
+# --- Vim/Neovim Session Unterstützung aktivieren ---
+set -g @resurrect-strategy-vim 'session'
+set -g @resurrect-strategy-nvim 'session'
+
+# --- Programme die wiederhergestellt werden sollen ---
+set -g @resurrect-processes 'ssh vim nvim man less more tail top htop'
+
+# --- WICHTIG: Speicherort für Sessions (optional) ---
+# set -g @resurrect-dir '~/.tmux/resurrect'
+
+# --- Pane-Inhalte wiederherstellen (optional, kann langsam sein) ---
+# set -g @resurrect-capture-pane-contents 'on'
+
+
+# ============================================================================
+# USAGE / KEYBINDINGS
+# ============================================================================
+# Ctrl-y Ctrl-s   - Session SPEICHERN
+# Ctrl-y Ctrl-r   - Session WIEDERHERSTELLEN
+#
+# Die Sessions werden in ~/.tmux/resurrect/ gespeichert
+
+
+# ============================================================================
+# FÜR NEOVIM: Session-Plugin empfohlen
+# ============================================================================
+# Damit Neovim Sessions automatisch gespeichert werden:
+# Plugin: 'tpope/vim-obsession' oder 'rmagatti/auto-session'
+#
+# In deiner Neovim Config (init.lua oder init.vim):
+#
+# --- Mit vim-obsession (manuell) ---
+# Packer/Lazy: use 'tpope/vim-obsession'
+# Im Vim: :Obsess  (startet Session-Tracking)
+#
+# --- Mit auto-session (automatisch, empfohlen!) ---
+# Packer/Lazy: use 'rmagatti/auto-session'
+# require('auto-session').setup({
+#   log_level = 'error',
+#   auto_session_suppress_dirs = { '~/', '~/Downloads', '/'},
+# })
+#
+# Dann speichert Neovim automatisch Sessions beim Schließen!
+
+
+# ============================================================================
+# OPTIONAL: TMUX-CONTINUUM (Automatisches Speichern)
+# ============================================================================
+# Speichert automatisch alle 15 Minuten
+#
+# git clone https://github.com/tmux-plugins/tmux-continuum ~/.tmux/plugins/tmux-continuum
+#
+# In ~/.tmux.conf hinzufügen:
+# run-shell ~/.tmux/plugins/tmux-continuum/continuum.tmux
+# set -g @continuum-restore 'on'  # Automatisch beim tmux-Start wiederherstellen
+# set -g @continuum-save-interval '15'  # Alle 15 Minuten speichern
+
+
+# ============================================================================
+# TIPPS
+# ============================================================================
+# 1. Vor dem Neustart: Ctrl-y Ctrl-s drücken
+# 2. Nach dem Neustart: tmux starten, dann Ctrl-y Ctrl-r
+# 3. Neovim öffnet automatisch die letzte Session (mit auto-session Plugin)
+# 4. SSH-Verbindungen müssen neu aufgebaut werden
+# 5. Programme wie htop, less etc. werden mit Standardparametern neu gestartet
