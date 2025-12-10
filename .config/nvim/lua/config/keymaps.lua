@@ -111,3 +111,6 @@ map('n', '<leader>gL', ':botright 20split | term git log --oneline --graph --dec
 map('n', '<leader>gb', ':!git blame %<CR>', { desc = "Git blame current file" })
 map('n', '<leader>gh', ':!git log -p -1 %<CR>', { desc = "Git history current file" })
 map('n', '<leader>t', '<Cmd>ToggleTerm<CR>', { desc = "Toggle Terminal" })
+
+-- Which-key manuell öffnen
+map('n', '<leader>ß', '<Cmd>WhichKey<CR>', { desc = "Zeige alle Keybindings" })
