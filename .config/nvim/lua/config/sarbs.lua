@@ -51,6 +51,9 @@ function M.apply_transparency()
   vim.api.nvim_set_hl(0, "Pmenu", { bg = "NONE", ctermbg = "NONE" })
   vim.api.nvim_set_hl(0, "PmenuSbar", { bg = "NONE", ctermbg = "NONE" })
 
+  -- ColorColumn: Theme-unabhängig mit Underline
+  vim.api.nvim_set_hl(0, "ColorColumn", { bg = "NONE", ctermbg = "NONE", underline = true })
+
   -- Plugin-spezifische Transparenz
   vim.api.nvim_set_hl(0, "NvimTreeNormal", { bg = "NONE", ctermbg = "NONE" })
   vim.api.nvim_set_hl(0, "NvimTreeEndOfBuffer", { bg = "NONE", ctermbg = "NONE" })
