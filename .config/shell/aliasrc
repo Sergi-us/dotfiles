@@ -73,8 +73,9 @@ alias \
 #    alias la='ls -a'
 #    alias lla='ls -la'
 #    alias lt='ls --tree'
-   alias ls="ls -hN --color=auto --group-directories-first"
-#   alias lsd="lsd -a --color=auto --group-directories-first"
+    alias l="ls_extended -h -s -I"
+    alias ls="ls -hN --color=auto --group-directories-first"
+    alias lsd="lsd -a --color=auto --group-directories-first"
 
 
 # Befehle mit Farbausgabe (wenn möglich)
@@ -101,6 +102,10 @@ alias \
 alias ref="shortcuts >/dev/null; source ${XDG_CONFIG_HOME:-$HOME/.config}/shell/shortcutrc ; source ${XDG_CONFIG_HOME:-$HOME/.config}/shell/zshnameddirrc"
 
 alias wetter="less -S ${XDG_CACHE_HOME:-$HOME/.cache}/weatherreport" \
+
+alias \
+    aquarium="asciiquarium" \
+    bonsai="cbonsai"
 
 # Standby
 alias standby="systemd-inhibit --what=handle-lid-switch --why='Musik hören' sleep infinity"

@@ -14,6 +14,7 @@ cf-zsh			$ZDOTDIR/.zshrc												# zsh (shell) config
 cf-aliasrc		${XDG_CONFIG_HOME:-$HOME/.config}/shell/aliasrc				# aliases für zsh
 cf-profile		${XDG_CONFIG_HOME:-$HOME/.config}/shell/profile				# profile für login settings
 cf-inputrc		${XDG_CONFIG_HOME:-$HOME/.config}/shell/inputrc				# readline config
+cf-fastfetch    ${XDG_CONFIG_HOME:-$HOME/.config}/fastfetch/config.jsonc
 
 # Editor
 cf-nvim			${XDG_CONFIG_HOME:-$HOME/.config}/nvim/init.lua				# neovim config
@@ -27,13 +28,13 @@ cf-lsd			${XDG_CONFIG_HOME:-$HOME/.config}/lsd/config.yaml			# lsd (ls alternati
 
 # Media
 cf-mpd			${XDG_CONFIG_HOME:-$HOME/.config}/mpd/mpd.conf				# music player daemon
-cf-ncmpcpp		${XDG_CONFIG_HOME:-$HOME/.config}/ncmpcpp/config				# ncmpcpp (mpd client)
+cf-ncmpcpp		${XDG_CONFIG_HOME:-$HOME/.config}/ncmpcpp/config			# ncmpcpp (mpd client)
 cf-rmpc			${XDG_CONFIG_HOME:-$HOME/.config}/rmpc/config.ron			# rmpc (mpd client)
-cf-mpv			${XDG_CONFIG_HOME:-$HOME/.config}/mpv/input.conf				# mpv keybindings
+cf-mpv			${XDG_CONFIG_HOME:-$HOME/.config}/mpv/input.conf			# mpv keybindings
 
 # Internet & Kommunikation
 cf-newsraft		${XDG_CONFIG_HOME:-$HOME/.config}/newsraft/config			# newsraft (RSS reader)
-cf-feeds		${XDG_CONFIG_HOME:-$HOME/.config}/newsraft/feeds				# RSS feeds
+cf-feeds		${XDG_CONFIG_HOME:-$HOME/.config}/newsraft/feeds			# RSS feeds
 cf-qutebrowser	${XDG_CONFIG_HOME:-$HOME/.config}/qutebrowser/config.py		# qutebrowser
 cf-tut			${XDG_CONFIG_HOME:-$HOME/.config}/tut/config.toml			# tut (mastodon client)
 
