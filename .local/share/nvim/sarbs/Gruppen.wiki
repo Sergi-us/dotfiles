@@ -1,0 +1,25 @@
+ = Gruppen =
+
+== Gruppen sind Sammlungen von Benutzern, die ähnliche Rechte teilen ==
+
+== Jeder Benutzer gehört mindestens einer primären Gruppe ==
+    `wheel`
+    in SARBS gibt es noch die Gruppe `backup_users` die für Automatische Backups verantwortlich ist!
+
+Gruppenrechte ermöglichen es, Ressourcen (z. B. Dateien) für mehrere Benutzer freizugeben
+
+== Gruppenverwaltung ==
+
+{{{
+# Gruppen anzeigen
+groups
+
+# Gruppe erstellen
+sudo groupadd groupname
+
+# Gruppe löschen
+sudo groupdel groupname
+
+# Benutzer einer Gruppe anzeigen
+groups username
+}}}

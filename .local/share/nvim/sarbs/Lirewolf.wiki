@@ -1,0 +1,14 @@
+ = Librewolf =
+[[syntax]]
+== GPU unterstützung für Librewolf aktivieren ==
+Prüfen, ob GPU-Beschleunigung aktiv ist:
+{{{class="brush: bash"
+about:support
+Grafik -> GPU -> Aktiv?
+}}}
+
+GPU-Beschleunigung manuell aktivieren:
+{{{class="brush: bash"
+about:config
+gfx.webrender.all -> true
+}}}

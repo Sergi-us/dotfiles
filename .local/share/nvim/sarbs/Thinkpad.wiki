@@ -1,0 +1,137 @@
+= Power-Tools auf dem ThinkPad =
+
+Diese Seite dokumentiert die Einrichtung und Funktion der wichtigsten Powermanagement-Tools
+auf meinem T480. Ziel: leisere Kühlung, bessere Akkupflege und Schutz vor künstlicher CPU-Drossel.
+
+TODO intel-undervolt einrichten und testen
+
+== Tools zum Testen ==
+btop
+s-tui
+
+== TLP ==
+* Paket: `tlp`
+{{{
+sudo pacman -S tlp
+}}}
+* Service:
+{{{
+systemctl enable --now tlp.service
+systemctl enable --now tlp-sleep.service
+}}}
+* Konfig-Datei:
+{{{
+sudo nvim /etc/tlp.conf
+}}}
+* Wichtige Features:
+  - Akku-Ladegrenzen setzen (ThinkPads)
+  - Energiesparen für USB, PCIe, Audio, SATA
+  - CPU-Governor-Wechsel (Akku = powersave, Netz = performance)
+
+Status prüfen:
+{{{
+# manpage
+man tlp-stat
+# Alles anzeigen
+sudo tlp-stat
+# Batterie
+sudo tlp-stat -b
+# Grafik
+sudo tlp-stat -g
+# Aktueller Modus
+sudo tlp-stat -b
+sudo tlp-stat -b
+sudo tlp-stat -b
+}}}
+
+Persönliche Konfiguration anzeigen:
+{{{
+sudo tlp-stat --cdiff
+}}}
+
+
+Beispiel Ladegrenzen (in `/etc/tlp.conf`):
+{{{
+START_CHARGE_THRESH_BAT0=40
+STOP_CHARGE_THRESH_BAT0=80
+}}}
+
+von tlp angezeigte Empfehlungen:
+{{{
+pacman -S ethtool smartmontools
+}}}
+
+=== ThinkPad-Bonus von TLP ===
+
+==== Recalibration (Akkukalibrierung) ====
+Nur gelegentlich machen (z. B. wenn die Anzeige spinnt oder neue Akkus eingebaut werden).
+Jeder komplette Zyklus stresst den Akku.
+Auslösen über
+{{{
+tlp recalibrate
+sudo tlp recalibrate BAT1
+}}}
+
+==== Charge thresholds (Ladegrenzen) ====
+Du kannst mit `START_CHARGE_THRESH_BAT0` und `STOP_CHARGE_THRESH_BAT0` einstellen,
+ab welchem Prozentsatz geladen wird und wann das Laden aufhört.
+
+{{{
+START_CHARGE_THRESH_BAT0=40
+STOP_CHARGE_THRESH_BAT0=80
+}}}
+
+== throttled ==
+---
+Es gibt auch in C Geschriebens Packet, wird aber schlechter gepflegt...
+* Paket: `throttled` (Python-Daemon)
+* Service:
+  - `systemctl enable --now throttled.service`
+* Zweck:
+  - Umgeht Intels aggressive Power-Limits auf ThinkPads
+  - Verhindert unnötiges Runtertakten bei mittleren Temperaturen
+* Konfig: meist nicht nötig, Defaults sind gut
+* Status:
+{{{
+systemctl status throttled.service
+}}}
+
+== thinkfan ==
+* Paket: `thinkfan`
+* Services:
+  - `systemctl enable --now thinkfan.service`
+  - `systemctl enable --now thinkfan-sleep.service`
+  - `systemctl enable --now thinkfan-wakeup.service`
+* Zweck:
+  - Eigene Lüfterkurve statt der konservativen EC-Firmware
+  - Läuft leise im Idle, dreht erst bei >75°C hoch
+* ACPI-Interfaces:
+  - Lüfter: `/proc/acpi/ibm/fan`
+  - Sensoren: `/proc/acpi/ibm/thermal` oder `/sys/class/hwmon/...`
+* Beispiel-Konfig `/etc/thinkfan.conf`:
+{{{
+tp_thermal /proc/acpi/ibm/thermal
+tp_fan     /proc/acpi/ibm/fan
+
+(0,	0,	42)
+(1,	40,	47)
+(2,	45,	52)
+(3,	50,	57)
+(4,	55,	62)
+(5,	60,	67)
+(6,	65,	72)
+(7,	70,	77)
+(127,	75,	32767) # Wichtig: diese Zeile (127 = "disengaged" d.h. ungeregelt) sorgt für volle Lüfterdrehzahl
+}}}
+
+TODO Habe die Temperaturkurve um 10° angehoben
+
+Test (ohne Änderung, nur Logik):
+{{{
+sudo thinkfan -n -c /etc/thinkfan.conf
+}}}
+
+== thinkfan-tui ==
+* Paket: `thinkfan-tui`
+* kein Deamon, läuft mit sudo
+* einfach ne tui für thinkfan für test und feeling

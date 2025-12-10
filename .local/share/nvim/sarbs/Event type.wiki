@@ -1,0 +1,16 @@
+[[index]]
+
+== Liste Eventtypen ==
+
+| ~~Type~~ | Bezeicnung | Beschreibung                              |
+| ----     | ----       | ----                                      |
+| ~~0~~    | EV_SYN     | Signal zum abschließen von Events         |
+| ~~1~~    | EV_KEY     | Tastenaktionen (valiue=0,1 oder 2)        |
+| ~~2~~    | EV_REL     | relative Bewegungen                       |
+| ~~3~~    | EV_ABS     | absolute Positionsdaten                   |
+| ~~4~~    | EV_MSC     | Miscellaneous Events mit [[Scancodes]]    |
+| ~~5~~    | EV_SW      |                                           |
+| ~~17~~   | EV_LED     |                                           |
+| ~~20~~   | EV_REP     | Wiederholungsrate von Tasten (Autorepeat) |
+|          |            |                                           |
+|          |            |                                           |

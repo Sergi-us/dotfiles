@@ -95,8 +95,8 @@ alias \
     trem="transmission-remote" \
     YT="youtube-viewer" \
     sdn="shutdown -h now" \
-    z="zathura" \
     wm="wikiman"
+# za="zathura" \
 
 alias ref="shortcuts >/dev/null; source ${XDG_CONFIG_HOME:-$HOME/.config}/shell/shortcutrc ; source ${XDG_CONFIG_HOME:-$HOME/.config}/shell/zshnameddirrc"
 

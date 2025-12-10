@@ -1,0 +1,5 @@
+Installiere und starte acpid, wenn du ACPI-Ereignisse (z. B. Laptop-Deckel schließen) benötigst:
+{{{
+sudo pacman -S acpid
+sudo systemctl enable --now acpid
+}}}

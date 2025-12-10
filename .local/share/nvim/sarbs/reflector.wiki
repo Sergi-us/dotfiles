@@ -1,0 +1,12 @@
+
+{{{
+sudo pacman reflector
+sudo reflector --latest 100 --protocol https --sort rate --number 5 --save /etc/pacman.d/mirrorlist
+sudo reflector --latest 100 --country Germany --age 12 --protocol https --sort rate --number 10 --save /etc/pacman.d/mirrorlist
+}}}
+
+`--latest 100`            Testet die letzten 100 aktualisierten Mirrors.
+`--protocol https`        Nutzt ausschließlich HTTPS-Mirrors.
+`--sort rate`             Sortiert die Mirrors nach ihrer Geschwindigkeit.
+`--number 5`              Übernimmt nur die 5 schnellsten Mirrors.
+`--save /etc/pacman.d/mirrorlist`    Speichert die optimierte Liste in der Mirrorlist-Datei, die von Pacman verwendet wird.

@@ -1,0 +1,35 @@
+ = Gruppeneinrichtung für KVM =
+
+Scenario: Nur ein Nutzer der KVM nutzt
+
+{{{
+# Benutzer zur KVM-Gruppe hinzufügen
+sudo usermod -aG kvm sergi
+
+# Überprüfen, ob der Benutzer in der Gruppe ist:
+groups sergi
+
+# Ressourcenrechte prüfen für /dev/kvm
+# Sollte so aussehen: crw-rw---- 1 root kvm ...
+ls -l /dev/kvm
+}}}
+
+| Bereich                  | Besitzer | Gruppe | Zugriff | Zweck                      |
+| ----                     | ----     | ----   | ----    | ----                       |
+| /dev/kvm                 | root     | kvm    | 660     | Devices                    |
+| /dev/bus/usb/            | root     | kvm    | 660     | USB                        |
+| /dev/dri/                | root     | kvm    | 660     | GPU                        |
+| /var/lib/libvirt/images/ | sergi    | kvm    | 660     | *.qcow2                    |
+| ~/vm-disks/              | sergi    | kvm    | 700     | Nutzer Festplatten (qcow2) |
+| /var/lib/libvirt/boot/   | sergi    | kvm    | 700     |                            |
+| ~/vm-media/              | sergi    | kvm    | 700     | Geteilter Speicher         |
+| /etc/libvirt/            | root     | root   | 644     |                            |
+| /var/log/libvirt/        | root     | adm    | 640     |                            |
+
+
+
+
+== Multi-User-Szenarien ==
+zukunftsmusik
+
+Aber grundsätzlich muss in "Projekten" gedacht werden und diese Projekte werden in eigenen Gruppen abgebildet...

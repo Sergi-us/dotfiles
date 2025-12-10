@@ -1,0 +1,17 @@
+ = Rechteverwaltung =
+
+== Besitz einer Datei ==
+Jede Datei hat einen Besitzer (Benutzer) und eine Gruppe.
+Zugriffsrechte: Lesen (r), Schreiben (w), Ausführen (x).
+Rechte für Besitzer, Gruppe und andere.
+
+Rechteschema (Symbolisch und Oktal):
+Beispiel: -rwxr-xr-- entspricht 0754.
+Oktalnotation:
+*7* = Lesen (4) + Schreiben (2) + Ausführen (1).
+*6* = Lesen (4) + Schreiben (2)
+5 = Lesen (4) + Ausführen (1).
+*4* = Lesen (4)
+3 = Schreiben (2) + Ausführen (1)
+2 = Schreiben (2)
+1 = Ausführen (1)

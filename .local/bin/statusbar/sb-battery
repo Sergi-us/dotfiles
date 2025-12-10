@@ -206,50 +206,50 @@ get_all_batteries_info() {
 get_battery_symbol() {
     capacity=$1
     if [ "$capacity" -le 10 ]; then
-        echo "󰂃 "
+        echo "󰂃"
     elif [ "$capacity" -le 20 ]; then
-        echo "󰁺 "
+        echo "󰁺"
     elif [ "$capacity" -le 30 ]; then
-        echo "󰁻 "
+        echo "󰁻"
     elif [ "$capacity" -le 40 ]; then
-        echo "󰁼 "
+        echo "󰁼"
     elif [ "$capacity" -le 50 ]; then
-        echo "󰁽 "
+        echo "󰁽"
     elif [ "$capacity" -le 60 ]; then
-        echo "󰁾 "
+        echo "󰁾"
     elif [ "$capacity" -le 70 ]; then
-        echo "󰁿 "
+        echo "󰁿"
     elif [ "$capacity" -le 80 ]; then
-        echo "󰂀 "
+        echo "󰂀"
     elif [ "$capacity" -le 90 ]; then
-        echo "󰂁 "
+        echo "󰂁"
     else
-        echo "󰁹 "
+        echo "󰁹"
     fi
 }
 
 get_battery_symbol_charger() {
     capacity=$1
     if [ "$capacity" -le 10 ]; then
-        echo "󰢜 "
+        echo "󰢜"
     elif [ "$capacity" -le 20 ]; then
-        echo "󰂆 "
+        echo "󰂆"
     elif [ "$capacity" -le 30 ]; then
-        echo "󰂇 "
+        echo "󰂇"
     elif [ "$capacity" -le 40 ]; then
-        echo "󰂈 "
+        echo "󰂈"
     elif [ "$capacity" -le 50 ]; then
-        echo "󰢝 "
+        echo "󰢝"
     elif [ "$capacity" -le 60 ]; then
-        echo "󰂉 "
+        echo "󰂉"
     elif [ "$capacity" -le 70 ]; then
-        echo "󰢞 "
+        echo "󰢞"
     elif [ "$capacity" -le 80 ]; then
-        echo "󰂊 "
+        echo "󰂊"
     elif [ "$capacity" -le 90 ]; then
-        echo "󰂋 "
+        echo "󰂋"
     else
-        echo "󰂅 "
+        echo "󰂅"
     fi
 }
 

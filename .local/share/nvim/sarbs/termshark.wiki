@@ -1,0 +1,38 @@
+ = termshark =
+
+tshark und termshark sind beides Kommandozeilen-basierte Netzwerk-Analysewerkzeuge, die eng mit Wireshark verwandt sind:
+tshark ist quasi die Kommandozeilen-Version von Wireshark. Es ermöglicht:
+
+Echtzeit-Aufzeichnung von Netzwerkverkehr
+Analyse von bereits aufgezeichneten Capture-Dateien (.pcap)
+Anwendung von Filterfunktionen wie in Wireshark
+Export der Ergebnisse in verschiedene Formate
+Automatisierung durch Skripte
+
+termshark ist eine Terminal-UI für tshark, die die Bedienung deutlich benutzerfreundlicher macht:
+
+Bietet eine textbasierte aber interaktive Benutzeroberfläche
+Ähnelt vom Layout her Wireshark
+Ermöglicht Navigation durch Pakete mit der Tastatur
+Zeigt Paketdetails hierarchisch an
+Unterstützt Wireshark-ähnliche Filterfunktionen
+
+Beide Tools sind besonders nützlich für:
+
+Server ohne grafische Oberfläche
+Automatisierte Netzwerkanalysen
+Performance-kritische Umgebungen
+Remote-Analysen über SSH
+
+{{{class="brush: bash"
+sudo termshark -i <interface>
+}}}
+
+um das Interface herauszufinden:
+
+{{{class="brush: bash"
+sudo termshark -D
+}}}
+
+😀 viel spaß...
+[[index]]

@@ -1,0 +1,145 @@
+[[index]]
+ = Überschrift =
+Falls du eine Taste in Linux ändern willst, musst du dich etwas mit der Theorie
+auseiandersetzen.
+Was Passiert wenn wir eine Taste Drücken?
+=== 1. Hardware-Ebene ===
+- Signal-*Generierung:* (Scancode wird erzeugt)
+	- Wenn du eine Taste drückst, sendet die Tastatur ein elektrisches Signal
+	  an den Computer.
+	- Jede Taste hat einen spezifischen `Scancode`, der das Drücken, oder
+	  Loslassen der Taste beschreibt.
+=== 2. Kernel-Ebene ===
+- *Zuweisung:* Scancode wird vom *Kernel-Eingabemodul* (`evdev`) Interpretiert
+	- ein Tastendruck auf `Druck` erzeugt den Scancode^(value)^ `b7`
+- *Mapping* zu einem Keycode:
+	- Der Kernel übersetzt den `scancode` in einen `ceycode`, dieser ist hardwareunabhängig)
+
+In der Kernel-Ebene werden deine Tasteneingaben erfasst übersetzt und es wird ein Tastencode ausgegeben!
+
+Schauen wir uns mal ein *Event* am beispiel "a" an:
+	{{{class="brush:bash"
+	sudo pacman evtest
+	evtest > evtest_00.txt
+	a
+	}}}
+mit `Strg+c` oder `Ctrl+c` beenden.
+	{{{class="brush:bash"
+nvim evtest.txt
+	}}}
+
+| Zeitstempel            | Typ (type)      | Code              | Value    |
+|------------------------|-----------------|-------------------|----------|
+| time 1732534251.711735 | type 4 (EV_MSC) | code 4 (MSC_SCAN) | value 1e |
+| time 1732534251.711735 | type 1 (EV_KEY) | code 30 (KEY_A)   | value 0  |
+| time 1732534251.711735 | ----            | ~SYN_REPORT~      | -----    |
+
+- *Allgemeiner Aufbau der Ereignisse*
+	- *Zeitstempel:* im Unix-Format (Sekunden seit 1. Januar 1970), wann das Ereignis erkannt wurde.
+	- *Typ (type):* Welche Art von Ereignis es ist (z. B. Taste, Mausbewegung, etc.).
+	- *Code:* Der spezifische Code des Ereignisses (z. B. welche Taste).
+	- *Value:* Der Wert, der angibt, ob die Taste gedrückt, gehalten oder losgelassen wurde.
+	- *SYN_REPORT*: Synchronisations-Ereignis, das angibt, dass alle vorherigen Ereignisse zu einer logischen Eingabegruppe gehören. Das ist das Ende eines vollständigen Berichts.
+
+[[Event type]]
+[[Scancodes]]
+
+=== 3. Geräteebene -> Filterung/Modifikation *udev-regeln* ===
+- custom keymaps:
+	- mit `udev` kannst du die übersetzung von scancode zu keycode ändern.
+	- _beispiel:_ b7 direkt zu menu mappen.
+
+xev
+xev | awk -F'[ )]+' '/^KeyPress/ { a[NR+2] } NR in a { printf "%-3s %s\n", $5, $8 }'
+showkey --keycodes (tty ohne Display-Server)
+dmesg (erkennt unbekannte Tasten)
+https://wiki.archlinux.org/title/Keyboard_input
+=== unterschiede ===
+*hwdb-mapping:*
+	- anpassung der scancode -> keycode zuordnung in der hardware-datenbank
+	- Änderungen wirken sich auf die grundlegende Funktionalität der Tastatur aus.
+	- eine eigene konfiguration überschreibt die vom kernel standartmäßige zuordnung der Tasten
+	- greift nach dem laden des kernels
+	- Vorsicht bei kritischen Tasten: Wenn das Mapping falsch ist, könntest du Probleme bei der Passwort-Eingabe bekommen.
+
+*udev-regeln:*
+	- anpassung oder filterung von geräteereignisse.
+	- oft geräteabhängig
+	- kann geräte blockieren, ereignisse modifizieren oder skripte auslösen.
+	- Direkt nach der Hardware-Erkennung, bevor Events an das Eingabesystem weitergegeben werden.
+
+=== anpassung ===
+
+		- prüfe die tastenbelegung mit `evtest`
+=== 3. tastatur-mapping mit hwdb ===
+
+	{{{class="brush:bash"
+nvim evtest.txt
+	}}}
+
+darin befinden sich:
+*Input device ID:* bus 0x3 vendor 0x17ef product 0x6047 version 0x100
+*Input device name:* "Lenovo ThinkPad Compact USB Keyboard with TrackPoint"
+
+
+
+	{{{class="brush:bash"
+	sudo nvim /etc/udev/hwdb.d/99-Mein-keyboard.hwdb
+	evdev:atkbd:dmi:*			# Sollte alle eingebauten Tastaturen abdecken
+	 KEYBOARD_KEY_b7=rightmeta	# T480-DE Drucktaste --> Mod-R
+	 KEYBOARD_KEY_3e=leftmeta	# T480-de CapsLock -> esc
+	}}}
+speichern und vim verlassen
+
+
+	{{{class="brush:bash"
+	sudo nvim /etc/udev/hwdb.d/99-USB-keyboard.hwdb
+	endev:input:*					# Thinkpad USB Tastatur eigenschaften über
+	 ID_VENTOR_ID=17ef				# entspricht ventor0x17ef
+	 ID_VENTOR_ID=6047				# entspricht product 0x6047
+	 KEYBOARD_KEY_70046=rightmeta	# Thinkpad USB Tastatur PrtSc -> Mod-R
+	 KEYBOARD_KEY_70039=leftmeta	# Thinkpad USB Tastatur PrtSc -> Mod-R
+	}}}
+speichern und vim verlassen
+	{{{class="brush:bash"
+	sudo systemd-hwdb update
+	sudo udevadm trigger
+	}}}
+einstellungen mit `evtest` überprüfen
+
+*Weitere Infos*
+weitere Filter in `man hwdb` beschrieben.
+[[https://man.archlinux.org/man/hwdb.7.de|Arch-Linux manpages online]]
+
+=== 4. display-server (x11/wayland) ===
+- übersetzung durch den x-server
+	- keycodes werden in keysyms (zb. xk_super_l) übersetzt, die vom betriebssystem oder x11/wayland interpretiert werden.
+	- beispiel: keycode 99 wird als print oder sysrq interpretiert.
+- *keymap-konfiguration:*
+	- kann durch tools wie *setxkbmap* oder *xmodmap* angepasst werden.
+	- beispiel: du kannst keycode 99 auf menu setzen.
+
+
+setxkbmap
+setxkbmap -print -verbose 10
+xkblayout-state-git
+xkb-switch-git
+
+=== 5. anwendungsebene ===
+- interpretation durch programme:
+	- die anwendung interpretiert den keypress entsprechend ihrer konfiguration.
+	- beispiel:
+		- ein screenshot-tool reagiert auf print.
+		- ein fenster-manager reagiert auf menu.
+
+== lösung ==
+
+hardwareebene
+
+kernel-ebene
+
+
+
+[[geschichte von key_sysrq]]
+
+[[index]]

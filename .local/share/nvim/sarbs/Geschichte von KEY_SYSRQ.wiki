@@ -1,0 +1,17 @@
+== Geschichte von KEY_SYSRQ ==
+
+Die "System Request" (SysRq)-Taste stammt aus der IBM-PC-Ära und wurde ursprünglich auf Tastaturen als Alternative für Betriebssystem-interne Debugging- und Steuerungsfunktionen eingeführt.
+Sie war Teil des "Print Screen/SysRq"-Doppelfunktionsdesigns, bei dem die Taste je nach Software oder Betriebssystem unterschiedlich interpretiert wird.
+Kernel-Funktion in Linux:
+
+Unter Linux ist KEY_SYSRQ mit dem SysRq-Magic-Key verbunden, einer Debugging-Funktion des Linux-Kernels.
+Wenn aktiviert, erlaubt es dem Benutzer, spezielle Systembefehle direkt über die Tastatur auszuführen, selbst wenn das System hängt oder nicht reagiert.
+Beispiel: Alt + SysRq + B startet das System sofort neu.
+In der X11-Welt (Keysym):
+
+In grafischen Umgebungen wie X11 wird der Keysym KEY_SYSRQ oft ignoriert oder für die Funktion Print Screen verwendet.
+Dabei ist die eigentliche Bedeutung von SysRq meist deaktiviert, da die Taste vorrangig für Screenshots genutzt wird.
+Bedeutung des Scancodes und Keysyms:
+
+Scancode: Der vom Hardware-Treiber erfasste Rohwert (z. B. b7).
+Keysym: Die Interpretation der Taste durch die Software (z. B. KEY_SYSRQ), die in X11 oder durch den Kernel zugeordnet wird.

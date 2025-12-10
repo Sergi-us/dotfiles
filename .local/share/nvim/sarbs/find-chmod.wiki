@@ -1,0 +1,100 @@
+ = find und chmod =
+
+{{{
+find /pfad/zu/deinem/verzeichnis -type d -exec chmod 750 {} \;
+find /pfad/zu/deinem/verzeichnis -type f -exec chmod -x {} \;
+find . -type f -exec chmod 640 {} \;
+}}}
+
+find -type d: Sucht nur nach Verzeichnissen.
+chmod: Wendet die angegebenen Rechte an.
+-exec ... \;: Führt den Befehl für jedes gefundene Verzeichnis aus.
+
+
+| Recht                 | Sym  | Oktal |
+| ----                  | ---- | ---   |
+| Keine Rechte          | ---  | 0     |
+| Nur Ausführen         | --x  | 1     |
+| Nur Schreiben         | -w-  | 2     |
+| Schreiben + Ausführen | -wx  | 3     |
+| Nur Lesen             | r--  | 4     |
+| Lesen + Ausführen     | r-x  | 5     |
+| Lesen + Schreiben     | rw-  | 6     |
+| Alle Rechte           | rwx  | 7     |
+
+ = find und chown =
+
+{{{
+find /pfad/zum/verzeichnis -exec chown sergi:wheel {} \;
+find /pfad/zum/verzeichnis -exec chown sergi:wheel {} +
+}}}
+
+Unterschied von + und \; Das + bewirkt, dass find mehrere Dateinamen gesammelt
+an chown oder chmod übergibt, sodass der Befehl nur einmal (oder in weniger
+Gruppen) ausgeführt wird. Mit \; wird chown für jede Datei einzeln aufgerufen,
+
+= find und Dateioperationen =
+
+{{{
+find . -mindepth 2 -type f -name '*.mkv' -exec mv {} . \;
+find . -mindepth 2 -type f -name '*.nfo' -exec rm {} \;
+find . -mindepth 1 -type d -empty -delete
+}}}
+
+== Leere Dateien (0 Bytes) finden und löschen ==
+
+{{{
+find . -type f -empty -delete
+find . -type f -size 0 -delete
+find . -type f -empty -print
+}}}
+
+-empty: Findet Dateien mit 0 Bytes
+-size 0: Alternative Schreibweise für 0-Byte-Dateien
+-print: Zeigt gefundene Dateien an (ohne zu löschen, zum Testen)
+
+== Dateien nach Größe finden ==
+
+{{{
+find . -type f -size +100M
+find . -type f -size -1M
+find . -type f -size +1G -exec ls -lh {} \;
+}}}
+
++100M: Größer als 100 MB
+-1M: Kleiner als 1 MB
++1G: Größer als 1 GB
+
+== Dateien nach Änderungsdatum finden ==
+
+{{{
+find . -type f -mtime +30
+find . -type f -mtime -7
+find . -type f -atime +90 -delete
+}}}
+
+-mtime +30: Vor mehr als 30 Tagen geändert
+-mtime -7: In den letzten 7 Tagen geändert
+-atime +90: Vor mehr als 90 Tagen zuletzt zugegriffen
+
+== Duplikate nach Name finden ==
+
+{{{
+find . -type f -printf "%f\n" | sort | uniq -d
+find . -type f -name "*.tmp" -delete
+find . -type f -name "*~" -o -name "*.bak" -delete
+}}}
+
+-printf "%f\n": Gibt nur Dateinamen aus (ohne Pfad)
+-o: ODER-Verknüpfung für mehrere Bedingungen
+
+== Kombinierte Operationen ==
+
+{{{
+find . -type f -empty -o -name "*.log" -mtime +30 -delete
+find . -type f -size +500M -exec du -h {} \; | sort -h
+find . -type f ! -perm -644 -exec chmod 644 {} +
+}}}
+
+!: Negation (findet Dateien OHNE die angegebene Berechtigung)
+-o: ODER-Verknüpfung

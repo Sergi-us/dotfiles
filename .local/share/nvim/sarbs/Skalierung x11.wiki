@@ -1,0 +1,39 @@
+
+
+Testsystem Dell, 3840x2160 @ 27" (Rechnerisch 163DPI)
+
+| Anwendung           | X11 | Mstr | Mstr | Wra- | Set  | GTK | QT  | Schriftart   | Gese- | 800% | Notiz  |
+|                     | DPI | DPI  | Fakt | per  | 800% | 3/4 | 5/6 | und Größe    | tzt   |      |        |
+|---------------------|:---:|:----:|:----:|:----:|:----:|:---:|:---:|--------------|-------|------|--------|
+| xrandr --dpi        | 168 |  96  | 1.25 | auto |      |     |     | xprofile     |       |      |        |
+| DWM                 |    |  X   |  X   |      | 22mm |  X  |  X  | config.h     | 8     | 16mm |        |
+| DMENU               |    |  X   |  X   |      |  mm  |  X  |  X  | config.h     | 10    | 19mm |        |
+| ST                  |    |  X   |  X   |      | 27mm |  X  |  X  | config.h     | 11    | 22mm |        |
+| Notify              |    |  X   |  X   |      | 18mm |  X  |  X  | dunstrc      | 8     | 19mm |        |
+| pinentry (welche?)  |  X  |  X   |     |      |  cm  |  X  |    |              |       | 9cm  |        |
+| qutebrowser UI      |  X  |     |     |      | 20mm |  X  |    | config.py    | 12    | 19mm |        |
+| qutebrowser inhalt  |  X  |     |     |      | 19mm |  X  |    | qt6ct.conf   | 100%  | 29mm | testen |
+| Firefox UI          |  X  |  X   |     |      | 15mm |    |  X  | settings.ini | 14    |      |        |
+| Firefox inhalt      |  X  |  X   |     |      | 19mm |    |  X  |              | 100%  | 14mm |        |
+| Gimp                |     |      |     |      | 15mm |    |  X  | settings.ini | 14    |      |        |
+| Chromium UI         |  X  |      |  X   | auto |  mm  |    |  X  | settings.ini | 14    | 9mm  |        |
+| Chromium inhalt     |  X  |      |  X   | auto | 15mm |    |  X  |              | 100%  | 11mm |        |
+| Brave UI            |  X  |      |  X   | auto |  mm  |    |  X  | settings.ini | 14    | mm   |        |
+| Brave inhalt        |  X  |      |  X   | auto | 15mm |    |  X  |              | 100%  | mm   |        |
+| KeepassXC           |  X  |      |     |      | 12mm |    |  X  | settings.ini | 14    | 25mm |        |
+| Vivaldi UI          |     |      |      | auto | 14mm |     |     |              |       |      |        |
+| Vivaldi inhalt      |     |      |      |      | 18mm |     |     |              | 100%  |      |        |
+| qt5ct UI            |    |      |     |      | 12mm |  X  |    | qt5ct.conf   | 10    | 21mm |        |
+| qt6ct UI            |    |      |     |      | 12mm |  X  |    | qt6ct.conf   | 10    | 20mm |        |
+| Telegramm UI        |     |      |      |      | 10mm |  X  |    | qt5ct.conf   | 100%  | mm   |        |
+| qalculate-qt UI     |    |      |     |      | 13mm |  X  |    | qt6ct.conf   | 10    | 21mm |        |
+| qalculate-qt inhalt |    |      |     |      | 17mm |  X  |    | qt6ct.conf   |       | 26mm |        |
+| Kdenlive UI         |     |      |      |      |  mm  |  X  |    | qt5ct.conf   | 10    | mm   |        |
+| OBS Studio UI       |     |      |      |      |      |     |     |              |       |      |        |
+| Discord             |     |      |      |      |      |     |     |              |       |      |        |
+| VS Code             |     |      |      |      |      |     |     |              |       |      |        |
+| Spotify             |     |      |      |      |      |     |     |              |       |      |        |
+| Steam               |     |      |      |      |      |     |     |              |       |      |        |
+| Blender             |     |      |      |      |      |     |     |              |       |      |        |
+| DaVinci Resolve     |  X  |  X   |  X   |      |      |     |     |              |       |      |        |
+

@@ -41,29 +41,42 @@ Bei hochauflösenden Displays (HiDPI) skalieren nicht alle Anwendungen korrekt:
 ```
 System: xrandr --dpi 192 (MASTER_DPI)
 ↓
-Normale Apps: Nutzen 192 DPI direkt
+.xprofile: Berechnet SCALE_FACTOR automatisch
 ↓
-Wrapper Apps: Nutzen SCALE_FACTOR (z.B. 1.5)
-Effektiv: 144 DPI statt 192 DPI
+State-Datei: ~/.local/state/xsession/scale (enthält z.B. "1.5")
+↓
+Wrapper Apps: Lesen SCALE_FACTOR aus State-Datei
+Effektiv: Reduzierte Skalierung für problematische Apps
 ```
 
 ### Verwendung
 
-#### Globale Einstellung
-In `~/.config/x11/xprofile`:
+#### Automatische Erkennung (Standard)
+In `~/.xprofile` werden DPI und SCALE_FACTOR automatisch berechnet:
 
 ```bash
-MASTER_DPI=192          # System-DPI
-SCALE_FACTOR=1.5        # Für Wrapper-Skripte
+# Automatische Erkennung basierend auf Display
+MASTER_DPI=$(calculate_auto_dpi)      # z.B. 192
+SCALE_FACTOR=$(calculate_scale_factor) # z.B. 1.5
+
+# State-Datei für Wrapper-Skripte
+echo "$SCALE_FACTOR" > ~/.local/state/xsession/scale
+echo "$MASTER_DPI" > ~/.local/state/xsession/dpi
 ```
-### App-spezifische Überschreibung
-In jedem Wrapper-Skript:
 
+#### Manuelle Überschreibung
+**Global** (in ~/.zprofile oder ~/.xprofile):
 ```bash
-# Auskommentiert = nutze xprofile Wert
+export FORCE_DPI=192
+export FORCE_SCALE=1.5
+```
+
+**App-spezifisch** (in jedem Wrapper-Skript):
+```bash
+# Auskommentiert = nutze State-Datei
 # SCALE_FACTOR=1.75
 
-# Aktiv = überschreibe xprofile
+# Aktiv = überschreibe Auto-Erkennung
 SCALE_FACTOR=2.0
 ```
 
@@ -111,9 +124,16 @@ SCALE_FACTOR=2.0
 
 ### Fallback-Hierarchie
 
-1. Lokale Variable im Skript (wenn gesetzt)
-2. SCALE_FACTOR aus xprofile
+1. Lokale Variable im Skript (wenn manuell gesetzt)
+2. SCALE_FACTOR aus State-Datei (~/.local/state/xsession/scale)
 3. Hartcodierter Fallback (1.5)
+
+### State-Dateien
+Die automatisch berechneten Werte werden in `~/.local/state/xsession/` gespeichert:
+- `scale` - Skalierungsfaktor (z.B. "1.5")
+- `dpi` - System-DPI (z.B. "192")
+
+Diese Dateien werden bei jedem X-Start von `.xprofile` neu geschrieben.
 
 ## Tipps
 

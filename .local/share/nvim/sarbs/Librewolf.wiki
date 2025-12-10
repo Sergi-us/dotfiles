@@ -1,0 +1,49 @@
+ = Librewolf =
+
+== Zwischenablage deaktivieren ==
+## 2025-01-16
+Ich weiß nicht ob die Option einen Mehrwert bietet, allerdings schadet sie auch nicht. Passwörter werden grundsätzlich von der Keepass Extension verwaltet und die Zwischenablage geht den Browser nichts an... Ich teste das mal im Praxis umfeld
+{{{
+about:config
+dom.event.clipboardevents.enabled --> false
+}}}
+
+http://alephnull.net/software/firefox_gpu_acceleration.shtml
+
+zum prüfen unterstützter Videoformate
+{{{
+vainfo
+eglinfo -B | grep -C2 'EGL vendor string:'
+}}}
+
+in Librewolf:
+about:config
+
+gfx
+
+
+    gfx.webrender.all           true
+    layers.gpu-process.enabled  true    (testeinstellung)
+    layers.mlgpu.enabled        Bollean
+    media.ffmpeg.vaapi.enabled  true    (test)
+    media.gpu-process-decoder   true    (test)
+    media.rdd-ffmpeg.enabled    true
+    widget.dmabuf.force-enabled true    (test)
+    Optional
+    dom.webgpu.enabled          true    (test)
+
+
+
+
+TODO Fehlerausgabe Prüfen
+eglinfo -B | grep -C2 'EGL vendor string:'
+
+{{{
+Platform Device platform:
+EGL API version: 1.5
+EGL vendor string: Mesa Project
+EGL version string: 1.5
+EGL client APIs: OpenGL OpenGL_ES
+libEGL warning: egl: failed to create dri2 screen
+libEGL warning: egl: failed to create dri2 screen
+}}}

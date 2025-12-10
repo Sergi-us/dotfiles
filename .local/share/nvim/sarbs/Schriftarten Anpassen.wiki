@@ -1,0 +1,3 @@
+ = Schriftarten =
+
+Wo fange ich an? Riesen Thema... Es sind viele Stellschrauben um die Schriftarten in SARBS anzupassen. Es gibt GUI-Tools dafür, von denen ich abrate. Alle Konfigurationen sind in den `~/.config` verzeichnissen hinterlegt und werden bei der Installation oder Update neu geschrieben. Wenn du experementieren willst, kannst du das durch ein SARBS Update auf den Auslieferungszustand wiederherstellen.

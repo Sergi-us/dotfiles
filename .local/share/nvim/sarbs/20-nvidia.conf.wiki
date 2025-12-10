@@ -1,0 +1,30 @@
+Section "ServerLayout"
+    Identifier "layout"
+    Screen 0 "iGPU"
+    Inactive "dGPU"
+EndSection
+
+Section "Device"
+    Identifier "iGPU"
+    Driver "modesetting"
+    BusID "PCI:0:2:0"
+    Option "AccelMethod" "glamor"
+EndSection
+
+Section "Device"
+    Identifier "dGPU"
+    Driver "nvidia"
+    BusID "PCI:1:0:0"
+    Option "AllowEmptyInitialConfiguration"
+    Option "Coolbits" "28" # Für Overclocking und Lüftersteuerung
+EndSection
+
+Section "Screen"
+    Identifier "iGPU"
+    Device "iGPU"
+EndSection
+
+Section "Screen"
+    Identifier "dGPU"
+    Device "dGPU"
+EndSection

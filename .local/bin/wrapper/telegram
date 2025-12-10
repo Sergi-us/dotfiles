@@ -1,8 +1,6 @@
 #!/bin/sh
+## 2025-12-10   SARBS
 # Telegram Wrapper mit Theme und Qt-Skalierung
-
-# Manuelle Skalierung (auskommentieren für xprofile)
-SCALE_FACTOR=1
 
 ## NOTE Telegramm ist echt ein seltsamer fall!
 # Die Skalierung sollte nach dem Dateimanager-Dialog eingestellt werden
@@ -10,15 +8,21 @@ SCALE_FACTOR=1
 # dann intern über den Prozentregler hochdrehen
 # T480 WQHD auf 180% hochdrehen
 
+# Manuelle Skalierung (überschreibt Auto-Erkennung)
+SCALE_FACTOR=1
+
+# Lese berechneten Skalierungsfaktor aus State-Datei (falls nicht manuell gesetzt)
+# Bei Telegram nutzen wir den manuellen Wert (siehe NOTE oben)
+# state_file="${XDG_STATE_HOME:-$HOME/.local/state}/xsession/scale"
+# [ -f "$state_file" ] && SCALE_FACTOR=$(cat "$state_file")
+
 # Theme-Update
+# TODO Verlinkung fixen. bg sollte auf aktuelles Hintergrundbild zeigen, oder so
 walogram -i ~/.local/share/bg >/dev/null 2>&1
 # walogram -B -i ~/.local/share/bg >/dev/null 2>&1
 
 # TODO Prüfen auf nutzen...
 # THEME_PATH=~/.cache/walogram/wal.tdesktop-theme
-
-# Hole SCALE_FACTOR - lokal oder aus xprofile
-# SCALE_FACTOR=${SCALE_FACTOR:-$(grep "^SCALE_FACTOR=" ~/.config/x11/xprofile | cut -d= -f2)}
 
 # Qt-Skalierung
 export QT_SCALE_FACTOR=$SCALE_FACTOR

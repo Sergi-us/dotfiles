@@ -6,7 +6,6 @@
 
 # === DPI und Skalierfaktor Konfiguration ===
 # Ein DPI-Wert für alle Frameworks - keine zusätzlichen Skalierungsfaktoren
-MASTER_DPI=96
 # DPI-Optionen (Vielfache von 96):
 #   96  = 1.0× (Windows 95 Standard, Low-DPI)
 #   120 = 1.25× (Windows "125%" Skalierung)
@@ -16,11 +15,118 @@ MASTER_DPI=96
 #   240 = 2.5× (für 4K auf kleineren Displays)
 #   288 = 3.0× (für sehr hohe DPI Displays)
 
-# Zusätzlicher Skalierungsfaktor für Feintuning (1.25 oder 1.5 oder integer 2.0 usw..)
-SCALE_FACTOR=1
-# Multipliziert mit DPI für finale Skalierung
-# Bei zu großer darstellung greift das whrapper-Skript
+# Automatische DPI-Erkennung basierend auf Primary/Active Display
+calculate_auto_dpi() {
+	# Fallback-Wert falls Erkennung fehlschlägt
+	default_dpi=96
+
+	# Strategie: Priorisiere aktive Displays mit Auflösung
+	# 1. Primary Display mit aktiver Auflösung (+X+Y Position)
+	# 2. Erstes aktives Display mit Auflösung
+	# 3. Primary Display (auch ohne aktive Auflösung)
+	# 4. Erstes connected Display
+
+	# Hole Primary Display Info mit aktiver Auflösung
+	primary_info=$(xrandr 2>/dev/null | grep " connected primary" | grep -E '[0-9]+x[0-9]+\+[0-9]+')
+
+	# Falls primary nicht aktiv, nutze erstes aktives Display
+	[ -z "$primary_info" ] && primary_info=$(xrandr 2>/dev/null | grep " connected" | grep -E '[0-9]+x[0-9]+\+[0-9]+' | head -n 1)
+
+	# Falls keine aktiven Displays, nutze primary (auch wenn inaktiv)
+	[ -z "$primary_info" ] && primary_info=$(xrandr 2>/dev/null | grep " connected primary")
+
+	# Letzter Fallback: erstes connected Display
+	[ -z "$primary_info" ] && primary_info=$(xrandr 2>/dev/null | grep " connected" | head -n 1)
+
+	# Prüfe ob Display-Info gefunden wurde
+	[ -z "$primary_info" ] && { echo "$default_dpi"; return; }
+
+	# Extrahiere Auflösung (z.B. "2560x1440+0+0" -> "2560x1440")
+	resolution=$(echo "$primary_info" | grep -oE '[0-9]+x[0-9]+\+[0-9]+\+[0-9]+' | head -n 1 | cut -d'+' -f1)
+
+	# Falls keine aktive Auflösung, hole native Auflösung aus nächster Zeile
+	if [ -z "$resolution" ]; then
+		display_name=$(echo "$primary_info" | awk '{print $1}')
+		resolution=$(xrandr 2>/dev/null | grep -A 1 "^$display_name " | tail -n 1 | awk '{print $1}')
+	fi
+
+	px_w=$(echo "$resolution" | cut -d'x' -f1)
+	px_h=$(echo "$resolution" | cut -d'x' -f2)
+
+	# Extrahiere physische Größe (z.B. "309mm x 174mm")
+	physical=$(echo "$primary_info" | grep -oE '[0-9]+mm x [0-9]+mm')
+	mm_w=$(echo "$physical" | cut -d'm' -f1)
+	mm_h=$(echo "$physical" | cut -d' ' -f3 | cut -d'm' -f1)
+
+	# Validierung: Prüfe ob alle Werte vorhanden und nicht Null
+	[ -z "$px_w" ] || [ -z "$mm_w" ] || [ "$mm_w" -eq 0 ] 2>/dev/null && { echo "$default_dpi"; return; }
+
+	# Berechne DPI: pixel / (millimeter / 25.4)
+	# Nutze nur horizontale DPI (vertikale sollte identisch sein)
+	calculated_dpi=$(echo "scale=0; ($px_w * 25.4) / $mm_w" | bc 2>/dev/null)
+
+	# Fallback falls bc fehlschlägt
+	[ -z "$calculated_dpi" ] && { echo "$default_dpi"; return; }
+
+	# Runde auf nächsten empfohlenen DPI-Wert
+	# Empfohlene Werte: 96, 120, 144, 168, 192, 240, 288
+	if [ "$calculated_dpi" -lt 108 ]; then
+		echo "96"
+	elif [ "$calculated_dpi" -lt 132 ]; then
+		echo "120"
+	elif [ "$calculated_dpi" -lt 156 ]; then
+		echo "144"
+	elif [ "$calculated_dpi" -lt 180 ]; then
+		echo "168"
+	elif [ "$calculated_dpi" -lt 216 ]; then
+		echo "192"
+	elif [ "$calculated_dpi" -lt 264 ]; then
+		echo "240"
+	else
+		echo "288"
+	fi
+}
+
+# Setze MASTER_DPI: FORCE_DPI überschreibt Auto-Erkennung
+# Beispiel: export FORCE_DPI=144 in ~/.zprofile oder hier
+MASTER_DPI=${FORCE_DPI:-$(calculate_auto_dpi)}
+
+# Automatische Skalierungsfaktor-Anpassung basierend auf DPI
+# Nur für GUI-Anwendungen (GTK/Qt) - Terminal/Text nutzt DPI direkt
+# Konservative Skalierung: Lieber zu klein als zu groß (Laptops werden näher betrachtet)
+calculate_scale_factor() {
+	dpi="$1"
+	
+	# Skalierungstabelle basierend auf DPI-Wert:
+	# 96-144:   1.0  (Low-DPI, keine zusätzliche Skalierung)
+	# 168-192:  1.25 (Moderate HiDPI, leichte Vergrößerung - Laptop-freundlich)
+	# 240:      1.5  (HiDPI, deutliche Vergrößerung)
+	# 288+:     2.0  (Ultra HiDPI, doppelte Skalierung)
+	
+	if [ "$dpi" -le 144 ]; then
+		echo "1"
+	elif [ "$dpi" -le 192 ]; then
+		echo "1.25"
+	elif [ "$dpi" -le 240 ]; then
+		echo "1.5"
+	else
+		echo "2"
+	fi
+}
+
+# Zusätzlicher Skalierungsfaktor für Feintuning
+# FORCE_SCALE überschreibt Auto-Erkennung (z.B. export FORCE_SCALE=1.25)
+SCALE_FACTOR=${FORCE_SCALE:-$(calculate_scale_factor "$MASTER_DPI")}
+# Multipliziert mit DPI für finale Skalierung in GUI-Apps
+# Bei zu großer Darstellung greift das wrapper-Skript
 # ~/.local/bin/wrapper
+
+# Schreibe berechnete Werte in State-Datei für Wrapper-Skripte
+# XDG State Directory für Session-spezifische Daten
+state_dir="${XDG_STATE_HOME:-$HOME/.local/state}/xsession"
+[ -d "$state_dir" ] || mkdir -p "$state_dir"
+echo "$SCALE_FACTOR" > "$state_dir/scale"
+echo "$MASTER_DPI" > "$state_dir/dpi"
 
 xrandr --dpi $MASTER_DPI
 # TODO Xft.dpi wird automatisch gesetzt - alte X11-Apps lesen das (muss noch eingerichtet werden)
