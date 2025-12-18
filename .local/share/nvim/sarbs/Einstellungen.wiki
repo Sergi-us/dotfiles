@@ -36,3 +36,5 @@ im 'remaps' Script werden Tasten neu zugeordnet. Die funktion der 'alt_win' tast
 			set-time	JJJJ-MM-TT HH:MM:SS
 
 [[Aktivierung von Natural Scrolling]]
+
+[[index]] [[VimwikiAll2HTML Syntax|Syntax]]

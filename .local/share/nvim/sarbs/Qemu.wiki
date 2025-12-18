@@ -124,7 +124,7 @@ Aktuelle Gruppenmitgliedschaften anzeigen:
 groups $(whoami)
 }}}
 
-=== [[Sicherheitshinweise für gruppe disk]]===
+=== Sicherheitshinweise für gruppe disk ===
 [[Sicherheitshinweise für gruppe disk]]
 * Die Gruppe `disk` wird nicht empfohlen, außer sie wird explizit benötigt
 * USB-Durchreichung nur aktivieren, wenn tatsächlich benötigt
