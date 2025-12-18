@@ -1,4 +1,4 @@
-
+ = Das Thema wird Obsolet, die Skalierung wird automatisiert. Kann angepasst werden in der der xprofile =
 
 Testsystem Dell, 3840x2160 @ 27" (Rechnerisch 163DPI)
 

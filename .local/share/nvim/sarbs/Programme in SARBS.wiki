@@ -29,3 +29,5 @@ Dateien sicher Löschen
 shred -vzun 100 private-key.asc
 shred -vzun 100 public-key.asc
 }}}
+
+[[index]] [[VimwikiAll2HTML Syntax|Syntax]]

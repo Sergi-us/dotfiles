@@ -26,4 +26,4 @@ Neustarten mit mit dem geänderten/hinzugefügten Booteintrag und den Trimmbefeh
 sudo fstrim -av
 }}}
 
-[[index]]
+[[index]] [[VimwikiAll2HTML Syntax|Syntax]]

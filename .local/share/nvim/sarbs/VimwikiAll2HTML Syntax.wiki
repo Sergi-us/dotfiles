@@ -148,4 +148,4 @@ let g:vimwiki_list = [
 	\ ]
 }}}
 
-[[index]] [[mailto:anderer-name@posteo.de|mail]]
+[[index]] [[mailto:sarbs@posteo.de|mail]]

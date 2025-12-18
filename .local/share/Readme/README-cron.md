@@ -1,1 +1,0 @@
-/home/sergi/.local/src/dotfiles/.local/bin/cron/README.md

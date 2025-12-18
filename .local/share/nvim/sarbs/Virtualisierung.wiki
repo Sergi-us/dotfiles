@@ -6,4 +6,5 @@ https://christitus.com/vm-setup-in-linux/
 
 [[Arch VM einrichten]]
 
-[[Windows 10 installation]]
+[[index]] [[VimwikiAll2HTML Syntax|Syntax]]
+

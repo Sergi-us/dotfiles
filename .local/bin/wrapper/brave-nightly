@@ -1,0 +1,24 @@
+#!/bin/sh
+## 2025-12-10   SARBS
+# Brave Wrapper mit allen Tweaks
+# die flag --password-store=basic sorgt dafür dass der Linux Schlüsselring nicht verwendet wird.
+
+# Manuelle Skalierung (überschreibt Auto-Erkennung)
+# SCALE_FACTOR=1.5
+
+# Lese berechneten Skalierungsfaktor aus State-Datei (geschrieben von .xprofile)
+state_file="${XDG_STATE_HOME:-$HOME/.local/state}/xsession/scale"
+[ -f "$state_file" ] && SCALE_FACTOR=$(cat "$state_file")
+
+# Fallback falls State-Datei nicht existiert
+SCALE_FACTOR=${SCALE_FACTOR:-1.5}
+
+exec /usr/bin/brave-nightly \
+    --force-device-scale-factor=$SCALE_FACTOR \
+    --high-dpi-support=1 \
+    --enable-features=UseOzonePlatform \
+    --ozone-platform=x11 \
+    "$@"
+
+# --password-store=basic \
+

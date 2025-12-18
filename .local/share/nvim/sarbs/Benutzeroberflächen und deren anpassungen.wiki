@@ -4,30 +4,4 @@
 
 [[Skalierung x11]]
 
-[[CLI Command Line Interface]]
-
-[[GUI  Graphical User Interface]]
-
-[[TUI Text User Interface]]
-
-VUI	Voice User Interface
-Sprachgesteuerte Schnittstellen, wie bei Sprachassistenten
-
-NUI	Natural User Interface
-Schnittstellen, die natürliche menschliche Bewegungen nutzen, wie Touchscreens
-oder Bewegungssteuerung.
-
-BGI	Brain-Computer Interface (Elon Musk)
-Direkte Kommunikation zwischen Gehirn und Computer, oft für medizinische Zwecke
-entwickelt.
-
-HUD	Head-Up Display
-Transparente Displays, die Informationen im Sichtfeld des Benutzers einblenden,
-häufig in Fahrzeugen oder bei Augmented Reality.
-
-ZUI	Zooming User Interface
-Eine grafische Umgebung, in der Benutzer hinein- und herauszoomen können, um
-Informationen zu finden.
-
-OUI	Organic User Interface
-Flexible, formveränderbare Schnittstellen, die sich an den Kontext anpassen.
+[[index]] [[VimwikiAll2HTML Syntax|Syntax]]

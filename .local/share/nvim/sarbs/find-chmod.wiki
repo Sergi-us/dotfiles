@@ -1,6 +1,6 @@
  = find und chmod =
 
-{{{
+{{{bash
 find /pfad/zu/deinem/verzeichnis -type d -exec chmod 750 {} \;
 find /pfad/zu/deinem/verzeichnis -type f -exec chmod -x {} \;
 find . -type f -exec chmod 640 {} \;
@@ -24,7 +24,7 @@ chmod: Wendet die angegebenen Rechte an.
 
  = find und chown =
 
-{{{
+{{{bash
 find /pfad/zum/verzeichnis -exec chown sergi:wheel {} \;
 find /pfad/zum/verzeichnis -exec chown sergi:wheel {} +
 }}}
@@ -35,15 +35,18 @@ Gruppen) ausgeführt wird. Mit \; wird chown für jede Datei einzeln aufgerufen,
 
 = find und Dateioperationen =
 
-{{{
+{{{bash
 find . -mindepth 2 -type f -name '*.mkv' -exec mv {} . \;
 find . -mindepth 2 -type f -name '*.nfo' -exec rm {} \;
 find . -mindepth 1 -type d -empty -delete
 }}}
 
+{{{bash
+find . -type f -name "README.md" -exec sh -c 'ln -f "$1" "$HOME/.local/src/dotfiles/.local/share/Readme/$(echo "$1" | sed "s|^\./||; s|^\.||; s|/|_|g")"' _ {} \;
+}}}
 == Leere Dateien (0 Bytes) finden und löschen ==
 
-{{{
+{{{bash
 find . -type f -empty -delete
 find . -type f -size 0 -delete
 find . -type f -empty -print
@@ -55,7 +58,7 @@ find . -type f -empty -print
 
 == Dateien nach Größe finden ==
 
-{{{
+{{{bash
 find . -type f -size +100M
 find . -type f -size -1M
 find . -type f -size +1G -exec ls -lh {} \;
@@ -67,7 +70,7 @@ find . -type f -size +1G -exec ls -lh {} \;
 
 == Dateien nach Änderungsdatum finden ==
 
-{{{
+{{{bash
 find . -type f -mtime +30
 find . -type f -mtime -7
 find . -type f -atime +90 -delete
@@ -79,7 +82,7 @@ find . -type f -atime +90 -delete
 
 == Duplikate nach Name finden ==
 
-{{{
+{{{bash
 find . -type f -printf "%f\n" | sort | uniq -d
 find . -type f -name "*.tmp" -delete
 find . -type f -name "*~" -o -name "*.bak" -delete
@@ -90,7 +93,7 @@ find . -type f -name "*~" -o -name "*.bak" -delete
 
 == Kombinierte Operationen ==
 
-{{{
+{{{bash
 find . -type f -empty -o -name "*.log" -mtime +30 -delete
 find . -type f -size +500M -exec du -h {} \; | sort -h
 find . -type f ! -perm -644 -exec chmod 644 {} +

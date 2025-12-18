@@ -152,7 +152,7 @@ entwickler_modus() {
         [[ "$QUIET" == true ]] && cmd="${cmd//-avh/-aq}"
         eval "$cmd"
         [[ "$DRY_RUN" == true ]] && log "⚠️  DRY-RUN - Nichts wurde verändert!"
-        log "✓ Private Dotfiles überschrieben"
+        log "✓ Öffentliche Dotfiles mit Privaten überschrieben"
     else
         log "Info: Keine privaten Dotfiles gefunden"
     fi

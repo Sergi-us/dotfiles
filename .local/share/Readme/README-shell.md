@@ -1,1 +1,0 @@
-/home/sergi/.local/src/dotfiles/.config/shell/README.md
