@@ -29,8 +29,7 @@ dotfiles/
 │   └── ...				# Weitere App-Configs
 ├── .local/				# Lokale Benutzerdateien
 │   ├── bin/			# Eigene Skripte und Executables
-│   │   ├── cron/		# Cronjob-Skripte
-│   │   └── polybar/	# Polybar Module
+│   │   └── cron/		# Cronjob-Skripte
 │   └── share/			# Lokale Daten und Ressourcen
 │       └── Readme/		# alle Readme's verlinkt
 └── README.md			# Diese Datei

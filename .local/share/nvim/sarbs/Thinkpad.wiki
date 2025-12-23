@@ -99,17 +99,19 @@ systemctl status throttled.service
 == thinkfan ==
 * Paket: `thinkfan`
 * Services:
-  - `systemctl enable --now thinkfan.service`
-  - `systemctl enable --now thinkfan-sleep.service`
-  - `systemctl enable --now thinkfan-wakeup.service`
+systemctl enable --now thinkfan.service
+systemctl enable --now thinkfan-sleep.service
+systemctl enable --now thinkfan-wakeup.service
+
 * Zweck:
   - Eigene Lüfterkurve statt der konservativen EC-Firmware
   - Läuft leise im Idle, dreht erst bei >75°C hoch
 * ACPI-Interfaces:
   - Lüfter: `/proc/acpi/ibm/fan`
   - Sensoren: `/proc/acpi/ibm/thermal` oder `/sys/class/hwmon/...`
-* Beispiel-Konfig `/etc/thinkfan.conf`:
+
 {{{
+sudo nvim /etc/thinkfan.conf
 tp_thermal /proc/acpi/ibm/thermal
 tp_fan     /proc/acpi/ibm/fan
 
