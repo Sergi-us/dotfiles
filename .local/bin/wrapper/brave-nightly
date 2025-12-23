@@ -2,6 +2,7 @@
 ## 2025-12-10   SARBS
 # Brave Wrapper mit allen Tweaks
 # die flag --password-store=basic sorgt dafür dass der Linux Schlüsselring nicht verwendet wird.
+# TODO Auf Nvidia GPU OPtimieren??
 
 # Manuelle Skalierung (überschreibt Auto-Erkennung)
 # SCALE_FACTOR=1.5
@@ -13,6 +14,10 @@ state_file="${XDG_STATE_HOME:-$HOME/.local/state}/xsession/scale"
 # Fallback falls State-Datei nicht existiert
 SCALE_FACTOR=${SCALE_FACTOR:-1.5}
 
+# NVIDIA Prime Render Offload (auskommentiert = nutze integrierte GPU)
+export __NV_PRIME_RENDER_OFFLOAD=1
+export __GLX_VENDOR_LIBRARY_NAME=nvidia
+
 exec /usr/bin/brave-nightly \
     --force-device-scale-factor=$SCALE_FACTOR \
     --high-dpi-support=1 \
@@ -22,3 +27,7 @@ exec /usr/bin/brave-nightly \
 
 # --password-store=basic \
 
+#   --enable-gpu-rasterization \                # NVIDIA
+#   --enable-zero-copy \                        # NVIDIA
+#   --use-gl=desktop \                          # NVIDIA
+#   --ignore-gpu-blocklist \                    # NVIDIA

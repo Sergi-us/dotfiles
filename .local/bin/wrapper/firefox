@@ -12,6 +12,10 @@ state_file="${XDG_STATE_HOME:-$HOME/.local/state}/xsession/scale"
 # Fallback falls State-Datei nicht existiert
 SCALE_FACTOR=${SCALE_FACTOR:-1.5}
 
+# NVIDIA Prime Render Offload (auskommentiert = nutze integrierte GPU)
+# export __NV_PRIME_RENDER_OFFLOAD=1
+# export __GLX_VENDOR_LIBRARY_NAME=nvidia
+
 # Firefox braucht diese Umgebungsvariable
 export MOZ_ENABLE_WAYLAND=0
 export GDK_SCALE=$SCALE_FACTOR

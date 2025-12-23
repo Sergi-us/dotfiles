@@ -100,7 +100,7 @@ get_bluetooth_icon() {
 
 case $BLOCK_BUTTON in
     1)
-       setsid -f blue  # Führt blue im dmenu aus
+       setsid -f "$TERMINAL" -e bluetui  # Startet bluetui im Terminal
        update_block
        ;;
     2)
@@ -111,7 +111,7 @@ case $BLOCK_BUTTON in
        notify-send "$(get_bluetooth_icon) Bluetooth Modul " "\
 ${devices_info}
 
-- L 󰍽 Führt blue aus (Bluetooth-Manager).
+- L 󰍽 Führt bluetui aus (Bluetooth-Manager).
 - M 󰍽 Bluetooth Ein/Aus.
 - R 󰍽 Diese Meldung anzeigen."
        ;;
