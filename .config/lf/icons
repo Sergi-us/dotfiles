@@ -7,9 +7,9 @@
 
 # file types (with matching order)
 ln             # LINK
-or             00;38;2;241;224;90      # ORPHAN
+or             00;38;2;241;224;90	#Gelb      # ORPHAN
 tw      t       # STICKY_OTHER_WRITABLE
-ow             00;38;2;241;224;90      # OTHER_WRITABLE
+ow             00;38;2;241;224;90	#Gelb      # OTHER_WRITABLE
 st      t       # STICKY
 di             # DIR
 pi      p       # FIFO
@@ -19,7 +19,7 @@ cd      c       # CHR
 su      u       # SETUID
 sg      g       # SETGID
 ex             # EXEC
-fi             00;38;2;241;224;90      # FILE unbekannt Gelb
+fi             00;38;2;241;224;90	#Gelb      # FILE unbekannt Gelb
 
 # disable some default filetype icons, let them choose icon by filename
 # ln             # LINK
@@ -37,9 +37,9 @@ fi             00;38;2;241;224;90      # FILE unbekannt Gelb
 # ex              # EXEC
 # fi             # FILE
 
-*.webmanifest      00;38;2;241;224;90     # Gelb
+*.webmanifest      00;38;2;241;224;90	#Gelb
 *.js               00;38;2;203;203;65
-*.mjs              00;38;2;241;224;90     # Gelb
+*.mjs              00;38;2;241;224;90	#Gelb
 *.jsx              00;38;2;81;154;186
 *.rb               00;38;2;112;21;22
 *.gemspec          00;38;2;112;21;22
@@ -54,7 +54,7 @@ fi             00;38;2;241;224;90      # FILE unbekannt Gelb
 *.hbs              00;38;2;240;119;43
 *.conf             00;38;2;109;128;134
 *.ini              00;38;2;109;128;134
-*.grsync           00;38;2;241;224;90      # Gelb
+*.grsync           00;38;2;241;224;90	#Gelb
 *.yml              00;38;2;149;157;165
 *.yaml             00;38;2;149;157;165
 *.toml             00;38;2;109;128;134
@@ -321,7 +321,7 @@ Vagrantfile                 00;38;2;21;99;255
 *.gl    
 *.dl    
 *.xcf                          # Gimp
-*.ora      00;38;2;1;152;51  # grün MyPaint
+*.ora          00;38;2;1;152;51  # grün MyPaint
 *.xwd   
 *.yuv   
 *.cgm   
@@ -358,8 +358,9 @@ Vagrantfile                 00;38;2;21;99;255
 *.iso          00;38;2;1;152;51
 *.nfo   󱁯
 *.llc   󰆐       00;38;2;137;224;81  # Grün
-*.gpg   󱆅
+*.gpg   
 *.xls   󱎏
 *.xfc          00;38;2;137;224;81  # Grün
 
 # === Spezifische Dateien ===
+*.asc          00;38;2;137;224;81  # Grün

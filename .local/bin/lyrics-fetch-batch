@@ -1,0 +1,58 @@
+#!/bin/sh
+## 2025-10-10   SARBS
+# ~/.local/bin/lyrics-fetch-batch
+# Lädt Lyrics für mehrere Songs mit Rate-Limiting
+
+lyrics_dir="$HOME/.local/share/lyrics"
+count=0
+success=0
+failed=0
+
+# $SELECTED_SONGS kommt von rmpc (newline-separated)
+echo "$SELECTED_SONGS" | while IFS= read -r song_path; do
+    [ -z "$song_path" ] && continue
+
+    count=$((count + 1))
+
+    # MPD Metadata für diesen Song holen
+    artist=$(mpc --format '%artist%' search filename "$song_path" | head -1)
+    title=$(mpc --format '%title%' search filename "$song_path" | head -1)
+    album=$(mpc --format '%album%' search filename "$song_path" | head -1)
+
+    [ -z "$artist" ] || [ -z "$title" ] && continue
+
+    # Ziel-Datei
+    song_dir=$(dirname "$song_path")
+    mkdir -p "$lyrics_dir/$song_dir"
+    filename=$(basename "$song_path" | sed 's/\.[^.]*$/.lrc/')
+    output_file="$lyrics_dir/$song_dir/$filename"
+
+    # Überspringen wenn bereits vorhanden
+    if [ -f "$output_file" ]; then
+        notify-send "⏭ Übersprungen" "$artist - $title (existiert bereits)"
+        continue
+    fi
+
+    # Download
+    artist_enc=$(printf '%s' "$artist" | jq -sRr @uri)
+    title_enc=$(printf '%s' "$title" | jq -sRr @uri)
+
+    response=$(curl -s "https://lrclib.net/api/get?artist_name=${artist_enc}&track_name=${title_enc}")
+
+    if echo "$response" | jq -e '.syncedLyrics' >/dev/null 2>&1; then
+        {
+            echo "[ar:$artist]"
+            echo "[ti:$title]"
+            [ -n "$album" ] && echo "[al:$album]"
+            echo "$response" | jq -r '.syncedLyrics'
+        } > "$output_file"
+        success=$((success + 1))
+    else
+        failed=$((failed + 1))
+    fi
+
+    # Rate-Limiting: 1.5 Sekunden Pause zwischen Requests
+    sleep 0.5
+done
+
+notify-send "📝 Lyrics-Download abgeschlossen" "Erfolgreich: $success\nFehlgeschlagen: $failed"

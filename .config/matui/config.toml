@@ -1,0 +1,24 @@
+## matui Konfiguration
+## Datei wird live neu geladen - keine Neustart nötig
+
+# Reaktionen die im Picker angezeigt werden
+reactions = [ "❤️", "👍", "👎", "😂", "‼️", "❓️"]
+
+# Stummgeschaltete Räume (bis zum Neustart)
+# muted = ["!hMPITSQBLFEleSJeVe:matrix.org"]
+
+# Auf false setzen wenn die Enter-Tastenbindung in Vim Probleme macht
+# clear_vim = false
+
+# Sendet nach X Sekunden Inaktivität ein "blur"-Event - nützlich wenn
+# das Terminal blur-Events nicht zuverlässig schickt. 0 = deaktiviert
+blur_delay = 30
+
+# Maximale Anzahl von Events die lokal gespeichert werden (hauptsächlich
+# für die Suchfunktion relevant). -1 = unbegrenzt
+max_events = 8192
+
+# Wenn true: beim Schließen einer Benachrichtigung wird der Raum NICHT
+# gewechselt. Nur sinnvoll wenn das Benachrichtigungssystem den
+# Schließ-Grund korrekt meldet (nicht nur "dismissed")
+respect_notification_close_reason = false

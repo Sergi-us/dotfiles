@@ -73,9 +73,16 @@ multimon() { # Multi-monitor handler.
 		*) morescreen ;;
 	esac ;}
 
-postrun() { # Stuff to run to clean up.
-	setbg		# Fix background if screen size/arangement has changed.
-	{ killall dunst ; setsid -f dunst ;} >/dev/null 2>&1 # Restart dunst to ensure proper location on screen
+postrun() { # Aufräumen nach Display-Wechsel
+	setbg		# Hintergrund anpassen bei Größen-/Anordnungsänderung
+
+	# DPI und Skalierung neu berechnen für das neue Display-Setup
+	if [ -x "$(command -v set-dpi)" ]; then
+		dpi_result=$(set-dpi -a)
+		notify-send "Display-Einstellungen aktualisiert" "$dpi_result"
+	fi
+
+	{ killall dunst ; setsid -f dunst ;} >/dev/null 2>&1 # Dunst neustarten für korrekte Bildschirmposition
 	}
 
 # Get all possible displays

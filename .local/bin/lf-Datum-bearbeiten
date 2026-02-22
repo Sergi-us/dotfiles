@@ -1,0 +1,149 @@
+#!/bin/sh
+## 2026-01-27   SARBS
+# Dateidatum und Uhrzeit in lf bearbeiten
+# Ermöglicht manuelles Setzen des Erstelldatums mit Validierung
+
+file="$1"
+
+# Prüfe ob Datei existiert
+[ -f "$file" ] || { notify-send "❌ Fehler" "Datei nicht gefunden"; exit 1; }
+
+# Hole aktuelles Datum der Datei
+current_date=$(stat -c '%y' "$file" | cut -d' ' -f1)
+current_time=$(stat -c '%y' "$file" | cut -d' ' -f2 | cut -d'.' -f1)
+
+# Zeige Informationen
+clear
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "Dateidatum bearbeiten"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo ""
+echo "Datei: $(basename "$file")"
+echo ""
+echo "Aktuelles Datum: ${current_date} ${current_time}"
+echo ""
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo ""
+
+# Funktion zur Datumsvalidierung
+validate_date() {
+	input="$1"
+
+	# Prüfe Format: YYYY-MM-DD
+	if ! echo "$input" | grep -qE '^[0-9]{4}-[0-9]{2}-[0-9]{2}$'; then
+		return 1
+	fi
+
+	# Extrahiere Jahr, Monat, Tag
+	year=$(echo "$input" | cut -d'-' -f1)
+	month=$(echo "$input" | cut -d'-' -f2)
+	day=$(echo "$input" | cut -d'-' -f3)
+
+	# Entferne führende Nullen für arithmetische Vergleiche
+	month=$(echo "$month" | sed 's/^0*//')
+	day=$(echo "$day" | sed 's/^0*//')
+	[ -z "$month" ] && month=0
+	[ -z "$day" ] && day=0
+
+	# Grundlegende Bereichsprüfung
+	[ "$month" -lt 1 ] || [ "$month" -gt 12 ] && return 1
+	[ "$day" -lt 1 ] || [ "$day" -gt 31 ] && return 1
+
+	# Prüfe ob Datum gültig ist (mit date-Befehl)
+	if date -d "$input" >/dev/null 2>&1; then
+		return 0
+	else
+		return 1
+	fi
+}
+
+# Funktion zur Zeitvalidierung
+validate_time() {
+	input="$1"
+
+	# Prüfe Format: HH:MM oder HH:MM:SS
+	if ! echo "$input" | grep -qE '^[0-9]{2}:[0-9]{2}(:[0-9]{2})?$'; then
+		return 1
+	fi
+
+	# Extrahiere Stunden und Minuten
+	hour=$(echo "$input" | cut -d':' -f1)
+	minute=$(echo "$input" | cut -d':' -f2)
+
+	# Entferne führende Nullen
+	hour=$(echo "$hour" | sed 's/^0*//')
+	minute=$(echo "$minute" | sed 's/^0*//')
+	[ -z "$hour" ] && hour=0
+	[ -z "$minute" ] && minute=0
+
+	# Bereichsprüfung
+	[ "$hour" -lt 0 ] || [ "$hour" -gt 23 ] && return 1
+	[ "$minute" -lt 0 ] || [ "$minute" -gt 59 ] && return 1
+
+	return 0
+}
+
+# Datum eingeben
+while true; do
+	printf "Neues Datum (YYYY-MM-DD) [Enter=behalten]: "
+	read -r new_date
+
+	# Wenn leer, behalte aktuelles Datum
+	[ -z "$new_date" ] && { new_date="$current_date"; break; }
+
+	# Validiere Datum
+	if validate_date "$new_date"; then
+		break
+	else
+		echo "❌ Ungültiges Datum! Format: YYYY-MM-DD (z.B. 2024-03-15)"
+		echo ""
+	fi
+done
+
+# Zeit eingeben
+while true; do
+	printf "Neue Zeit (HH:MM:SS) [Enter=behalten]: "
+	read -r new_time
+
+	# Wenn leer, behalte aktuelle Zeit
+	[ -z "$new_time" ] && { new_time="$current_time"; break; }
+
+	# Ergänze Sekunden falls nicht angegeben
+	if echo "$new_time" | grep -qE '^[0-9]{2}:[0-9]{2}$'; then
+		new_time="${new_time}:00"
+	fi
+
+	# Validiere Zeit
+	if validate_time "$new_time"; then
+		break
+	else
+		echo "❌ Ungültige Zeit! Format: HH:MM:SS oder HH:MM (z.B. 14:30:00)"
+		echo ""
+	fi
+done
+
+# Bestätigung
+echo ""
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "Neues Datum/Zeit: ${new_date} ${new_time}"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+printf "Ändern? [j/N]: "
+read -r confirm
+
+if [ "$confirm" = "j" ] || [ "$confirm" = "J" ]; then
+	# Setze Datum und Zeit
+	if touch -d "${new_date} ${new_time}" "$file" 2>/dev/null; then
+		notify-send "✅ Erfolgreich" "Datum geändert: ${new_date} ${new_time}"
+		echo ""
+		echo "✅ Datum erfolgreich geändert!"
+	else
+        # TODO Kritische Warnung
+		notify-send "❌ Fehler" "Datum konnte nicht geändert werden"
+		echo ""
+		echo "❌ Fehler beim Ändern des Datums!"
+		read -r dummy
+	fi
+else
+	echo ""
+	echo "Abgebrochen."
+fi

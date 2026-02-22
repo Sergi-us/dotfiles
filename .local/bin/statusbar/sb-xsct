@@ -172,7 +172,7 @@ show_status() {
             current_temp=$new_temp
         fi
 
-        echo " "  # Auto-Icon
+        echo ""  # Auto-Icon
     else
         # Manueller Modus: Icon nach Temperatur
         if [ "$current_temp" -le 3500 ]; then

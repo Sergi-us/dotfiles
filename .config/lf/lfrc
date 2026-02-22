@@ -435,6 +435,29 @@ cmd bild-80-komprimieren ${{
     notify-send " Verarbeitung abgeschlossen." "Alle ausgewählten Bilder wurden bearbeitet."
 }}
 
+# Bilder komprimieren: PNG/andere → WebP (kleinste Dateigröße), JPEG bleibt JPEG
+cmd bild-60-komprimieren ${{
+    clear; tput cup $(($(tput lines)/3)); tput bold
+    set -f
+    notify-send "Bilder werden komprimiert..."
+    for x in $fx; do
+        ext="${x##*.}"
+        extl="$(printf '%s' "$ext" | tr '[:upper:]' '[:lower:]')"
+        if [ "$extl" = "jpg" ] || [ "$extl" = "jpeg" ]; then
+            output="${x%.*}_komprimiert-60.${ext}"
+            magick "$x" -quality 60 "$output" && \
+                notify-send " Erfolgreich" "$x → $output" || \
+                notify-send " Fehler" "$x konnte nicht verarbeitet werden."
+        else
+            output="${x%.*}_komprimiert-60.webp"
+            magick "$x" -quality 60 "$output" && \
+                notify-send " Erfolgreich" "$x → $output (WebP)" || \
+                notify-send " Fehler" "$x konnte nicht verarbeitet werden."
+        fi
+    done
+    notify-send " Verarbeitung abgeschlossen." "Alle ausgewählten Bilder wurden bearbeitet."
+}}
+
 # Dateien kopieren mit fzf-Zielauswahl
 cmd copyto ${{
 	clear; tput cup $(($(tput lines)/3)); tput bold
@@ -471,6 +494,30 @@ cmd bulkrename ${{
 	lf -remote "send $id unselect"
 }}
 
+# Dateidatum bearbeiten
+cmd Datum-bearbeiten ${{
+	lf-Datum-bearbeiten "$f"
+	lf -remote "send $id reload"
+}}
+
+# Ausführungsrechte entziehen
+cmd Ausführungsrechte-enziehen ${{
+	for f in $fx; do
+		chmod -x "$f"
+	done
+	lf -remote "send $id reload"
+	lf -remote "send $id unselect"
+}}
+
+# Ausführungsrechte setzen
+cmd Ausführungsrechte-setzen ${{
+	for f in $fx; do
+		chmod +x "$f"
+	done
+	lf -remote "send $id reload"
+	lf -remote "send $id unselect"
+}}
+
 # Musik auf das Android Handy kopieren
 cmd Handy-Musik ${{
 	clear; tput cup $(($(tput lines)/3)); tput bold
@@ -479,7 +526,7 @@ cmd Handy-Musik ${{
 	dest="/sdcard/Music"  # Standardzielordner auf dem Handy
 	for x in $fx; do
 		adb push "$x" "$dest" &&
-		notify-send " Datei übertragen." "Datei/Verzeichniss $x wurde auf das Handy kopiert, ziel Musik."
+		notify-send " Datei übertragen." "Datei/Verzeichniss $x wurde auf das Handy kopiert, ziel Musik."
 	done
 }}
 
@@ -519,7 +566,8 @@ map Ad Handy-Downloads
 map Am Handy-Musik
 
 # === P Menu für Bildbearbeitung ===
-map Pk bild-80-komprimieren
+map P8 bild-80-komprimieren
+map P6 bild-60-komprimieren
 
 # === R Menu für Videobearbeitung ===
 map Rx convert_audio
@@ -549,6 +597,11 @@ map <c-s> set hidden!       # <Strg+s> = Versteckte Dateien An/Aus-blenden
 map B bulkrename            # <B> = Startet die Massenumbenennung für mehrere ausgewählte Dateien.
 map b $setbg $f             # <b> = Setzt die ausgewähltes Bild als Hintergrund.
 
+# === ä Menu für Datei-Änderungen (Metadaten, Rechte) ===
+map äd Datum-bearbeiten            # äd = Dateidatum bearbeiten (Erstelldatum/Änderungsdatum)
+map äx Ausführungsrechte-setzen       # äx = Ausführungsrechte setzen (chmod +x)
+map äX Ausführungsrechte-enziehen    # äX = Ausführungsrechte entziehen (chmod -x)
+
 # === Dateibearbeitung ===
 map <enter> shell           # <Enter> Shell im aktuellen Verzeichniss öffnen
 map x $$f                   # <x> Führt Datei als Befehl aus.
@@ -558,10 +611,8 @@ map o &mimeopen "$f"        # <o> Öffnet die Datei mit dem Standard-Programm.
 map O $mimeopen --ask "$f"  # <O> Fragt, mit welchem Programm die Datei geöffnet werden soll.
 map V push :!nvim<space>    # <V> Öffnet vim im aktuellen Verzeichnis
 map W $setsid -f $TERMINAL >/dev/null 2>&1	# W = Öffnet ein neues Terminal-Fenster im aktuellen Verzeichnis
-    # <Strg+y> Ausführungsrechte für ausgewählte Dateien entziehen
-map <c-y> $for f in $fx; do chmod -x "$f"; done && lf -remote "send $id reload" && lf -remote "send $id unselect"
-    # <Strg+x> Ausführungsrechte für ausgewählte Dateien geben
-map <c-x> $for f in $fx; do chmod +x "$f"; done && lf -remote "send $id reload" && lf -remote "send $id unselect"
+map <c-y> Ausführungsrechte-enziehen # <Strg+y> Ausführungsrechte für ausgewählte Dateien entziehen
+map <c-x> Ausführungsrechte-setzen    # <Strg+x> Ausführungsrechte für ausgewählte Dateien geben
 
 # === Umbenennen ===
 map c push A<c-u>           # c = Startet eine neue Umbenennung, löscht den vorhandenen Namen.

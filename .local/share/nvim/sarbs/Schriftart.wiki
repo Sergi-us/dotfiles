@@ -26,11 +26,11 @@ Symbole auf die ich achte
 │ Gerundet  │  │  Normal   │  ║  Doppelt  ║
 ╰───────────╯  └───────────┘  ╚═══════════╝
 
-Normal:     ┌ ┐ └ ┘ ├ ┤ ┬ ┴ ┼ ─ │
-Dünn:       ┌ ┐ └ ┘ ├ ┤ ┬ ┴ ┼ ─ │
-Dick:       ┏ ┓ ┗ ┛ ┣ ┫ ┳ ┻ ╋ ━ ┃
-Doppelt:    ╔ ╗ ╚ ╝ ╠ ╣ ╦ ╩ ╬ ═ ║
-Gerundet:   ╭ ╮ ╰ ╯
+Normal:     ┌┐ └┘ ├┤ ┬┴┼─ │
+Dünn:       ┌┐ └┘ ├┤ ┬┴┼─ │
+Dick:       ┏┓ ┗┛ ┣┫ ┳┻╋━ ┃
+Doppelt:    ╔╗ ╚╝ ╠╣ ╦╩╬═ ║
+Gerundet:   ╭╮ ╰╯
 
 -->
   -

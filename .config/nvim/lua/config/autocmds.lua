@@ -67,6 +67,11 @@ vim.cmd([[
 
 -- DWM auto-compile (mit Neustart)
 vim.cmd([[
+  autocmd BufWritePost ~/.local/src/DWM/config.h !cd ~/.local/src/DWM/; sudo make install
+]])
+
+-- DWM auto-compile (mit Neustart)
+vim.cmd([[
   autocmd BufWritePost ~/.local/src/dwm/config.h !cd ~/.local/src/dwm/; sudo make install
 ]])
 

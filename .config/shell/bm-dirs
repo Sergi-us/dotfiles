@@ -1,5 +1,8 @@
-# You can add comments to these files with #
-D		${XDG_DOWNLOAD_DIR:-$HOME/Downloads}
+## 2026-01-27   SARBS
+# Du kannst kommentare am ende hinzufügen #
+# die Verzeichnissliste wird in LF (List Files) genutzt für Copier und
+# Verscheibeaktionen...
+D		$HOME/Downloads
 bb		${XDG_PICTURES_DIR:-$HOME/Bilder}
 d		${XDG_DOCUMENTS_DIR:-$HOME/Dokumente}
 m		${XDG_MUSIC_DIR:-$HOME/Musik}
@@ -15,3 +18,4 @@ h		$HOME
 mn		/mnt
 sc		$HOME/.local/bin
 src		$HOME/.local/src
+

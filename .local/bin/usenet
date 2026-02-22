@@ -2,6 +2,7 @@
 ## 2025-11-16   SARBS
 # usenet - Usenet Services Manager
 # Verwaltet sabnzbd und nzbhydra2 Services und synchronisiert Downloads
+# TODO Skript nutzer unabhängig machen
 
 # Konstanten
 readonly SABNZBD_SERVICE="sabnzbd.service"

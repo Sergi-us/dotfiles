@@ -1,0 +1,301 @@
+#!/bin/sh
+## 2026-02-16   SARBS
+# Zentrale DPI/Skalierungs-Konfiguration fuer X11-Sitzungen.
+# Berechnet Hardware-DPI, wendet DISPLAY_ADJUST an, setzt State-Dateien
+# und konfiguriert xrandr + Umgebungsvariablen.
+#
+# Aufruf:
+#   set-dpi           Interaktiver Modus - zeigt Werte, fragt vor Anwendung
+#   set-dpi -s        Start/Silent - fuer xprofile (setzt alles ohne Ausgabe)
+#   set-dpi -a        Apply - wendet sofort an ohne Rueckfrage (fuer Skripte)
+#   set-dpi -d        Dry-Run - zeigt nur berechnete Werte, aendert nichts
+#   set-dpi -j N      Justierung auf N% setzen und anwenden (persistent)
+#
+# Stellschrauben (Umgebungsvariablen ueberschreiben alles):
+#   FORCE_DPI=192      Ueberspringt Auto-Erkennung + Adjust komplett
+#   FORCE_SCALE=1.25   Ueberspringt Scale-Ableitung
+
+# === Default fuer DISPLAY_ADJUST ===
+# Greift nur wenn State-Datei noch nicht existiert (frisches System).
+# Danach bestimmt ausschliesslich set-dpi -j den Wert.
+DISPLAY_ADJUST_DEFAULT=0
+
+# === Source-sicher: return statt exit wenn gesourced ===
+# Wenn via ". set-dpi -s" eingebunden, wuerde exit die aufrufende Shell beenden
+_setdpi_quit() { return "${1:-0}" 2>/dev/null || exit "${1:-0}"; }
+
+# === State-Verzeichnis ===
+state_dir="${XDG_STATE_HOME:-$HOME/.local/state}/xsession"
+
+# === Modus bestimmen ===
+MODE="interactive"
+case "$1" in
+	-s|--start)  MODE="silent" ;;
+	-a|--apply)  MODE="apply" ;;
+	-d|--dry-run) MODE="dryrun" ;;
+	-j|--justify)
+		# Justierung setzen und sofort anwenden
+		shift
+		case "$1" in
+			''|*[!0-9-]*) echo "Fehler: -j erwartet eine Ganzzahl (z.B. set-dpi -j -15)"; _setdpi_quit 1 ;;
+		esac
+		[ -d "$state_dir" ] || mkdir -p "$state_dir"
+		echo "$1" > "$state_dir/adjust"
+		MODE="apply" ;;
+	-h|--help)
+		echo "Verwendung: set-dpi [-s|-a|-d|-j N|-h]"
+		echo "  (ohne)   Interaktiver Modus"
+		echo "  -s       Start/Silent (fuer xprofile)"
+		echo "  -a       Apply (sofort anwenden)"
+		echo "  -d       Dry-Run (nur anzeigen)"
+		echo "  -j N     Justierung auf N% setzen und anwenden"
+		echo "           z.B. set-dpi -j -15  oder  set-dpi -j 0"
+		echo "  -h       Diese Hilfe"
+		echo ""
+		echo "Aktueller DISPLAY_ADJUST: $(cat "$state_dir/adjust" 2>/dev/null || echo "$DISPLAY_ADJUST_DEFAULT") %"
+		_setdpi_quit 0 ;;
+	"") ;;
+	*) echo "Unbekannte Option: $1 (siehe set-dpi -h)"; _setdpi_quit 1 ;;
+esac
+
+# === DISPLAY_ADJUST laden ===
+# Prioritaet: 1. State-Datei (persistent, via -j gesetzt) 2. Default aus Skript
+DISPLAY_ADJUST=$(cat "$state_dir/adjust" 2>/dev/null) && [ -n "$DISPLAY_ADJUST" ] || DISPLAY_ADJUST=$DISPLAY_ADJUST_DEFAULT
+# Validierung: Muss eine Ganzzahl sein
+case "$DISPLAY_ADJUST" in
+	''|*[!0-9-]*) DISPLAY_ADJUST=0 ;;
+esac
+
+# === DPI-Berechnung ===
+
+# Automatische DPI-Erkennung basierend auf Primary/Active Display
+# Gibt den berechneten Roh-DPI-Wert zurueck (NICHT gerundet)
+calculate_raw_dpi() {
+	default_dpi=96
+
+	# Strategie: Priorisiere aktive Displays mit Aufloesung
+	# 1. Primary Display mit aktiver Aufloesung (+X+Y Position)
+	# 2. Erstes aktives Display mit Aufloesung
+	# 3. Primary Display (auch ohne aktive Aufloesung)
+	# 4. Erstes connected Display
+	primary_info=$(xrandr 2>/dev/null | grep " connected primary" | grep -E '[0-9]+x[0-9]+\+[0-9]+')
+	[ -z "$primary_info" ] && primary_info=$(xrandr 2>/dev/null | grep " connected" | grep -E '[0-9]+x[0-9]+\+[0-9]+' | head -n 1)
+	[ -z "$primary_info" ] && primary_info=$(xrandr 2>/dev/null | grep " connected primary")
+	[ -z "$primary_info" ] && primary_info=$(xrandr 2>/dev/null | grep " connected" | head -n 1)
+	[ -z "$primary_info" ] && { echo "$default_dpi"; return; }
+
+	# Extrahiere Aufloesung (z.B. "2560x1440+0+0" -> "2560x1440")
+	resolution=$(echo "$primary_info" | grep -oE '[0-9]+x[0-9]+\+[0-9]+\+[0-9]+' | head -n 1 | cut -d'+' -f1)
+
+	# Falls keine aktive Aufloesung, hole native aus naechster Zeile
+	if [ -z "$resolution" ]; then
+		display_name=$(echo "$primary_info" | awk '{print $1}')
+		resolution=$(xrandr 2>/dev/null | grep -A 1 "^$display_name " | tail -n 1 | awk '{print $1}')
+	fi
+
+	px_w=$(echo "$resolution" | cut -d'x' -f1)
+	px_h=$(echo "$resolution" | cut -d'x' -f2)
+
+	# Extrahiere physische Groesse (z.B. "309mm x 174mm")
+	physical=$(echo "$primary_info" | grep -oE '[0-9]+mm x [0-9]+mm')
+	mm_w=$(echo "$physical" | cut -d'm' -f1)
+	mm_h=$(echo "$physical" | cut -d' ' -f3 | cut -d'm' -f1)
+
+	# Validierung
+	[ -z "$px_w" ] || [ -z "$mm_w" ] || [ "$mm_w" -eq 0 ] 2>/dev/null && { echo "$default_dpi"; return; }
+
+	# Berechne DPI: pixel / (millimeter / 25.4)
+	calculated_dpi=$(echo "scale=0; ($px_w * 25.4) / $mm_w" | bc 2>/dev/null)
+	[ -z "$calculated_dpi" ] && { echo "$default_dpi"; return; }
+
+	echo "$calculated_dpi"
+}
+
+# Rundet einen DPI-Wert auf die naechste empfohlene Stufe
+# DPI-Stufen: 96, 120, 144, 168, 192, 240, 288
+round_to_dpi_step() {
+	raw="$1"
+	if [ "$raw" -lt 108 ]; then echo "96"
+	elif [ "$raw" -lt 132 ]; then echo "120"
+	elif [ "$raw" -lt 156 ]; then echo "144"
+	elif [ "$raw" -lt 180 ]; then echo "168"
+	elif [ "$raw" -lt 216 ]; then echo "192"
+	elif [ "$raw" -lt 264 ]; then echo "240"
+	else echo "288"
+	fi
+}
+
+# Skalierungsfaktor basierend auf DPI
+calculate_scale_factor() {
+	dpi="$1"
+	if [ "$dpi" -le 144 ]; then echo "1"
+	elif [ "$dpi" -le 192 ]; then echo "1.25"
+	elif [ "$dpi" -le 240 ]; then echo "1.5"
+	else echo "2"
+	fi
+}
+
+# === Hauptberechnung ===
+if [ -n "$FORCE_DPI" ]; then
+	MASTER_DPI=$FORCE_DPI
+	RAW_DPI="$FORCE_DPI (erzwungen)"
+else
+	RAW_DPI=$(calculate_raw_dpi)
+	RAW_DPI_ORIG=$RAW_DPI
+	# DISPLAY_ADJUST anwenden (Prozent-Offset)
+	if [ "$DISPLAY_ADJUST" -ne 0 ] 2>/dev/null; then
+		RAW_DPI=$(echo "scale=0; $RAW_DPI * (100 + $DISPLAY_ADJUST) / 100" | bc 2>/dev/null)
+		[ -z "$RAW_DPI" ] && RAW_DPI=$RAW_DPI_ORIG
+	fi
+	MASTER_DPI=$(round_to_dpi_step "$RAW_DPI")
+fi
+
+SCALE_FACTOR=${FORCE_SCALE:-$(calculate_scale_factor "$MASTER_DPI")}
+
+# Mauszeiger-Groesse: 24px Basis, skaliert mit SCALE_FACTOR
+XCURSOR_SIZE=$(echo "scale=0; 24 * $SCALE_FACTOR / 1" | bc 2>/dev/null)
+XCURSOR_SIZE=${XCURSOR_SIZE:-24}
+
+# === Anwendungs-Funktion ===
+apply_dpi() {
+	# State-Dateien schreiben
+	[ -d "$state_dir" ] || mkdir -p "$state_dir"
+	echo "$SCALE_FACTOR" > "$state_dir/scale"
+	echo "$MASTER_DPI" > "$state_dir/dpi"
+	echo "$XCURSOR_SIZE" > "$state_dir/cursor"
+	echo "$DISPLAY_ADJUST" > "$state_dir/adjust"
+
+	# xrandr DPI setzen
+	xrandr --dpi "$MASTER_DPI"
+
+	# GTK Cursor-Groesse synchronisieren
+	gtk3_settings="${XDG_CONFIG_HOME:-$HOME/.config}/gtk-3.0/settings.ini"
+	gtk2_settings="${XDG_CONFIG_HOME:-$HOME/.config}/gtk-2.0/gtkrc-2.0"
+	[ -f "$gtk3_settings" ] && sed -i "s/^gtk-cursor-theme-size=.*/gtk-cursor-theme-size=$XCURSOR_SIZE/" "$gtk3_settings"
+	[ -f "$gtk2_settings" ] && sed -i "s/^gtk-cursor-theme-size=.*/gtk-cursor-theme-size=$XCURSOR_SIZE/" "$gtk2_settings"
+
+	# fontconfig DPI synchronisieren
+	fontconf="${XDG_CONFIG_HOME:-$HOME/.config}/fontconfig/fonts.conf"
+	[ -f "$fontconf" ] && sed -i "s|<double>[0-9]*</double>|<double>$MASTER_DPI</double>|" "$fontconf"
+
+	# Rofi DPI synchronisieren
+	rofi_conf="${XDG_CONFIG_HOME:-$HOME/.config}/rofi/config.rasi"
+	[ -f "$rofi_conf" ] && sed -i "s/dpi: [0-9]*/dpi: $MASTER_DPI/" "$rofi_conf"
+
+	# Umgebungsvariablen exportieren (fuer Kindprozesse)
+	export XCURSOR_SIZE
+	export MASTER_DPI
+	export SCALE_FACTOR
+	export GDK_DPI_SCALE=$SCALE_FACTOR
+	export QT_FONT_DPI=$MASTER_DPI
+	export QT_SCALE_FACTOR=$SCALE_FACTOR
+}
+
+# === Display-Info fuer Ausgabe sammeln ===
+get_display_info() {
+	_primary=$(xrandr 2>/dev/null | grep " connected primary" | awk '{print $1}')
+	[ -z "$_primary" ] && _primary=$(xrandr 2>/dev/null | grep " connected" | head -n 1 | awk '{print $1}')
+	_info=$(xrandr 2>/dev/null | grep "^$_primary connected")
+	_res=$(echo "$_info" | grep -oE '[0-9]+x[0-9]+\+[0-9]+\+[0-9]+' | head -n 1 | cut -d'+' -f1)
+	_phys=$(echo "$_info" | grep -oE '[0-9]+mm x [0-9]+mm')
+	echo "$_primary|$_res|$_phys"
+}
+
+# === Modus-spezifische Ausfuehrung ===
+case "$MODE" in
+	silent)
+		# xprofile-Modus: Alles setzen, keine Ausgabe
+		apply_dpi
+		;;
+
+	apply)
+		# Skript-Modus: Anwenden + kurze Bestaetigung
+		apply_dpi
+		echo "DPI=$MASTER_DPI SCALE=$SCALE_FACTOR CURSOR=${XCURSOR_SIZE}px"
+		;;
+
+	dryrun)
+		# Nur anzeigen, nichts aendern
+		info=$(get_display_info)
+		_primary=$(echo "$info" | cut -d'|' -f1)
+		_res=$(echo "$info" | cut -d'|' -f2)
+		_phys=$(echo "$info" | cut -d'|' -f3)
+
+		echo "=== DPI Dry-Run ==="
+		echo "Display:        $_primary ($_res, $_phys)"
+		echo "DISPLAY_ADJUST: $DISPLAY_ADJUST%"
+		[ -n "$RAW_DPI_ORIG" ] && echo "Hardware-DPI:   $RAW_DPI_ORIG"
+		echo "Adjusted-DPI:   $RAW_DPI"
+		echo "MASTER_DPI:     $MASTER_DPI"
+		echo "SCALE_FACTOR:   $SCALE_FACTOR"
+		echo "XCURSOR_SIZE:   $XCURSOR_SIZE"
+		;;
+
+	interactive)
+		# Interaktiver Modus: Vergleich + Rueckfrage
+		echo "=== DPI/SCALE Konfiguration ==="
+		echo ""
+
+		# Aktive Displays anzeigen
+		echo "Aktive Displays:"
+		xrandr 2>/dev/null | grep "connected" | grep -v "disconnected"
+		echo ""
+
+		# Display-Details
+		info=$(get_display_info)
+		_primary=$(echo "$info" | cut -d'|' -f1)
+		_res=$(echo "$info" | cut -d'|' -f2)
+		_phys=$(echo "$info" | cut -d'|' -f3)
+
+		echo "Primär Display:   $_primary"
+		echo "  Auflösung:      $_res"
+		echo "  Physisch:       $_phys"
+
+		# Tatsaechliche DPI anzeigen
+		if [ -n "$_res" ] && [ -n "$_phys" ]; then
+			_px_w=$(echo "$_res" | cut -d'x' -f1)
+			_mm_w=$(echo "$_phys" | cut -d'm' -f1)
+			_real_dpi=$(echo "scale=1; ($_px_w * 25.4) / $_mm_w" | bc 2>/dev/null)
+			[ -n "$_real_dpi" ] && echo "  Hardware-DPI:  $_real_dpi"
+		fi
+
+		echo ""
+		echo "Berechnete Werte (DISPLAY_ADJUST=${DISPLAY_ADJUST}%):"
+		echo "  MASTER_DPI   = $MASTER_DPI"
+		echo "  SCALE_FACTOR = $SCALE_FACTOR"
+		echo "  XCURSOR_SIZE = $XCURSOR_SIZE"
+
+		# Vergleich mit aktuellen State-Dateien
+		if [ -f "$state_dir/dpi" ] && [ -f "$state_dir/scale" ]; then
+			old_dpi=$(cat "$state_dir/dpi")
+			old_scale=$(cat "$state_dir/scale")
+			old_cursor=$(cat "$state_dir/cursor" 2>/dev/null)
+			echo ""
+			echo "Aktuell aktiv:"
+			echo "  DPI:    $old_dpi -> $MASTER_DPI"
+			echo "  SCALE:  $old_scale -> $SCALE_FACTOR"
+			[ -n "$old_cursor" ] && echo "  CURSOR: $old_cursor -> $XCURSOR_SIZE"
+
+			if [ "$old_dpi" = "$MASTER_DPI" ] && [ "$old_scale" = "$SCALE_FACTOR" ]; then
+				echo ""
+				echo "Werte sind bereits aktuell, keine Änderungen nötig."
+				_setdpi_quit 0
+			fi
+		fi
+
+		echo ""
+		printf "Anwenden? (j/N) "
+		read -r answer
+		case "$answer" in
+			j|J|y|Y)
+				apply_dpi
+				echo ""
+				echo "Angewandt: DPI=$MASTER_DPI SCALE=$SCALE_FACTOR CURSOR=${XCURSOR_SIZE}px"
+				echo "Starte Apps neu und aktualisiere DWM, um neue Skalierung zu sehen."
+				;;
+			*)
+				echo "Abgebrochen. Keine Änderungen."
+				;;
+		esac
+		;;
+esac

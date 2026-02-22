@@ -15,14 +15,14 @@ BRIGHTNESS_SUNSET="19:00"        # Beginn der Abdunkelphase
 BRIGHTNESS_NIGHT_START="21:00"   # Volle Nachthelligkeit
 
 # Helligkeitswerte in Prozent
-BRIGHTNESS_NIGHT=10             # Nachthelligkeit
+BRIGHTNESS_NIGHT=20             # Nachthelligkeit
 BRIGHTNESS_DAY=100              # Tageshelligkeit
 BRIGHTNESS_DEFAULT=80           # Standard beim Reset
 
 # Manuelle Steuerung
-BRIGHTNESS_MIN=10                # Minimale Helligkeit
+BRIGHTNESS_MIN=5                # Minimale Helligkeit
 BRIGHTNESS_MAX=100              # Maximale Helligkeit
-BRIGHTNESS_STEP=10               # Schrittweite für manuell +/-
+BRIGHTNESS_STEP=5               # Schrittweite für manuell +/-
 
 # ============================================================================
 # SYSTEM - Cache-Verzeichnis nach XDG-Spezifikation
@@ -347,11 +347,11 @@ fi
 
 # Auto-Brightness-Symbol (Zusatz zum Batterie-Icon)
 if [ -f "$AUTO_FILE" ]; then
-    auto_symbol=""  # Kleines Sonnen-Symbol für Auto-Modus
+    auto_symbol="󰖨"  # 󰖨 Auto-Modus
 else
-    auto_symbol=" "
+    auto_symbol=""  #  Manueller Modus
 fi
 
 # output="$symbol$warn$overall_capacity%"
-output="$symbol$auto_symbol$warn"
+output="$auto_symbol$symbol$warn"
 echo "$output"

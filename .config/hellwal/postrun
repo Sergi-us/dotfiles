@@ -7,13 +7,17 @@ waldir="${XDG_CACHE_HOME:-$HOME/.cache}/wal"
 # Reload Xresources
 xrdb -merge "$waldir/colors.Xresources" 2>/dev/null
 
-# Symlink dunstrc and zathurarc to config dirs
+# Symlink dunstrc, zathurarc, kitty und alacritty colors zu config dirs
 dunstconf="${XDG_CONFIG_HOME:-$HOME/.config}/dunst/dunstrc"
 zathuraconf="${XDG_CONFIG_HOME:-$HOME/.config}/zathura/zathurarc"
+kittyconf="${XDG_CONFIG_HOME:-$HOME/.config}/kitty/colors-kitty.conf"
+alacrittyconf="${XDG_CONFIG_HOME:-$HOME/.config}/alacritty/colors-alacritty.toml"
 
-mkdir -p "${dunstconf%/*}" "${zathuraconf%/*}"
+mkdir -p "${dunstconf%/*}" "${zathuraconf%/*}" "${kittyconf%/*}" "${alacrittyconf%/*}"
 ln -sf "$waldir/dunstrc" "$dunstconf"
 ln -sf "$waldir/zathurarc" "$zathuraconf"
+ln -sf "$waldir/colors-kitty.conf" "$kittyconf"
+ln -sf "$waldir/colors-alacritty.toml" "$alacrittyconf"
 
 # Copy tut theme to config
 tutdir="${XDG_CONFIG_HOME:-$HOME/.config}/tut/themes"
@@ -48,3 +52,8 @@ pkill -KILL dunst 2>/dev/null
 sleep 0.1
 # Neu starten
 setsid -f dunst >/dev/null 2>&1
+
+# Reload kitty colors in allen laufenden Instanzen
+if [ -x "$(command -v kitty)" ]; then
+    kitty @ --to unix:/tmp/kitty set-colors --all --configured "$waldir/colors-kitty.conf" 2>/dev/null || true
+fi

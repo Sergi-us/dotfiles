@@ -3,12 +3,12 @@
 # KeePassXC Wrapper mit Qt5-Skalierung
 
 # Manuelle Skalierung (überschreibt Auto-Erkennung)
-SCALE_FACTOR=1
+# SCALE_FACTOR=1
 
 # Lese berechneten Skalierungsfaktor aus State-Datei (falls nicht manuell gesetzt)
 # Bei KeePassXC nutzen wir den manuellen Wert SCALE_FACTOR=1
-# state_file="${XDG_STATE_HOME:-$HOME/.local/state}/xsession/scale"
-# [ -f "$state_file" ] && SCALE_FACTOR=$(cat "$state_file")
+state_file="${XDG_STATE_HOME:-$HOME/.local/state}/xsession/scale"
+[ -f "$state_file" ] && SCALE_FACTOR=$(cat "$state_file")
 
 # Fallback falls State-Datei nicht existiert
 # SCALE_FACTOR=${SCALE_FACTOR:-1.0}
@@ -18,6 +18,6 @@ export QT_SCALE_FACTOR=$SCALE_FACTOR
 
 # Optional: Falls KeePassXC zu groß/klein wird
 # Override System-DPI für Schriften
-export QT_FONT_DPI=144
+# export QT_FONT_DPI=144
 
 exec /usr/bin/keepassxc "$@"

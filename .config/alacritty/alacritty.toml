@@ -1,0 +1,244 @@
+## 2025-01-24 SARBS
+## Alacritty Terminal-Emulator Konfiguration
+
+# =============================================================================
+# General - Import hellwal Farben
+# =============================================================================
+[general]
+# Farben werden von hellwal generiert und automatisch verlinkt
+# Der Symlink colors-alacritty.toml wird vom hellwal postrun-Skript erstellt
+import = ["~/.config/alacritty/colors-alacritty.toml"]
+
+# =============================================================================
+# Fenster-Einstellungen
+# =============================================================================
+[window]
+# Ränder (entspricht borderpx = 0 in ST und Kitty)
+padding.x = 0
+padding.y = 0
+
+# Fenster-Dekorationen (full, none, transparent, buttonless)
+decorations = "full"
+
+# Opazität des Fensters (entspricht alpha = 0.85 in ST und background_opacity in Kitty)
+opacity = 0.85
+
+# Startmodus (Windowed, Maximized, Fullscreen)
+# startup_mode = "Windowed"
+
+# Dynamischer Titel - zeigt laufende Programme
+dynamic_title = true
+
+# =============================================================================
+# Scrolling
+# =============================================================================
+[scrolling]
+# Anzahl der Zeilen im Scrollback-Puffer (entspricht scrollback_lines in Kitty)
+history = 10000
+
+# Anzahl der Zeilen, die bei jedem Scroll-Ereignis verschoben werden
+multiplier = 3
+
+# =============================================================================
+# Schriftart (entspricht ST und Kitty Konfiguration)
+# =============================================================================
+[font]
+# Hauptschriftart: JetBrainsMono Nerd Font
+normal.family = "JetBrainsMono NF"
+normal.style = "Light"
+
+# Fett
+bold.family = "JetBrainsMono NF"
+bold.style = "Bold"
+
+# Kursiv
+italic.family = "JetBrainsMono NF"
+italic.style = "Light Italic"
+
+# Fett und Kursiv
+bold_italic.family = "JetBrainsMono NF"
+bold_italic.style = "Bold Italic"
+
+# Schriftgröße in Punkten (entspricht font_size 16.0 in Kitty)
+size = 12.0
+
+# Zusätzlicher Zeichenabstand
+offset.x = 0
+offset.y = 0
+
+# Glyph-Offset (nur für spezielle Schriften notwendig)
+glyph_offset.x = 0
+glyph_offset.y = 0
+
+# =============================================================================
+# Cursor
+# =============================================================================
+[cursor]
+# Cursor-Stil (Block, Underline, Beam)
+style.shape = "Block"
+
+# Cursor blinkt (Never, Off, On, Always)
+style.blinking = "Off"
+
+# Unschärfe-Timeout in Millisekunden
+unfocused_hollow = true
+
+# =============================================================================
+# Terminal
+# =============================================================================
+[terminal]
+# Shell-Programm (zsh wie in Kitty)
+shell.program = "/bin/zsh"
+
+# TERM-Variable
+[env]
+TERM = "xterm-256color"
+
+# =============================================================================
+# Maus
+# =============================================================================
+[mouse]
+# Verstecke Cursor beim Tippen
+hide_when_typing = true
+
+# =============================================================================
+# Tastenkombinationen (entspricht ST Shortcuts aus config.h)
+# =============================================================================
+# ST verwendet: MODKEY = Alt, TERMMOD = Alt+Shift
+
+# Kopieren/Einfügen (ST: TERMMOD+C/V, Alt+C/V, Shift+Insert)
+[[keyboard.bindings]]
+key = "C"
+mods = "Alt|Shift"
+action = "Copy"
+
+[[keyboard.bindings]]
+key = "V"
+mods = "Alt|Shift"
+action = "Paste"
+
+[[keyboard.bindings]]
+key = "C"
+mods = "Alt"
+action = "Copy"
+
+[[keyboard.bindings]]
+key = "V"
+mods = "Alt"
+action = "Paste"
+
+[[keyboard.bindings]]
+key = "Insert"
+mods = "Shift"
+action = "Paste"
+
+# Zoom (ST: TERMMOD+Prior/Next/Home = Alt+Shift+PageUp/Down/Home)
+[[keyboard.bindings]]
+key = "PageUp"
+mods = "Alt|Shift"
+action = "IncreaseFontSize"
+
+[[keyboard.bindings]]
+key = "PageDown"
+mods = "Alt|Shift"
+action = "DecreaseFontSize"
+
+[[keyboard.bindings]]
+key = "Home"
+mods = "Alt|Shift"
+action = "ResetFontSize"
+
+# Erweiterte Zoom-Optionen (ST: TERMMOD+Up/Down/K/J/U/D)
+[[keyboard.bindings]]
+key = "Up"
+mods = "Alt|Shift"
+action = "IncreaseFontSize"
+
+[[keyboard.bindings]]
+key = "Down"
+mods = "Alt|Shift"
+action = "DecreaseFontSize"
+
+[[keyboard.bindings]]
+key = "K"
+mods = "Alt|Shift"
+action = "IncreaseFontSize"
+
+[[keyboard.bindings]]
+key = "J"
+mods = "Alt|Shift"
+action = "DecreaseFontSize"
+
+# Große Zoom-Schritte (ST: TERMMOD+U/D = +2/-2)
+# Alacritty unterstützt keine variablen Schritte, daher 2x aufrufen
+[[keyboard.bindings]]
+key = "U"
+mods = "Alt|Shift"
+action = "IncreaseFontSize"
+
+[[keyboard.bindings]]
+key = "D"
+mods = "Alt|Shift"
+action = "DecreaseFontSize"
+
+# Scrollen (ST: Alt+PageUp/Down/k/j/u/d/Up/Down)
+[[keyboard.bindings]]
+key = "PageUp"
+mods = "Alt"
+action = "ScrollPageUp"
+
+[[keyboard.bindings]]
+key = "PageDown"
+mods = "Alt"
+action = "ScrollPageDown"
+
+[[keyboard.bindings]]
+key = "K"
+mods = "Alt"
+action = "ScrollLineUp"
+
+[[keyboard.bindings]]
+key = "J"
+mods = "Alt"
+action = "ScrollLineDown"
+
+[[keyboard.bindings]]
+key = "Up"
+mods = "Alt"
+action = "ScrollLineUp"
+
+[[keyboard.bindings]]
+key = "Down"
+mods = "Alt"
+action = "ScrollLineDown"
+
+# Halbe Seite scrollen (ST: Alt+u/d)
+[[keyboard.bindings]]
+key = "U"
+mods = "Alt"
+action = "ScrollPageUp"
+
+[[keyboard.bindings]]
+key = "D"
+mods = "Alt"
+action = "ScrollPageDown"
+
+# Transparenz ändern (ST: Alt+s/a = -0.05/+0.05)
+# Alacritty unterstützt keine dynamische Transparenz-Anpassung zur Laufzeit
+# Diese Bindings werden ignoriert
+
+# Neue Instanz (ST: TERMMOD+Return für tabbed)
+[[keyboard.bindings]]
+key = "Return"
+mods = "Alt|Shift"
+action = "SpawnNewInstance"
+
+# =============================================================================
+# Bell (entspricht enable_audio_bell no in Kitty)
+# =============================================================================
+[bell]
+# Terminal-Klingel deaktiviert
+animation = "EaseOutExpo"
+duration = 0
+color = "#ffffff"
+command = "None"

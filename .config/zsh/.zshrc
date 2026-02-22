@@ -290,6 +290,10 @@ zle -N zle-keymap-select
 zle-line-init() { echo -ne '\e[5 q' }  # Start mit Line-Cursor
 zle -N zle-line-init
 
+# Fenstertitel setzen (für dwm Statusleiste)
+preexec() { printf '\e]0;%s\a' "$1" }   # Laufendes Kommando als Titel
+precmd() { printf '\e]0;zsh\a' }         # Zurück zu "zsh" wenn idle
+
 # Vi-Navigation im Completion-Menu
 bindkey -M menuselect 'h' vi-backward-char
 bindkey -M menuselect 'k' vi-up-line-or-history

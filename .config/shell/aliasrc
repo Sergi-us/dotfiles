@@ -110,6 +110,9 @@ alias \
 # Standby
 alias standby="systemd-inhibit --what=handle-lid-switch --why='Musik hören' sleep infinity"
 
+# Timer
+alias timer="termdown"
+
 alias talk='env \
   MOZ_DISABLE_CONTENT_SANDBOX=0 \
   MOZ_WEBRTC_AUTO_GAIN_CONTROL=0 \

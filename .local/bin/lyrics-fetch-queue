@@ -1,0 +1,7 @@
+#!/bin/sh
+## 2025-10-10   SARBS
+# ~/.local/bin/lyrics-fetch-queue
+# Lädt Lyrics für alle Songs in der Queue
+
+export SELECTED_SONGS=$(mpc playlist -f '%file%')
+lyrics-fetch-batch

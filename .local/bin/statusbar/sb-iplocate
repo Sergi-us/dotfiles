@@ -1,44 +1,159 @@
 #!/bin/sh
-## 2025-01-09 SARBS
+## 2025-01-18 SARBS
+## Ermittelt öffentliche IP und Standort - NUR bei Klicks (Signal 0)
+## Zeigt VPN-Status in Statusleiste, führt Abfragen nur bei Interaktion aus
 
-# Ermittelt Ihre öffentliche IP-Adresse (IPv4 oder IPv6), prüft, in welchem Land Sie sich befinden,
-# und zeigt diese Information in der Statusleiste an
+# Cache-Datei für IP-Informationen
+CACHE_DIR="${XDG_DATA_HOME:-$HOME/.local/share}"
+CACHE_FILE="$CACHE_DIR/iplocate"
 
-ifinstalled "geoip"
+# Prüfe ob VPN aktiv ist (lokal, ohne externe Abfrage)
+check_vpn() {
+	for iface in /sys/class/net/*; do
+		[ ! -e "$iface" ] && continue
+		iface_name="${iface##*/}"
+		case "$iface_name" in
+			tun*|tap*|wg*|ppp*|vpn*)
+				state=$(cat "$iface/operstate" 2>/dev/null)
+				if [ "$state" = "up" ] || [ "$state" = "unknown" ]; then
+					echo "$iface_name"
+					return 0
+				fi
+				;;
+		esac
+	done
+	return 1
+}
 
+# Lade gespeicherte Informationen aus Cache
+load_cached_info() {
+	if [ -f "$CACHE_FILE" ]; then
+		# Prüfe ob Cache älter als 24 Stunden ist
+		cache_age=$(($(date +%s) - $(stat -c %Y "$CACHE_FILE" 2>/dev/null || echo 0)))
+		if [ $cache_age -lt 86400 ]; then
+			cat "$CACHE_FILE"
+			return 0
+		fi
+	fi
+	return 1
+}
+
+# Datenschutzfreundliche IP-Info Abfrage mit Cache-Speicherung
 getipinfo() {
-	# IP-Adresse abrufen (unterstützt sowohl IPv4 als auch IPv6)
-	ip=$(curl -s ifconfig.me)
+	notify-send "🔍 IP-Standort" "Aktualisiere Standort-Informationen..."
 
-	# Prüfen, ob es sich um eine IPv6-Adresse handelt
-	if echo "$ip" | grep -q ':'; then
-		# IPv6
-		addr=$(geoiplookup6 -f /usr/share/GeoIP/GeoIPv6.dat "$ip" 2>/dev/null)
-	else
-		# IPv4
-		addr=$(geoiplookup -f /usr/share/GeoIP/GeoIP.dat "$ip" 2>/dev/null)
+	# Methode 1: ifconfig.co (Open Source, minimal logging)
+	response=$(curl -s --max-time 3 "https://ifconfig.co/json" 2>/dev/null)
+	if [ -n "$response" ]; then
+		ip=$(echo "$response" | grep -o '"ip":"[^"]*' | cut -d'"' -f4)
+		country_code=$(echo "$response" | grep -o '"country_iso":"[^"]*' | cut -d'"' -f4)
+		country_name=$(echo "$response" | grep -o '"country":"[^"]*' | cut -d'"' -f4)
+		city=$(echo "$response" | grep -o '"city":"[^"]*' | cut -d'"' -f4)
+		# Bei ifconfig.co: country ist Ländername, city ist Stadt
+		location_info="$country_name"
+		[ -n "$city" ] && location_info="$city, $country_name"
 	fi
 
-	# Extrahiere Ländercode (z.B. "DE") und Ländername
-	country_code="${addr#*: }"
-	country_code="${country_code%%,*}"
-	country_name="${addr##*, }"
+	# Methode 2: Falls ifconfig.co nicht funktioniert, nutze ipinfo.io
+	if [ -z "$ip" ]; then
+		response=$(curl -s --max-time 3 "https://ipinfo.io/json" 2>/dev/null)
+		if [ -n "$response" ]; then
+			ip=$(echo "$response" | grep -o '"ip":"[^"]*' | cut -d'"' -f4)
+			country_code=$(echo "$response" | grep -o '"country":"[^"]*' | cut -d'"' -f4)
+			city=$(echo "$response" | grep -o '"city":"[^"]*' | cut -d'"' -f4)
+			region=$(echo "$response" | grep -o '"region":"[^"]*' | cut -d'"' -f4)
+			# Bei ipinfo.io müssen wir Ländernamen separat ermitteln
+			location_info="$city"
+			[ -n "$region" ] && location_info="$city, $region"
+		fi
+	fi
 
-	# Gebe alle Infos zurück
-	printf "%s|%s|%s" "$ip" "$country_code" "$country_name"
+	# Fallback auf einfache Abfrage
+	if [ -z "$ip" ]; then
+		ip=$(curl -s --max-time 3 https://ifconfig.me 2>/dev/null)
+		country_code=$(curl -s --max-time 3 https://ifconfig.co/country 2>/dev/null | tr -d '[:space:]')
+		location_info=""
+	fi
+
+	# Bereinige und gebe zurück
+	[ -z "$country_code" ] && country_code="??"
+	[ -z "$location_info" ] && location_info="Unbekannt"
+
+	result="$ip|$country_code|$location_info"
+
+	# Speichere in Cache mit Timestamp
+	printf "%s|%s\n" "$(date +%s)" "$result" > "$CACHE_FILE"
+
+	printf "%s" "$result"
 }
 
 case $BLOCK_BUTTON in
-	1) notify-send "🌍 IP-Standort" "$(getipinfo | awk -F'|' '{print "IP: "$1"\nLand: "$3" ("$2")"}')" ;;
-	3) info=$(getipinfo)
-	   ip=$(echo "$info" | cut -d'|' -f1)
-	   code=$(echo "$info" | cut -d'|' -f2)
-	   name=$(echo "$info" | cut -d'|' -f3)
-	   notify-send "🌍 IP-Standort - Vollständige Informationen" "IP-Adresse: $ip\n\nLändercode: $code\nLand: $name\n\nTyp: $(echo "$ip" | grep -q ':' && echo "IPv6" || echo "IPv4")" ;;
+	1) # Linksklick - Aktualisiere und zeige Info
+		vpn_iface=$(check_vpn)
+		# Erzwinge neue Abfrage
+		info=$(getipinfo)
+		ip=$(echo "$info" | cut -d'|' -f1)
+		code=$(echo "$info" | cut -d'|' -f2)
+		name=$(echo "$info" | cut -d'|' -f3)
+
+		if [ -n "$vpn_iface" ]; then
+			notify-send "🌍 VPN-Standort ($vpn_iface)" "IP: $ip\nStandort: $name\nLand: $code\n\n✅ Aktualisiert: $(date '+%H:%M:%S')"
+		else
+			notify-send "🌍 Direkter Standort" "⚠️ Kein VPN aktiv!\n\nIP: $ip\nStandort: $name\nLand: $code\n\n✅ Aktualisiert: $(date '+%H:%M:%S')"
+		fi
+		# Aktualisiere Statusbar
+		pkill -RTMIN+28 dwmblocks
+		;;
+	3) # Rechtsklick - Zeige gespeicherte Info (ohne Aktualisierung)
+		vpn_iface=$(check_vpn)
+
+		# Lade aus Cache oder zeige Hinweis
+		if [ -f "$CACHE_FILE" ]; then
+			cache_data=$(cat "$CACHE_FILE")
+			timestamp=$(echo "$cache_data" | cut -d'|' -f1)
+			info=$(echo "$cache_data" | cut -d'|' -f2-)
+
+			# Berechne Cache-Alter
+			cache_age=$(($(date +%s) - timestamp))
+			if [ $cache_age -lt 60 ]; then
+				age_text="vor $(($cache_age)) Sekunden"
+			elif [ $cache_age -lt 3600 ]; then
+				age_text="vor $(($cache_age / 60)) Minuten"
+			elif [ $cache_age -lt 86400 ]; then
+				age_text="vor $(($cache_age / 3600)) Stunden"
+			else
+				age_text="vor $(($cache_age / 86400)) Tagen"
+			fi
+
+			ip=$(echo "$info" | cut -d'|' -f1)
+			code=$(echo "$info" | cut -d'|' -f2)
+			name=$(echo "$info" | cut -d'|' -f3)
+
+			if [ -n "$vpn_iface" ]; then
+				# Bei WireGuard: Zusätzliche Infos
+				extra_info=""
+				if [ "${vpn_iface#wg}" != "$vpn_iface" ]; then
+					endpoint=$(wg show "$vpn_iface" endpoints 2>/dev/null | awk '{print $2}')
+					[ -n "$endpoint" ] && extra_info="\nVPN-Server: $endpoint"
+				fi
+
+				notify-send "🌍 VPN-Status (Cache)" "Interface: $vpn_iface\nIP: $ip\nStandort: $name\nLand: $code$extra_info\n\n📅 Letzte Aktualisierung: $age_text\n💡 Linksklick zum Aktualisieren"
+			else
+				notify-send "🌍 Standort (Cache)" "⚠️ WARNUNG: Kein VPN aktiv!\n\nIP: $ip\nStandort: $name\nLand: $code\n\n📅 Letzte Aktualisierung: $age_text\n💡 Linksklick zum Aktualisieren"
+			fi
+		else
+			notify-send "🌍 IP-Standort" "Keine gespeicherten Daten vorhanden.\n\n💡 Linksklick zum Aktualisieren"
+		fi
+		;;
 	6) setsid -f "$TERMINAL" -e "$EDITOR" "$0" ;;
 esac
 
-# Statusleisten-Ausgabe: Zeige nur Ländercode
-info=$(getipinfo)
-country_code=$(echo "$info" | cut -d'|' -f2)
-printf "%s\\n" "[$country_code]"
+# Statusleisten-Ausgabe (wird bei Signal 0 nur bei Klicks aufgerufen)
+vpn_iface=$(check_vpn)
+if [ -n "$vpn_iface" ]; then
+	# VPN aktiv - zeige Ländercode in eckigen Klammern
+	printf "󰢭[%s]\\n" "$vpn_iface"
+else
+	# Kein VPN - zeige nur Globus-Symbol
+	printf " \\n"
+fi

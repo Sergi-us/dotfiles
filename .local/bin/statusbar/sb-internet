@@ -1,5 +1,6 @@
 #!/bin/sh
 ## 2025-06-13 SARBS
+# Anhängigkeiten: nmcli, nmtui, dunst, wireless_tools (iwgetid)
 
 # Prozente in Statusbar anzeigen? (true/false)
 SHOW_PERCENT=false
@@ -20,22 +21,30 @@ case $BLOCK_BUTTON in
         ;;
     2) # 󰳾 Netzwerkmanager (mittelklick)
         "$TERMINAL" -e nmtui; pkill -RTMIN+23 dwmblocks ;;
-    3) # Rechtsklick: Nur aktuelle Verbindung anzeigen (schnell!)
-        wifi_iface=$(ls /sys/class/net | grep "^w" | head -n 1)
+    3) # Rechtsklick: Aktuelle Verbindungen anzeigen (WiFi + VPN)
+        wifi_iface=$(ls /sys/class/net | grep "^w" | grep -v "^wg" | head -n 1)
 
-        # Aktuelle Verbindung - schnell ohne Scan
+        # WiFi Status
         if [ -n "$wifi_iface" ] && [ "$(cat /sys/class/net/$wifi_iface/operstate 2>/dev/null)" = 'up' ]; then
-            # SSID aus NetworkManager connection
-            current_ssid=$(nmcli -t -f name connection show --active | head -1)
-            signal_strength=$(awk '/^\s*w/ { print int($3 * 100 / 70) }' /proc/net/wireless)
+            # SSID über verschiedene Methoden holen
+            # Methode 1: iwgetid (falls installiert)
+            current_ssid=$(iwgetid -r 2>/dev/null)
 
-            # Signalstärke-Ic## Wifi-Symbole:
-            ## 󰤥 (76-100%) - Stark
-            ## 󰤢 (51-75%) - Gut
-            ## 󰤟 (26-50%) - Mäßig
-            ## 󰤯 (0-25%) - Schwach
-            ## 󰖪 Wifi ausgeschaltet
-            ## 󰤫 Keine Verbindungon
+            # Methode 2: nmcli mit deutscher/englischer Ausgabe
+            if [ -z "$current_ssid" ]; then
+                current_ssid=$(nmcli -t -f active,ssid dev wifi | grep -E '^(yes|ja):' | cut -d: -f2 | head -1)
+            fi
+
+            # Methode 3: nmcli connection show
+            if [ -z "$current_ssid" ]; then
+                current_ssid=$(nmcli -t -f name,type connection show --active | grep ':802-11-wireless$' | cut -d: -f1 | head -1)
+            fi
+
+            # Fallback falls immer noch leer
+            [ -z "$current_ssid" ] && current_ssid="Unbekannt"
+
+            signal_strength=$(awk '/^\s*w/ { print int($3 * 100 / 70) }' /proc/net/wireless)
+            # Signalstärke-Icon
             if [ "$signal_strength" -ge 76 ]; then
                 signal_icon="󰤥"
             elif [ "$signal_strength" -ge 51 ]; then
@@ -45,15 +54,50 @@ case $BLOCK_BUTTON in
             else
                 signal_icon="󰤯"
             fi
-
-            current_info="$signal_icon Verbunden: ${current_ssid} (${signal_strength}%)"
+            wifi_info="$signal_icon WiFi: ${current_ssid} (${signal_strength}%)"
         else
-            current_info="󰤫 Nicht verbunden"
+            wifi_info="󰤫 WiFi: Nicht verbunden"
         fi
 
-        notify-send "󰳾 Wifi Status" "$current_info
+        # VPN Status prüfen
+        vpn_info=""
+        for iface in /sys/class/net/*; do
+            [ ! -e "$iface" ] && continue
+            iface_name="${iface##*/}"
 
-󰍉 Linksklick: Wifi ein/aus
+            case "$iface_name" in
+                tun*|tap*|wg*|ppp*|vpn*)
+                    if [ -e "$iface/operstate" ]; then
+                        state=$(cat "$iface/operstate" 2>/dev/null)
+                        if [ "$state" = "up" ] || [ "$state" = "unknown" ]; then
+                            # Für WireGuard: Versuche Endpoint zu bekommen
+                            if [ "${iface_name#wg}" != "$iface_name" ]; then
+                                endpoint=$(wg show "$iface_name" endpoints 2>/dev/null | awk '{print $2}' | cut -d: -f1)
+                                [ -n "$endpoint" ] && vpn_info="󰢭 VPN: $iface_name (→ $endpoint)" || vpn_info="󰢭 VPN: $iface_name"
+                            else
+                                vpn_info="󰢭 VPN: $iface_name aktiv"
+                            fi
+                            break
+                        fi
+                    fi
+                    ;;
+            esac
+        done
+        [ -z "$vpn_info" ] && vpn_info="󰦞 VPN: Nicht verbunden"
+
+        # Ethernet Status
+        eth_iface=$(ls /sys/class/net | grep "^e" | head -n 1)
+        if [ "$(cat /sys/class/net/$eth_iface/operstate 2>/dev/null)" = 'up' ]; then
+            eth_info="󰱔 Ethernet: Verbunden"
+        else
+            eth_info="󰲜 Ethernet: Nicht verbunden"
+        fi
+
+        notify-send "󰳾 Netzwerk Status" "$wifi_info
+$vpn_info
+$eth_info
+
+󰍉 Linksklick: WiFi ein/aus
 󰍉 Mittelklick: NetworkManager öffnen"
         ;;
     4) ;;
@@ -81,8 +125,8 @@ case $BLOCK_BUTTON in
     6) setsid -f "$TERMINAL" -e "$EDITOR" "$0" ;;
 esac
 
-# Erkenne interfaces
-wifi_iface=$(ls /sys/class/net | grep "^w" | head -n 1)
+# Erkenne interfaces - schließe WireGuard (wg*) aus
+wifi_iface=$(ls /sys/class/net | grep "^w" | grep -v "^wg" | head -n 1)
 eth_iface=$(ls /sys/class/net | grep "^e" | head -n 1)
 
 # Wifi mit prozentabhängigen Symbolen
@@ -110,11 +154,30 @@ fi
 # Ethernet
 # 󰲜 kein Ethernet
 # 󰱔 Ethernet angeschlossen
-[ "$(cat /sys/class/net/$eth_iface/operstate 2>/dev/null)" = 'up' ] && ethericon="󰱔" || ethericon="󰲜"
+[ "$(cat /sys/class/net/$eth_iface/operstate 2>/dev/null)" = 'up' ] && ethericon="󰱔" || ethericon=""
 
-# VPN Tunnel
+# VPN Tunnel - prüfe verschiedene VPN-Interface-Typen
 # 󰢭 vpn is aktiv
-[ -n "$(cat /sys/class/net/tun*/operstate 2>/dev/null)" ] && tunicon="󰢭"
+vpn_active=""
+for iface in /sys/class/net/*; do
+    [ ! -e "$iface" ] && continue
+    iface_name="${iface##*/}"
 
-printf "%s%s%s\n" "$wifiicon $ethericon $tunicon"
-# printf "%s%s%s\n" "[$ethericon $wifiicon $tunicon]"
+    # Prüfe auf VPN-Interface-Namen
+    case "$iface_name" in
+        tun*|tap*|wg*|ppp*|vpn*)
+            # WireGuard zeigt "unknown" statt "up", prüfe ob Interface existiert
+            if [ -e "$iface/operstate" ]; then
+                state=$(cat "$iface/operstate" 2>/dev/null)
+                # Bei WireGuard reicht "unknown", bei anderen brauchen wir "up"
+                if [ "$state" = "up" ] || [ "$state" = "unknown" ]; then
+                    vpn_active="yes"
+                    break
+                fi
+            fi
+            ;;
+    esac
+done
+[ -n "$vpn_active" ] && tunicon="󰯅" # 󰢭  󰥎  󰯄  󰯅 ...
+
+printf "%s%s%s\n" "$wifiicon " "$ethericon$tunicon"

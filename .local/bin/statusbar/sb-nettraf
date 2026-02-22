@@ -15,24 +15,19 @@ esac
 
 # Funktion zur Überprüfung der Netzwerkverbindung über Hardware
 check_network() {
-    # Erkenne interfaces
-    wifi_iface=$(ls /sys/class/net | grep "^w" | head -n 1)
-    eth_iface=$(ls /sys/class/net | grep "^e" | head -n 1)
+    # Prüfe alle Interfaces außer loopback
+    for iface in /sys/class/net/*; do
+        [ ! -e "$iface" ] && continue
+        iface_name="${iface##*/}"
 
-    # Prüfe ob WiFi aktiv ist
-    if [ "$(cat /sys/class/net/$wifi_iface/operstate 2>/dev/null)" = 'up' ]; then
-        return 0  # WiFi ist verbunden
-    fi
+        # Überspringe loopback
+        [ "$iface_name" = "lo" ] && continue
 
-    # Prüfe ob Ethernet aktiv ist
-    if [ "$(cat /sys/class/net/$eth_iface/operstate 2>/dev/null)" = 'up' ]; then
-        return 0  # Ethernet ist verbunden
-    fi
-
-    # Prüfe ob VPN/Tunnel aktiv ist
-    if [ -n "$(cat /sys/class/net/tun*/operstate 2>/dev/null | grep 'up')" ]; then
-        return 0  # VPN ist verbunden
-    fi
+        # Prüfe ob Interface aktiv ist
+        if [ "$(cat "$iface/operstate" 2>/dev/null)" = 'up' ]; then
+            return 0  # Interface ist verbunden
+        fi
+    done
 
     # Keine aktive Verbindung gefunden
     return 1
@@ -52,9 +47,9 @@ update() {
 
 # Prüfe Netzwerkverbindung über Hardware
 if check_network; then
-    # Verbunden - zeige Traffic
-    rx=$(update /sys/class/net/[ew]*/statistics/rx_bytes)
-    tx=$(update /sys/class/net/[ew]*/statistics/tx_bytes)
+    # Verbunden - zeige Traffic für alle aktiven Interfaces (außer loopback)
+    rx=$(update /sys/class/net/[!l]*/statistics/rx_bytes)
+    tx=$(update /sys/class/net/[!l]*/statistics/tx_bytes)
     printf "%4sB %4sB" $(numfmt --to=iec $rx $tx)
 else
     # Offline - zeige Offline-Symbol
