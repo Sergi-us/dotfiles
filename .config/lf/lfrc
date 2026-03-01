@@ -2,7 +2,7 @@
 ## 2025-07-26   SARBS
 ## 2025-01-08   funktion für Bildkomprimierung hinzugefügt (bild-80-komprimieren) benötigt 'imagemagick' Trigger 'Pk'
 
-# TODO Funktion zum einfügen aus der Zwischenablage erstellen. z.B. Bilder vom Snipping tool oder Text in ne textdatei...
+# Zwischenablage-Einfügen: Erledigt via clipctl (Yi = clip-paste, Yp = file-paste)
 # TODO in mimeopen <o> *.webm hinzufügen
 
 # Hinweis zu Bildvorschauen
@@ -627,6 +627,19 @@ map u $printf "%s" "$fx" | sed 's/.*\///' | xclip -selection clipboard	# u: Nur 
 # map . $printf "%s" "$fx" | sed -E 's/^.+\[/https:\/\/www.youtube.com\/watch?v=/' | sed -E 's/\]\..+//' | xclip -selection clipboard
 # (Größer-als-Zeichen): Ähnlich wie der vorherige Befehl, aber für Piped (eine alternative YouTube-Frontend) URLs
 map <gt> $printf "%s" "$fx" | sed -E 's/^.+\[/https:\/\/piped.video\/watch?v=/' | sed -E 's/\]\..+//' | xclip -selection clipboard
+
+# Datei-Operationen über clipctl (systemweite Zwischenablage für Dateien)
+# Funktioniert zwischen lf-Instanzen und mit GUI-Dateimanagern
+cmd clip-file-copy $printf "%s" "$fx" | clipctl file-copy
+cmd clip-file-cut $printf "%s" "$fx" | clipctl file-cut
+cmd clip-file-paste $clipctl file-paste "$PWD"
+cmd clip-paste $clipctl clip-paste "$PWD"
+
+map Yy clip-file-copy          # Yy: Dateien zum Kopieren vormerken (systemweit)
+map Yx clip-file-cut           # Yx: Dateien zum Verschieben vormerken (systemweit)
+map Yp clip-file-paste         # Yp: Vorgemerkte Dateien hier einfügen
+map Yi clip-paste              # Yi: Zwischenablage-Inhalt als Datei speichern (Bilder, Text)
+
 map <c-l> unselect          # <Strg+l> Hebt die Auswahl aller ausgewählten Dateien auf
 
 # === Git Befehle (g Menü) ===

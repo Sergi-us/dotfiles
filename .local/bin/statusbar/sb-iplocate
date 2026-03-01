@@ -155,5 +155,5 @@ if [ -n "$vpn_iface" ]; then
 	printf "󰢭[%s]\\n" "$vpn_iface"
 else
 	# Kein VPN - zeige nur Globus-Symbol
-	printf " \\n"
+	printf "\\n"
 fi

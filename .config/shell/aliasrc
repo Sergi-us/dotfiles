@@ -49,16 +49,16 @@ alias \
 	df="df -h" \
 	free="free -h" \
 	ka="killall" \
-	neofetch="fastfetch --load-config examples/2.jsonc" \
     sys="systemctl" \
-	neo="neo-matrix -D -a -b 0 -m SARBS"
+    neo="neo-matrix -D -a -b 0 -m SARBS"
+#   neofetch="fastfetch --load-config examples/2.jsonc" \
 #	rsync="rsync -vrPlu" \
 #	free="free -m" \
 
 # === Alpine Linux ===
-    alias xi="sudo xbps-install"
-    alias xr="sudo xbps-remove -R"
-    alias xq="xbps-query"
+#   alias xi="sudo xbps-install"
+#   alias xr="sudo xbps-remove -R"
+#   alias xq="xbps-query"
 
 # Medien und Dokumente
 alias \

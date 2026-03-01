@@ -2,8 +2,15 @@
 ## 2025-02-10 SARBS
 
 filter() {
-    output=$(mpc status | sed "/^volume:/d;s/\\[paused\\].*/󰏤/g;/\\[playing\\].*/d;/^ERROR/Q" | paste -sd ' ' -)
-    echo "${output}"
+    status=$(mpc status)
+    # Bei playing: Song-Info anzeigen
+    if echo "${status}" | grep -q '\[playing\]'; then
+        output=$(echo "${status}" | sed "/^volume:/d;/\\[playing\\].*/d;/^ERROR/Q" | paste -sd ' ' -)
+        echo "${output}"
+    # Bei paused: nur Pause-Icon anzeigen
+    elif echo "${status}" | grep -q '\[paused\]'; then
+        echo "󰏤"
+    fi
 }
 
 pidof -x sb-mpdup >/dev/null 2>&1 || sb-mpdup >/dev/null 2>&1 &
