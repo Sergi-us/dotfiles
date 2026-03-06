@@ -1,0 +1,546 @@
+#!/bin/sh
+## 2026-03-06 SARBS
+
+# Ermittelt Statistiken für Dotfiles-Repositories: Dateitypen, LOC,
+# Kommentar-Verhältnis, Komplexität etc. Erkennt Shell-Skripte anhand
+# von Shebangs, unterscheidet Konfigurationsdateien von Code und
+# analysiert Kommentare je nach Sprache/Format.
+
+# Verwendung: d-stats [VERZEICHNIS]
+# Falls kein Verzeichnis angegeben wird, verwendet das Skript das aktuelle Verzeichnis.
+
+# --- Farben (nur bei Terminal-Ausgabe) ---
+if [ -t 1 ]; then
+	BOLD='\033[1m'
+	DIM='\033[2m'
+	CYAN='\033[36m'
+	GREEN='\033[32m'
+	YELLOW='\033[33m'
+	BLUE='\033[34m'
+	MAGENTA='\033[35m'
+	RED='\033[31m'
+	RESET='\033[0m'
+else
+	BOLD='' DIM='' CYAN='' GREEN='' YELLOW=''
+	BLUE='' MAGENTA='' RED='' RESET=''
+fi
+
+# --- Ignorier-Muster ---
+IGNORE_PATTERNS="
+.git
+*.jpg
+*.jpeg
+*.png
+*.gif
+*.svg
+*.ico
+*.bmp
+*.spl
+*.sug
+*.pack
+*.rev
+*.idx
+*.bac
+*.~1~
+*.sample
+*.o
+*.a
+*.so
+*.exe
+"
+
+# --- Zielverzeichnis ---
+target_dir="${1:-$(pwd)}"
+
+[ ! -d "${target_dir}" ] && echo "Fehler: '${target_dir}' ist kein Verzeichnis." && exit 1
+
+cd "${target_dir}" || exit 1
+
+# --- Temporäre Dateien ---
+tmpdir=$(mktemp -d)
+trap 'rm -rf "${tmpdir}"' EXIT
+
+all_files="${tmpdir}/all_files"
+cat_shell="${tmpdir}/cat_shell"
+cat_lua="${tmpdir}/cat_lua"
+cat_python="${tmpdir}/cat_python"
+cat_config="${tmpdir}/cat_config"
+cat_desktop="${tmpdir}/cat_desktop"
+cat_docs="${tmpdir}/cat_docs"
+cat_style="${tmpdir}/cat_style"
+cat_other="${tmpdir}/cat_other"
+
+# Leere Dateien vorbereiten
+for f in "${all_files}" "${cat_shell}" "${cat_lua}" "${cat_python}" \
+	"${cat_config}" "${cat_desktop}" "${cat_docs}" "${cat_style}" "${cat_other}"; do
+	: > "${f}"
+done
+
+# --- Find-Kommando mit Ignorier-Mustern zusammenbauen ---
+find_cmd="find . -type f"
+
+for pattern in ${IGNORE_PATTERNS}; do
+	case "${pattern}" in
+		.*) find_cmd="${find_cmd} ! -path '*/${pattern}/*' ! -name '${pattern}'" ;;
+		*\**) pattern_clean="${pattern#\*}"
+			find_cmd="${find_cmd} ! -name '*${pattern_clean}'" ;;
+		*) find_cmd="${find_cmd} ! -path '*/${pattern}/*' ! -name '${pattern}'" ;;
+	esac
+done
+
+eval "${find_cmd}" | sort > "${all_files}"
+
+total_file_count=$(wc -l < "${all_files}")
+
+if [ "${total_file_count}" -eq 0 ]; then
+	echo "Keine Dateien gefunden."
+	exit 0
+fi
+
+# =====================================================================
+# Dateien klassifizieren
+# =====================================================================
+classify_file() {
+	file="$1"
+	ext="${file##*.}"
+	base="${file##*/}"
+
+	# Anhand der Erweiterung klassifizieren
+	case "${ext}" in
+		sh|bash|zsh)
+			echo "${file}" >> "${cat_shell}"; return ;;
+		lua)
+			echo "${file}" >> "${cat_lua}"; return ;;
+		py)
+			echo "${file}" >> "${cat_python}"; return ;;
+		conf|toml|ini|json|jsonc|yaml|yml|ron|kvconfig|list|dirs|kmap)
+			echo "${file}" >> "${cat_config}"; return ;;
+		css|scss|rasi|Xresources|colorscheme|vim|reg)
+			echo "${file}" >> "${cat_style}"; return ;;
+		desktop)
+			echo "${file}" >> "${cat_desktop}"; return ;;
+		md|wiki)
+			echo "${file}" >> "${cat_docs}"; return ;;
+		js|hs|h)
+			echo "${file}" >> "${cat_other}"; return ;;
+	esac
+
+	# Spezielle Dateinamen
+	case "${base}" in
+		LICENSE|COPYING|AUTHORS)
+			echo "${file}" >> "${cat_docs}"; return ;;
+		zshrc|.zshrc)
+			echo "${file}" >> "${cat_shell}"; return ;;
+		profile|aliasrc|zprofile)
+			echo "${file}" >> "${cat_shell}"; return ;;
+	esac
+
+	# Prüfe ob es eine Textdatei ist (vor Shebang-Check, vermeidet NULL-Byte-Warnungen)
+	if ! file -b --mime-type "${file}" 2>/dev/null | grep -q "text/"; then
+		echo "${file}" >> "${cat_other}"
+		return
+	fi
+
+	# Datei ohne bekannte Erweiterung - Shebang prüfen
+	if [ -f "${file}" ] && [ -r "${file}" ]; then
+		firstline=$(head -1 "${file}" 2>/dev/null)
+		case "${firstline}" in
+			"#!/bin/sh"*|"#!/bin/bash"*|"#!/usr/bin/env bash"*|\
+			"#!/usr/bin/env sh"*|"#!/bin/zsh"*|"#!/usr/bin/sh"*|\
+			"#!/hint/sh"*|"#!bin/sh"*)
+				echo "${file}" >> "${cat_shell}"; return ;;
+			"#!/usr/bin/env python"*|"#!/usr/bin/python"*)
+				echo "${file}" >> "${cat_python}"; return ;;
+			"#!/usr/bin/env lua"*|"#!/usr/bin/lua"*)
+				echo "${file}" >> "${cat_lua}"; return ;;
+		esac
+	fi
+
+	# Keine Erweiterung, kein Shebang - Konfig-Datei
+	echo "${file}" >> "${cat_config}"
+}
+
+while IFS= read -r file; do
+	classify_file "${file}"
+done < "${all_files}"
+
+# =====================================================================
+# Zeilen zählen mit awk (performant)
+# =====================================================================
+
+# Shell-Kommentare: # am Zeilenanfang (nach Whitespace), Shebangs = Code
+count_shell() {
+	cat_file="$1"
+	[ ! -s "${cat_file}" ] && echo "0 0 0 0" && return
+	xargs cat < "${cat_file}" 2>/dev/null | awk '
+	{
+		total++
+		s = $0; gsub(/^[ \t]+/, "", s)
+		if (s == "") { blank++ }
+		else if (s ~ /^#!/) { code++ }
+		else if (s ~ /^#/) { comments++ }
+		else { code++ }
+	}
+	END { printf "%d %d %d %d\n", total+0, code+0, comments+0, blank+0 }
+	'
+}
+
+# Lua-Kommentare: -- (single-line), --[[ ]] (multi-line)
+count_lua() {
+	cat_file="$1"
+	[ ! -s "${cat_file}" ] && echo "0 0 0 0" && return
+	xargs cat < "${cat_file}" 2>/dev/null | awk '
+	BEGIN { in_block = 0 }
+	{
+		total++
+		s = $0; gsub(/^[ \t]+/, "", s)
+		if (s == "") { blank++; next }
+
+		if (in_block) {
+			comments++
+			if (index($0, "]]") > 0) in_block = 0
+			next
+		}
+
+		if (s ~ /^--\[\[/) {
+			comments++
+			if (index($0, "]]") == 0) in_block = 1
+		} else if (s ~ /^--/) {
+			comments++
+		} else {
+			code++
+		}
+	}
+	END { printf "%d %d %d %d\n", total+0, code+0, comments+0, blank+0 }
+	'
+}
+
+# Python-Kommentare: # (single-line), Shebangs = Code
+count_python() {
+	cat_file="$1"
+	[ ! -s "${cat_file}" ] && echo "0 0 0 0" && return
+	xargs cat < "${cat_file}" 2>/dev/null | awk '
+	{
+		total++
+		s = $0; gsub(/^[ \t]+/, "", s)
+		if (s == "") { blank++ }
+		else if (s ~ /^#!/) { code++ }
+		else if (s ~ /^#/) { comments++ }
+		else { code++ }
+	}
+	END { printf "%d %d %d %d\n", total+0, code+0, comments+0, blank+0 }
+	'
+}
+
+# Konfigurationsdateien: # und ; und // als Kommentar-Zeichen
+count_config() {
+	cat_file="$1"
+	[ ! -s "${cat_file}" ] && echo "0 0 0 0" && return
+	xargs cat < "${cat_file}" 2>/dev/null | awk '
+	{
+		total++
+		s = $0; gsub(/^[ \t]+/, "", s)
+		if (s == "") { blank++ }
+		else if (s ~ /^[#;]/ || s ~ /^\/\//) { comments++ }
+		else { code++ }
+	}
+	END { printf "%d %d %d %d\n", total+0, code+0, comments+0, blank+0 }
+	'
+}
+
+# CSS/Style: /* */ und // Kommentare
+count_style() {
+	cat_file="$1"
+	[ ! -s "${cat_file}" ] && echo "0 0 0 0" && return
+	xargs cat < "${cat_file}" 2>/dev/null | awk '
+	BEGIN { in_block = 0 }
+	{
+		total++
+		s = $0; gsub(/^[ \t]+/, "", s)
+		if (s == "") { blank++; next }
+
+		if (in_block) {
+			comments++
+			if (index($0, "*/") > 0) in_block = 0
+			next
+		}
+
+		if (s ~ /^\/\*/) {
+			comments++
+			if (index($0, "*/") == 0) in_block = 1
+		} else if (s ~ /^\/\//) {
+			comments++
+		} else {
+			code++
+		}
+	}
+	END { printf "%d %d %d %d\n", total+0, code+0, comments+0, blank+0 }
+	'
+}
+
+# Einfaches Zählen (Docs, Desktop, Sonstiges)
+count_simple() {
+	cat_file="$1"
+	[ ! -s "${cat_file}" ] && echo "0 0 0 0" && return
+	xargs cat < "${cat_file}" 2>/dev/null | awk '
+	{
+		total++
+		if ($0 == "") blank++
+		else code++
+	}
+	END { printf "%d %d 0 %d\n", total+0, code+0, blank+0 }
+	'
+}
+
+# =====================================================================
+# Hilfsfunktionen für Ausgabe
+# =====================================================================
+
+# Balken-Darstellung (max 30 Zeichen breit)
+bar() {
+	value=$1
+	max=$2
+	width=30
+	[ "${max}" -eq 0 ] && max=1
+	filled=$((value * width / max))
+	[ "${filled}" -gt "${width}" ] && filled="${width}"
+	empty=$((width - filled))
+
+	printf "${GREEN}"
+	i=0; while [ "$i" -lt "${filled}" ]; do printf "█"; i=$((i + 1)); done
+	printf "${DIM}"
+	i=0; while [ "$i" -lt "${empty}" ]; do printf "░"; i=$((i + 1)); done
+	printf "${RESET}"
+}
+
+# Prozentwert
+pct() {
+	[ "$2" -eq 0 ] && echo "0" && return
+	echo $(($1 * 100 / $2))
+}
+
+# Abschnitt mit Zählung und Balken ausgeben
+print_category() {
+	label="$1" color="$2" files="$3" total="$4" code="$5" comments="$6" blank="$7" max_total="$8"
+
+	file_count=$(wc -l < "${files}" 2>/dev/null || echo 0)
+	[ "${file_count}" -eq 0 ] && return
+
+	printf "  ${color}%-20s${RESET}" "${label}"
+	printf " %4d Dateien  " "${file_count}"
+	bar "${total}" "${max_total}"
+	printf "  %6d Zeilen\n" "${total}"
+
+	if [ "${total}" -gt 0 ]; then
+		code_pct=$(pct "${code}" "${total}")
+		comment_pct=$(pct "${comments}" "${total}")
+		blank_pct=$(pct "${blank}" "${total}")
+		printf "  ${DIM}%-20s %4d%% Code   %4d%% Kommentare   %4d%% Leer${RESET}\n" \
+			"" "${code_pct}" "${comment_pct}" "${blank_pct}"
+	fi
+}
+
+# =====================================================================
+# Hauptauswertung
+# =====================================================================
+
+printf "\n"
+printf "  ${BOLD}${CYAN}╔═══════════════════════════════════════════════╗${RESET}\n"
+printf "  ${BOLD}${CYAN}║${RESET}  ${BOLD}Dotfiles Statistiken${RESET}                          ${BOLD}${CYAN}║${RESET}\n"
+printf "  ${BOLD}${CYAN}║${RESET}  ${DIM}$(pwd)${RESET}"
+# Dynamisches Padding für das Verzeichnis
+dir_len=$(pwd | wc -c)
+pad=$((46 - dir_len))
+[ "${pad}" -lt 0 ] && pad=0
+i=0; while [ "$i" -lt "${pad}" ]; do printf " "; i=$((i + 1)); done
+printf "${BOLD}${CYAN}║${RESET}\n"
+printf "  ${BOLD}${CYAN}╚═══════════════════════════════════════════════╝${RESET}\n"
+printf "\n"
+
+# Zählung pro Kategorie
+shell_count=$(wc -l < "${cat_shell}" 2>/dev/null || echo 0)
+lua_count=$(wc -l < "${cat_lua}" 2>/dev/null || echo 0)
+python_count=$(wc -l < "${cat_python}" 2>/dev/null || echo 0)
+config_count=$(wc -l < "${cat_config}" 2>/dev/null || echo 0)
+style_count=$(wc -l < "${cat_style}" 2>/dev/null || echo 0)
+desktop_count=$(wc -l < "${cat_desktop}" 2>/dev/null || echo 0)
+docs_count=$(wc -l < "${cat_docs}" 2>/dev/null || echo 0)
+other_count=$(wc -l < "${cat_other}" 2>/dev/null || echo 0)
+
+# --- Übersicht ---
+printf "  ${BOLD}Dateien gesamt:${RESET} ${total_file_count}\n"
+printf "\n"
+printf "  ${YELLOW}Shell-Skripte${RESET}     %4d   ${BLUE}Lua${RESET}            %4d\n" "${shell_count}" "${lua_count}"
+printf "  ${MAGENTA}Python${RESET}            %4d   ${GREEN}Konfiguration${RESET}  %4d\n" "${python_count}" "${config_count}"
+printf "  ${CYAN}Styling${RESET}           %4d   ${DIM}Desktop-Dateien${RESET}%4d\n" "${style_count}" "${desktop_count}"
+printf "  ${DIM}Dokumentation${RESET}     %4d   ${DIM}Sonstiges${RESET}      %4d\n" "${docs_count}" "${other_count}"
+printf "\n"
+
+# --- Detailanalyse pro Kategorie ---
+printf "  ${BOLD}── Analyse nach Kategorie ──────────────────────${RESET}\n\n"
+
+# Ergebnisse sammeln (awk-basiert, schnell)
+shell_stats=$(count_shell "${cat_shell}")
+sh_total=$(echo "${shell_stats}" | cut -d' ' -f1)
+sh_code=$(echo "${shell_stats}" | cut -d' ' -f2)
+sh_comments=$(echo "${shell_stats}" | cut -d' ' -f3)
+sh_blank=$(echo "${shell_stats}" | cut -d' ' -f4)
+
+lua_stats=$(count_lua "${cat_lua}")
+lu_total=$(echo "${lua_stats}" | cut -d' ' -f1)
+lu_code=$(echo "${lua_stats}" | cut -d' ' -f2)
+lu_comments=$(echo "${lua_stats}" | cut -d' ' -f3)
+lu_blank=$(echo "${lua_stats}" | cut -d' ' -f4)
+
+python_stats=$(count_python "${cat_python}")
+py_total=$(echo "${python_stats}" | cut -d' ' -f1)
+py_code=$(echo "${python_stats}" | cut -d' ' -f2)
+py_comments=$(echo "${python_stats}" | cut -d' ' -f3)
+py_blank=$(echo "${python_stats}" | cut -d' ' -f4)
+
+config_stats=$(count_config "${cat_config}")
+cf_total=$(echo "${config_stats}" | cut -d' ' -f1)
+cf_code=$(echo "${config_stats}" | cut -d' ' -f2)
+cf_comments=$(echo "${config_stats}" | cut -d' ' -f3)
+cf_blank=$(echo "${config_stats}" | cut -d' ' -f4)
+
+style_stats=$(count_style "${cat_style}")
+st_total=$(echo "${style_stats}" | cut -d' ' -f1)
+st_code=$(echo "${style_stats}" | cut -d' ' -f2)
+st_comments=$(echo "${style_stats}" | cut -d' ' -f3)
+st_blank=$(echo "${style_stats}" | cut -d' ' -f4)
+
+desktop_stats=$(count_simple "${cat_desktop}")
+dk_total=$(echo "${desktop_stats}" | cut -d' ' -f1)
+dk_code=$(echo "${desktop_stats}" | cut -d' ' -f2)
+dk_comments=0
+dk_blank=$(echo "${desktop_stats}" | cut -d' ' -f4)
+
+docs_stats=$(count_simple "${cat_docs}")
+dc_total=$(echo "${docs_stats}" | cut -d' ' -f1)
+dc_code=$(echo "${docs_stats}" | cut -d' ' -f2)
+dc_comments=0
+dc_blank=$(echo "${docs_stats}" | cut -d' ' -f4)
+
+other_stats=$(count_simple "${cat_other}")
+ot_total=$(echo "${other_stats}" | cut -d' ' -f1)
+ot_code=$(echo "${other_stats}" | cut -d' ' -f2)
+ot_comments=0
+ot_blank=$(echo "${other_stats}" | cut -d' ' -f4)
+
+# Maximale Zeilenzahl für Balken-Skalierung
+max_total="${sh_total}"
+for v in ${lu_total} ${py_total} ${cf_total} ${st_total} ${dk_total} ${dc_total} ${ot_total}; do
+	[ "${v}" -gt "${max_total}" ] && max_total="${v}"
+done
+
+# Kategorie-Ausgabe
+print_category "Shell-Skripte" "${YELLOW}" "${cat_shell}" "${sh_total}" "${sh_code}" "${sh_comments}" "${sh_blank}" "${max_total}"
+print_category "Lua" "${BLUE}" "${cat_lua}" "${lu_total}" "${lu_code}" "${lu_comments}" "${lu_blank}" "${max_total}"
+print_category "Python" "${MAGENTA}" "${cat_python}" "${py_total}" "${py_code}" "${py_comments}" "${py_blank}" "${max_total}"
+print_category "Konfiguration" "${GREEN}" "${cat_config}" "${cf_total}" "${cf_code}" "${cf_comments}" "${cf_blank}" "${max_total}"
+print_category "Styling" "${CYAN}" "${cat_style}" "${st_total}" "${st_code}" "${st_comments}" "${st_blank}" "${max_total}"
+print_category "Desktop-Dateien" "${DIM}" "${cat_desktop}" "${dk_total}" "${dk_code}" "${dk_comments}" "${dk_blank}" "${max_total}"
+print_category "Dokumentation" "${DIM}" "${cat_docs}" "${dc_total}" "${dc_code}" "${dc_comments}" "${dc_blank}" "${max_total}"
+print_category "Sonstiges" "${DIM}" "${cat_other}" "${ot_total}" "${ot_code}" "${ot_comments}" "${ot_blank}" "${max_total}"
+
+# --- Gesamtauswertung ---
+grand_total=$((sh_total + lu_total + py_total + cf_total + st_total + dk_total + dc_total + ot_total))
+grand_code=$((sh_code + lu_code + py_code + cf_code + st_code + dk_code + dc_code + ot_code))
+grand_comments=$((sh_comments + lu_comments + py_comments + cf_comments + st_comments + dk_comments + dc_comments + ot_comments))
+grand_blank=$((sh_blank + lu_blank + py_blank + cf_blank + st_blank + dk_blank + dc_blank + ot_blank))
+
+printf "\n"
+printf "  ${BOLD}── Gesamt ──────────────────────────────────────${RESET}\n\n"
+printf "  Zeilen gesamt:       ${BOLD}%d${RESET}\n" "${grand_total}"
+printf "  ${GREEN}Code-Zeilen:${RESET}           ${BOLD}%d${RESET}  (%d%%)\n" "${grand_code}" "$(pct "${grand_code}" "${grand_total}")"
+printf "  ${CYAN}Kommentar-Zeilen:${RESET}      ${BOLD}%d${RESET}  (%d%%)\n" "${grand_comments}" "$(pct "${grand_comments}" "${grand_total}")"
+printf "  ${DIM}Leer-Zeilen:${RESET}           ${BOLD}%d${RESET}  (%d%%)\n" "${grand_blank}" "$(pct "${grand_blank}" "${grand_total}")"
+
+# Kommentar-zu-Code-Verhältnis (nur für Code-Kategorien: Shell, Lua, Python)
+active_code=$((sh_code + lu_code + py_code))
+active_comments=$((sh_comments + lu_comments + py_comments))
+if [ "${active_code}" -gt 0 ]; then
+	ratio=$((active_comments * 100 / active_code))
+	printf "\n  ${BOLD}Kommentar/Code-Verhältnis (Skripte):${RESET} %d%%\n" "${ratio}"
+fi
+
+# --- Durchschnitt ---
+printf "\n  ${BOLD}── Durchschnitt pro Datei ──────────────────────${RESET}\n\n"
+if [ "${total_file_count}" -gt 0 ]; then
+	avg_total=$((grand_total / total_file_count))
+	avg_code=$((grand_code / total_file_count))
+	printf "  Zeilen/Datei:        %d\n" "${avg_total}"
+	printf "  Code-Zeilen/Datei:   %d\n" "${avg_code}"
+fi
+
+# Durchschnitt für Shell-Skripte separat
+if [ "${shell_count}" -gt 0 ]; then
+	avg_sh=$((sh_total / shell_count))
+	avg_sh_code=$((sh_code / shell_count))
+	printf "  Shell-Skript:        %d Zeilen  (%d Code)\n" "${avg_sh}" "${avg_sh_code}"
+fi
+
+# --- Shell-Typ-Verteilung ---
+printf "\n  ${BOLD}── Shell-Typ-Verteilung ────────────────────────${RESET}\n\n"
+
+posix_count=0
+bash_count=0
+zsh_count=0
+other_sh_count=0
+
+if [ "${shell_count}" -gt 0 ]; then
+	while IFS= read -r file; do
+		[ ! -f "${file}" ] && continue
+		firstline=$(head -1 "${file}" 2>/dev/null)
+		case "${firstline}" in
+			"#!/bin/sh"*|"#!/usr/bin/sh"*|"#!/hint/sh"*|"#!bin/sh"*)
+				posix_count=$((posix_count + 1)) ;;
+			"#!/bin/bash"*|"#!/usr/bin/env bash"*)
+				bash_count=$((bash_count + 1)) ;;
+			"#!/bin/zsh"*|"#!/usr/bin/env zsh"*)
+				zsh_count=$((zsh_count + 1)) ;;
+			*)
+				other_sh_count=$((other_sh_count + 1)) ;;
+		esac
+	done < "${cat_shell}"
+
+	printf "  ${GREEN}POSIX sh${RESET}    %4d  (%d%%)\n" "${posix_count}" "$(pct "${posix_count}" "${shell_count}")"
+	printf "  ${YELLOW}Bash${RESET}        %4d  (%d%%)\n" "${bash_count}" "$(pct "${bash_count}" "${shell_count}")"
+	printf "  ${CYAN}Zsh${RESET}         %4d  (%d%%)\n" "${zsh_count}" "$(pct "${zsh_count}" "${shell_count}")"
+	[ "${other_sh_count}" -gt 0 ] && \
+		printf "  ${DIM}Sonstiges${RESET}   %4d  (%d%%)\n" "${other_sh_count}" "$(pct "${other_sh_count}" "${shell_count}")"
+fi
+
+# --- Top 10 größte Dateien ---
+printf "\n  ${BOLD}── Top 10 größte Dateien ──────────────────────${RESET}\n\n"
+
+while IFS= read -r file; do
+	[ ! -f "${file}" ] && continue
+	lines=$(wc -l < "${file}" 2>/dev/null || echo 0)
+	echo "${lines} ${file}"
+done < "${all_files}" | sort -rn | head -10 | while read -r lines file; do
+	if [ "${lines}" -gt 200 ]; then
+		color="${RED}"
+	elif [ "${lines}" -gt 100 ]; then
+		color="${YELLOW}"
+	else
+		color="${RESET}"
+	fi
+	printf "  ${color}%5d${RESET}  %s\n" "${lines}" "${file}"
+done
+
+# --- Verzeichnis-Übersicht ---
+printf "\n  ${BOLD}── Zeilen nach Verzeichnis (Top 10) ───────────${RESET}\n\n"
+
+while IFS= read -r file; do
+	[ ! -f "${file}" ] && continue
+	dir=$(echo "${file}" | sed 's|^\./||' | cut -d'/' -f1-2)
+	lines=$(wc -l < "${file}" 2>/dev/null || echo 0)
+	echo "${lines} ${dir}"
+done < "${all_files}" | awk '{sum[$2]+=$1} END {for(d in sum) print sum[d], d}' \
+	| sort -rn | head -10 | while read -r lines dir; do
+	printf "  %6d  %s\n" "${lines}" "${dir}"
+done
+
+printf "\n  ${BOLD}${CYAN}═══════════════════════════════════════════════${RESET}\n\n"
