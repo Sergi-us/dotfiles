@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=󰨡 Vivaldi
+GenericName=Web Browser
+GenericName[de]=Internet-Browser
+Comment=Startet Vivaldi mit DPI/Scaling-Wrapper, fallback auf System-Binary
+Icon=vivaldi
+Terminal=false
+Categories=Network;WebBrowser;
+Exec=vivaldi

@@ -1,19 +1,37 @@
 #!/bin/sh
-## 2025-01-08 SARBS
-# Skript um ausgewählten Text zu snippets hinzuzufügen
+## 2026-03-07 SARBS
+# Markierten Text (PRIMARY) als Snippet speichern
+# Duplikate werden erkannt, Kommentar kann per rofi hinzugefügt werden
 
-bookmark="$(xclip -o)"
-file="$HOME/.local/share/sarbs/snippets"
+file="${XDG_DATA_HOME:-$HOME/.local/share}/sarbs/snippets"
+bookmark="$(xclip -o 2>/dev/null)"
 
-if grep -q "^$bookmark$" "$file"; then
-    notify-send "Hoppla.." "Bereits vorhanden!"
-else
-    notify-send "Bookmark hinzugefügt" "$bookmark ist nun gespeichert in snippets"
-    # Erstellt eine temporäre Datei
-    temp_file=$(mktemp)
-    # Schreibt den neuen Bookmark und den Inhalt der alten Datei in die temporäre Datei
-    echo "$bookmark" > "$temp_file"
-    cat "$file" >> "$temp_file"
-    # Bewegt die temporäre Datei zurück an die Stelle der ursprünglichen Datei
-    mv "$temp_file" "$file"
+[ -z "$bookmark" ] && notify-send "Bookmark" "Zwischenablage ist leer" && exit 0
+
+# Duplikat-Prüfung (nur den Link-Teil vergleichen, ohne Kommentar)
+if grep -Fq "$bookmark" "$file" 2>/dev/null; then
+	notify-send "Bookmark" "Bereits vorhanden:\n$bookmark"
+	exit 0
 fi
+
+# Optionaler Kommentar per rofi (ESC = kein Kommentar)
+comment=$(printf '' | rofi -dmenu -p "Kommentar (optional):" \
+	-theme-str 'window { width: 60%; }') 2>/dev/null
+
+# Eintrag zusammenbauen und oben in die Datei schreiben
+if [ -n "$comment" ]; then
+	entry=$(printf '%-60s # %s' "$bookmark" "$comment")
+else
+	entry="$bookmark"
+fi
+
+# Neuen Eintrag oben einfügen (neueste zuerst)
+temp=$(mktemp)
+printf '%s\n' "$entry" > "$temp"
+cat "$file" >> "$temp"
+mv "$temp" "$file"
+
+# Vorschau kürzen
+preview=$(printf '%.80s' "$bookmark")
+[ ${#bookmark} -gt 80 ] && preview="${preview}…"
+notify-send "Bookmark" "Gespeichert:\n$preview"
