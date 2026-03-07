@@ -1,0 +1,337 @@
+#!/bin/sh
+# 2026-03-07 SARBS
+# Einheitliche Zwischenablage-Steuerung für TUI und GUI
+# Löst das Problem der 3 X11-Selections (PRIMARY, CLIPBOARD, CUT_BUFFER)
+# indem der Fenstertyp erkannt und die richtige Aktion ausgeführt wird.
+#
+# Abhängigkeiten: xclip, xdotool, cliphist (optional für persistente Historie)
+#
+# FIXIERT: hist-paste ESC-Abbruch - cliphist sel gibt jetzt Exit 1 bei Abbruch zurück
+# FIXIERT: do_paste nutzt jetzt xclip -o statt xdotool key shift+Insert
+#
+# TODO: do_paste Mehrzeiler - xdotool type interpretiert Newlines als Enter-Tastendrücke
+#   Lösung könnte sein: Bracket-Paste-Sequenzen (\e[200~ ... \e[201~) direkt an den
+#   pty zu senden, oder einen anderen Mechanismus als xdotool type verwenden.
+#   st's clippaste (alt+v) schreibt intern direkt in den pty - das ist der Goldstandard.
+#   Ansätze: externalpipe, /proc/<pid>/fd/0, oder eigenen X11-Client der SelectionRequest sendet
+#
+# TODO: Neovim Yank + X11 CLIPBOARD - nvim mit clipboard=unnamedplus wird CLIPBOARD Owner.
+#   st's clippaste/alt+v kann das lesen, aber xdotool key shift+Insert scheitert wenn
+#   dwm den Mod-Key noch hält (Modifier-Timing-Problem). Aktueller Workaround: xclip -o
+#   liest den Inhalt direkt. Langfristig: Mehrzeiler-Problem lösen (siehe oben).
+#
+# TODO UI: überlegen ob dmenu durch rofi ersetzt werden sollte
+
+## Belegung in dwm:
+##   Mod+c         → clipctl copy        (Kopieren)
+##   Mod+v         → clipctl paste       (Einfügen aus CLIPBOARD)
+##   Mod+x         → clipctl cut         (Ausschneiden)
+##   Mod+Shift+c   → clipctl copy-save   (Kopieren + persistent speichern)
+##   Mod+Shift+v   → clipctl hist-paste  (Aus Historie auswählen + direkt einfügen)
+##   Mod+Shift+x   → clipctl hist-manage (Historie verwalten / Zwischenablage leeren)
+
+## Datei-Operationen (für lf-Integration):
+##   clipctl file-copy <pfade>  - Dateien zum Kopieren vormerken
+##   clipctl file-cut <pfade>   - Dateien zum Verschieben vormerken
+##   clipctl file-paste         - Vorgemerkte Dateien ins aktuelle Verzeichnis einfügen
+##   clipctl clip-paste         - Zwischenablage-Inhalt als Datei speichern (Bilder, Text)
+
+# Kurze Pause damit dwm den Tastendruck loslässt bevor wir simulieren
+KEYDELAY="0.05"
+
+# Staging-Datei für Datei-Operationen (Copy/Cut zwischen lf-Instanzen)
+FILESTAGE="/tmp/clipctl-files"
+
+# Erkennt ob das aktive Fenster ein Terminal ist
+# Rückgabe: 0 = Terminal, 1 = GUI
+is_terminal() {
+	class=$(xdotool getactivewindow getwindowclassname 2>/dev/null)
+	case "$class" in
+		St|st|st-256color|Alacritty|alacritty|XTerm|xterm|URxvt|kitty)
+			return 0 ;;
+		*)
+			return 1 ;;
+	esac
+}
+
+# Synchronisiert PRIMARY → CLIPBOARD
+sync_primary_to_clipboard() {
+	xclip -o -selection primary 2>/dev/null | xclip -i -selection clipboard 2>/dev/null
+}
+
+# Kopieren: In Terminals PRIMARY→CLIPBOARD syncen, in GUI Ctrl+c simulieren
+do_copy() {
+	if is_terminal; then
+		# Terminal: Markierter Text liegt bereits in PRIMARY
+		# Wir syncen ihn nach CLIPBOARD für einheitlichen Zugriff
+		sync_primary_to_clipboard
+	else
+		# GUI: Ctrl+c simulieren um die App-eigene Kopierfunktion zu nutzen
+		sleep "$KEYDELAY"
+		xdotool key --clearmodifiers ctrl+c
+		# Kurz warten bis die App den Text in CLIPBOARD gelegt hat
+		sleep 0.05
+	fi
+}
+
+# Einfügen: In Terminals via xclip direkt lesen, in GUI Ctrl+v
+# BEKANNT: xdotool type interpretiert Newlines als Enter → Mehrzeiler werden
+#   zeilenweise als Befehle ausgeführt. Einzeiler funktionieren einwandfrei.
+#   Für die finale Lösung muss der Text direkt in den pty geschrieben werden
+#   (wie st's clippaste es intern tut) → siehe TODO im Header.
+do_paste() {
+	sleep "$KEYDELAY"
+	if is_terminal; then
+		# Terminal: Clipboard direkt über xclip lesen statt Tastendruck zu simulieren
+		# (xdotool key shift+Insert scheitert an dwm Modifier-Timing)
+		clip=$(xclip -o -selection clipboard 2>/dev/null) || return 0
+		[ -z "$clip" ] && return 0
+		xdotool type --clearmodifiers --delay 0 -- "$clip"
+	else
+		# GUI: Ctrl+v ist der Standard
+		xdotool key --clearmodifiers ctrl+v
+	fi
+}
+
+# Ausschneiden: In Terminals Kopieren (kein echtes Cut möglich), in GUI Ctrl+x
+do_cut() {
+	if is_terminal; then
+		# Terminal: Echtes Ausschneiden ist nicht universell möglich
+		# Wir kopieren den markierten Text (PRIMARY→CLIPBOARD)
+		sync_primary_to_clipboard
+		notify-send -t 2000 "Clipboard" "Text kopiert (was willst du aus'm Terminal rausschneiden 🐵 )"
+	else
+		# GUI: Ctrl+x simulieren
+		sleep "$KEYDELAY"
+		xdotool key --clearmodifiers ctrl+x
+		sleep 0.05
+	fi
+}
+
+# Kopieren + in cliphist persistent speichern
+do_copy_save() {
+	do_copy
+	# Warten bis CLIPBOARD gefüllt ist
+	sleep 0.1
+	clip=$(xclip -o -selection clipboard 2>/dev/null)
+	if [ -n "$clip" ]; then
+		echo "$clip" | cliphist out
+	fi
+}
+
+# Aus cliphist-Historie auswählen und DIREKT einfügen
+do_hist_paste() {
+	# cliphist sel legt die Auswahl in CLIPBOARD und gibt Exit 0 zurück
+	# Bei Abbruch (ESC) gibt cliphist sel Exit 1 zurück → kein paste
+	cliphist sel || return 0
+	do_paste
+}
+
+# Historie verwalten: Löschen einzelner Einträge oder alles leeren
+do_hist_manage() {
+	choice=$(printf "Eintrag löschen\nAlle Zwischenablagen leeren\nHistorie komplett löschen\nAbbrechen" | \
+		dmenu -b -i -p "Zwischenablage verwalten:")
+
+	case "$choice" in
+		"Eintrag löschen")
+			histfile="$HOME/.local/share/sarbs/cliphist"
+			[ ! -f "$histfile" ] && notify-send "Kein Verlauf vorhanden" && exit 0
+			selection=$(tac "$histfile" | dmenu -b -l 15 -i -p "Löschen:")
+			if [ -n "$selection" ]; then
+				# Zeile aus Historie entfernen
+				grep -Fxv "$selection" "$histfile" > "${histfile}.tmp"
+				mv "${histfile}.tmp" "$histfile"
+				notify-send -t 2000 "Clipboard" "RIP - Eintrag gelöscht"
+			fi
+			;;
+		"Alle Zwischenablagen leeren")
+			# PRIMARY, CLIPBOARD und CUT_BUFFER leeren
+			echo -n "" | xclip -i -selection primary 2>/dev/null
+			echo -n "" | xclip -i -selection clipboard 2>/dev/null
+			notify-send -t 2000 "Clipboard" "RIP - Gesammte Zwischenablage geleert"
+			;;
+		"Historie komplett löschen")
+			histfile="$HOME/.local/share/sarbs/cliphist"
+			: > "$histfile"
+			echo -n "" | xclip -i -selection primary 2>/dev/null
+			echo -n "" | xclip -i -selection clipboard 2>/dev/null
+			notify-send -t 2000 "Clipboard" "RIP - History und Zwischenablage geleert"
+			;;
+		*)
+			exit 0
+			;;
+	esac
+}
+
+# Dateien zum Kopieren vormerken
+# Erwartet Pfade als Argumente oder zeilenweise auf stdin
+do_file_copy() {
+	shift
+	if [ $# -gt 0 ]; then
+		# Pfade als Argumente
+		printf "copy\n" > "$FILESTAGE"
+		for f in "$@"; do
+			printf "%s\n" "$f" >> "$FILESTAGE"
+		done
+	else
+		# Pfade von stdin (z.B. aus lf $fx)
+		printf "copy\n" > "$FILESTAGE"
+		cat >> "$FILESTAGE"
+	fi
+	count=$(($(wc -l < "$FILESTAGE") - 1))
+	notify-send -t 2000 "Clipboard" "$count Datei(en) zum Kopieren vorgemerkt"
+}
+
+# Dateien zum Verschieben vormerken
+do_file_cut() {
+	shift
+	if [ $# -gt 0 ]; then
+		printf "cut\n" > "$FILESTAGE"
+		for f in "$@"; do
+			printf "%s\n" "$f" >> "$FILESTAGE"
+		done
+	else
+		printf "cut\n" > "$FILESTAGE"
+		cat >> "$FILESTAGE"
+	fi
+	count=$(($(wc -l < "$FILESTAGE") - 1))
+	notify-send -t 2000 "Clipboard" "$count Datei(en) zum Verschieben vorgemerkt"
+}
+
+# Vorgemerkte Dateien ins aktuelle Verzeichnis einfügen
+do_file_paste() {
+	if [ ! -f "$FILESTAGE" ]; then
+		notify-send -t 2000 "Clipboard" "Keine Dateien vorgemerkt"
+		exit 1
+	fi
+
+	# Erste Zeile = Modus (copy/cut), Rest = Pfade
+	mode=$(head -1 "$FILESTAGE")
+	files=$(tail -n +2 "$FILESTAGE")
+	dest="${2:-.}"
+	count=0
+
+	echo "$files" | while IFS= read -r src; do
+		[ -z "$src" ] && continue
+		if [ ! -e "$src" ]; then
+			notify-send -t 3000 "Clipboard Fehler" "Nicht gefunden: $src"
+			continue
+		fi
+		basename=$(basename "$src")
+		target="$dest/$basename"
+
+		# Namenskollision vermeiden
+		if [ -e "$target" ]; then
+			i=1
+			ext="${basename##*.}"
+			name="${basename%.*}"
+			if [ "$ext" = "$basename" ]; then
+				# Kein Punkt im Namen (Verzeichnis oder Datei ohne Erweiterung)
+				while [ -e "$dest/${basename}_$i" ]; do i=$((i + 1)); done
+				target="$dest/${basename}_$i"
+			else
+				while [ -e "$dest/${name}_$i.$ext" ]; do i=$((i + 1)); done
+				target="$dest/${name}_$i.$ext"
+			fi
+		fi
+
+		case "$mode" in
+			copy) cp -r "$src" "$target" ;;
+			cut)  mv "$src" "$target" ;;
+		esac
+		count=$((count + 1))
+	done
+
+	case "$mode" in
+		copy)
+			notify-send -t 2000 "Clipboard" "Dateien nach $dest kopiert"
+			;;
+		cut)
+			notify-send -t 2000 "Clipboard" "Dateien nach $dest verschoben"
+			rm -f "$FILESTAGE"
+			;;
+	esac
+}
+
+# Zwischenablage-Inhalt als Datei speichern (Bilder, Text)
+# Erkennt den MIME-Typ und erstellt die passende Datei
+do_clip_paste() {
+	dest="${2:-.}"
+	timestamp=$(date '+%Y%m%d-%H%M%S')
+
+	# Prüfen ob Bilddaten in der Zwischenablage sind
+	# xclip -selection clipboard -t TARGETS listet verfügbare Formate
+	targets=$(xclip -o -selection clipboard -t TARGETS 2>/dev/null)
+
+	if echo "$targets" | grep -q "image/png"; then
+		outfile="$dest/clipboard-$timestamp.png"
+		xclip -o -selection clipboard -t image/png > "$outfile" 2>/dev/null
+		notify-send -t 2000 "Clipboard" "Bild gespeichert: $(basename "$outfile")"
+
+	elif echo "$targets" | grep -q "image/jpeg"; then
+		outfile="$dest/clipboard-$timestamp.jpg"
+		xclip -o -selection clipboard -t image/jpeg > "$outfile" 2>/dev/null
+		notify-send -t 2000 "Clipboard" "Bild gespeichert: $(basename "$outfile")"
+
+	elif echo "$targets" | grep -q "image/bmp"; then
+		outfile="$dest/clipboard-$timestamp.bmp"
+		xclip -o -selection clipboard -t image/bmp > "$outfile" 2>/dev/null
+		notify-send -t 2000 "Clipboard" "Bild gespeichert: $(basename "$outfile")"
+
+	elif echo "$targets" | grep -q "text/uri-list"; then
+		# GUI-Dateimanager (Nautilus, Thunar etc.) kopieren Dateien als URI-Liste
+		# Format: file:///pfad/zur/datei
+		uris=$(xclip -o -selection clipboard -t text/uri-list 2>/dev/null)
+		count=0
+		echo "$uris" | while IFS= read -r uri; do
+			[ -z "$uri" ] && continue
+			# file:// Prefix entfernen und URL-Encoding dekodieren
+			src=$(echo "$uri" | sed 's|^file://||' | python3 -c "import sys, urllib.parse; print(urllib.parse.unquote(sys.stdin.readline().strip()))" 2>/dev/null)
+			[ -z "$src" ] || [ ! -e "$src" ] && continue
+			cp -r "$src" "$dest/"
+			count=$((count + 1))
+		done
+		notify-send -t 2000 "Clipboard" "Dateien aus GUI-Zwischenablage eingefügt"
+
+	else
+		# Fallback: Text als Datei speichern
+		text=$(xclip -o -selection clipboard 2>/dev/null)
+		if [ -n "$text" ]; then
+			outfile="$dest/clipboard-$timestamp.txt"
+			printf "%s" "$text" > "$outfile"
+			notify-send -t 2000 "Clipboard" "Text gespeichert: $(basename "$outfile")"
+		else
+			notify-send -t 2000 "Clipboard" "Zwischenablage ist leer"
+		fi
+	fi
+}
+
+case "$1" in
+	copy)        do_copy ;;
+	paste)       do_paste ;;
+	cut)         do_cut ;;
+	copy-save)   do_copy_save ;;
+	hist-paste)  do_hist_paste ;;
+	hist-manage) do_hist_manage ;;
+	file-copy)   do_file_copy "$@" ;;
+	file-cut)    do_file_cut "$@" ;;
+	file-paste)  do_file_paste "$@" ;;
+	clip-paste)  do_clip_paste "$@" ;;
+	*)
+		printf "clipctl - Einheitliche Zwischenablage-Steuerung\n\n"
+		printf "Verwendung: clipctl <Aktion>\n\n"
+		printf "Text-Aktionen (dwm-Bindings):\n"
+		printf "  copy        - Kopieren (TUI: PRIMARY→CLIPBOARD, GUI: Ctrl+c)\n"
+		printf "  paste       - Einfügen aus CLIPBOARD (TUI: Shift+Insert, GUI: Ctrl+v)\n"
+		printf "  cut         - Ausschneiden (TUI: nur Kopieren, GUI: Ctrl+x)\n"
+		printf "  copy-save   - Kopieren + persistent in cliphist speichern\n"
+		printf "  hist-paste  - Aus cliphist auswählen und direkt einfügen\n"
+		printf "  hist-manage - Historie verwalten / Zwischenablagen leeren\n"
+		printf "\nDatei-Aktionen (lf-Integration):\n"
+		printf "  file-copy <pfade>  - Dateien zum Kopieren vormerken\n"
+		printf "  file-cut <pfade>   - Dateien zum Verschieben vormerken\n"
+		printf "  file-paste [ziel]  - Vorgemerkte Dateien einfügen (Standard: .)\n"
+		printf "  clip-paste [ziel]  - Zwischenablage als Datei speichern (Bilder, Text)\n"
+		exit 0
+		;;
+esac
