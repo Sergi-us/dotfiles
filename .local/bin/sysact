@@ -1,6 +1,6 @@
 #!/bin/sh
-## 2025-01-09 SARBS
-# Ein dmenu-Wrapper-Skript für Systemfunktionen.
+## 2026-03-21 SARBS
+# Ein rofi-Wrapper-Skript für Systemfunktionen.
 
 # Setze die Umgebungsvariable WM auf "dwm" (Dynamic Window Manager)
 export WM="dwm"
@@ -23,14 +23,16 @@ wmpid() {
 }
 
 # Hauptmenü mit verschiedenen Systemaktionen
-# dmenu wird verwendet, um eine grafische Auswahl anzuzeigen
-case "$(printf " Herunterfahren\n Sperren\n $WM verlassen\n $WM erneuern\n󰒲 Ruhezustand\n Neustart\n󰒲 Schlafmodus\n󰶐 Bildschirm aus" | dmenu -i -p 'Aktion: ')" in
+# rofi wird verwendet, um eine grafische Auswahl anzuzeigen
+# Skaliere Fensterbreite um Faktor 1.5 für bessere Lesbarkeit
+case "$(printf " Herunterfahren\n Sperren\n $WM verlassen\n $WM erneuern\n󰒲 Ruhezustand\n Neustart\n󰒲 Schlafmodus\n󰶐 Bildschirm aus" | rofi -dmenu -i -p 'Aktion' -theme-str 'window { width: 30%; } listview { lines: 8; }' -location 0)" in
     ' Sperren')
         slock ;;  # Bildschirm sperren
     " $WM verlassen")
         killall dwmblocks 2>/dev/null  # Beende Statusbar zuerst
         kill -TERM "$(wmpid)" ;;  # Beende den Fenstermanager
     " $WM erneuern")
+        set-dpi -a                 # Aktualisiere DPI-Einstellungen
         kill -HUP "$(wmpid)" ;;   # Lade den Fenstermanager neu
     '󰒲 Ruhezustand')
         slock $ctl hibernate -i ;;  # Aktiviere den Ruhezustand und sperre den Bildschirm

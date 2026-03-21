@@ -50,9 +50,9 @@ autocmd("TextYankPost", {
   end,
 })
 
--- dwmblocks nach änderungen aktualisieren
+-- dwmblocks-local nach änderungen aktualisieren
 vim.cmd([[
-  autocmd BufWritePost ~/.local/src/dwmblocks/config.h !cd ~/.local/src/dwmblocks/; sudo make install && { killall -q dwmblocks;setsid -f dwmblocks }
+  autocmd BufWritePost ~/.local/src/dwmblocks-local/config.h !cd ~/.local/src/dwmblocks-local/; sudo make install && { killall -q dwmblocks;setsid -f dwmblocks }
 ]])
 
 -- dwmblocks-async nach änderungen aktualisieren
@@ -70,9 +70,9 @@ vim.cmd([[
   autocmd BufWritePost ~/.local/src/DWM/config.h !cd ~/.local/src/DWM/; sudo make install
 ]])
 
--- DWM auto-compile (mit Neustart)
+-- DWM-local auto-compile (mit Neustart)
 vim.cmd([[
-  autocmd BufWritePost ~/.local/src/dwm/config.h !cd ~/.local/src/dwm/; sudo make install
+  autocmd BufWritePost ~/.local/src/DWM-local/config.h !cd ~/.local/src/DWM-local/; sudo make install
 ]])
 
 -- DMENU auto-compile
