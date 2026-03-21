@@ -41,6 +41,7 @@ date "+%H:%M"
 # %D    Monat/Tag/Jahr (Amerikanisches Kurzformat)
 # %H    Stunde
 # %M    Minute
+# %S    Sekunde
 # %y    Jahr kurz
 # %Y    Jahr lang
 # %V    Kalenderwoche
