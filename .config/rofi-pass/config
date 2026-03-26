@@ -1,0 +1,51 @@
+# rofi-pass config
+## 2025-08-22   SARBS
+# Vollständige Beispiel-Config
+
+# Rofi command
+_rofi () {
+	rofi -no-auto-select -i "$@"
+}
+
+# xdotool oder ydotool
+backend=xdotool
+xdotool_delay=12
+type_delay=12
+
+# Clipboard handling
+clip_clear=45
+clip=primary
+
+# Standard-Aktion (autotype, copy_pass, copy_user, etc.)
+default_do='menu'
+
+# Autotype format
+# Mögliche Felder: :user :pass :url :otp
+default_autotype='user :tab pass'
+# Alternative: 'user :tab pass :enter' für auto-submit
+
+# OTP handling
+otp_method='otp'
+
+# Notifications
+notify=true
+
+# Password Store Pfad
+PASSWORD_STORE_DIR="${PASSWORD_STORE_DIR:-$HOME/.password-store}"
+
+# Custom fields
+custom_field_1='Username'
+custom_field_2='URL'
+
+# Keybindings (in rofi)
+# kb-custom-1: Alt+1 = Autotype
+# kb-custom-2: Alt+2 = Type user
+# kb-custom-3: Alt+3 = Type pass
+# kb-custom-4: Alt+4 = Open URL
+# etc...
+
+# Filter für pass-Einträge
+# root="$PASSWORD_STORE_DIR"
+
+# Help/Bmarks
+help_color="#4872FF"
