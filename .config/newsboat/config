@@ -2,7 +2,7 @@
 ## 2025-01-08 SARBS
 auto-reload yes
 
-external-url-viewer "urlscan -dc -r 'linkhandler {}'"
+external-url-viewer "urlscan -dc -r 'st-urlhandler {}'"
 
 bind-key j down
 bind-key k up
@@ -30,17 +30,17 @@ color listfocus_unread yellow default bold
 color info red black bold
 color article white default bold
 
-browser linkhandler
+browser st-urlhandler
 macro , open-in-browser
-macro t set browser "qndl" ; open-in-browser ; set browser linkhandler
-macro a set browser "tsp yt-dlp --embed-metadata -xic -f bestaudio/best --restrict-filenames" ; open-in-browser ; set browser linkhandler
-macro v set browser "setsid -f mpv" ; open-in-browser ; set browser linkhandler
-macro w set browser "lynx" ; open-in-browser ; set browser linkhandler
-macro d set browser "dmenuhandler" ; open-in-browser ; set browser linkhandler
-macro c set browser "echo %u | xclip -r -sel c" ; open-in-browser ; set browser linkhandler
-macro C set browser "youtube-viewer --comments=%u" ; open-in-browser ; set browser linkhandler
-macro p set browser "peertubetorrent %u 480" ; open-in-browser ; set browser linkhandler
-macro P set browser "peertubetorrent %u 1080" ; open-in-browser ; set browser linkhandler
+macro t set browser "qndl" ; open-in-browser ; set browser st-urlhandler
+macro a set browser "tsp yt-dlp --embed-metadata -xic -f bestaudio/best --restrict-filenames" ; open-in-browser ; set browser st-urlhandler
+macro v set browser "setsid -f mpv" ; open-in-browser ; set browser st-urlhandler
+macro w set browser "lynx" ; open-in-browser ; set browser st-urlhandler
+macro d set browser "st-urlhandler" ; open-in-browser ; set browser st-urlhandler
+macro c set browser "echo %u | xclip -r -sel c" ; open-in-browser ; set browser st-urlhandler
+macro C set browser "youtube-viewer --comments=%u" ; open-in-browser ; set browser st-urlhandler
+macro p set browser "peertubetorrent %u 480" ; open-in-browser ; set browser st-urlhandler
+macro P set browser "peertubetorrent %u 1080" ; open-in-browser ; set browser st-urlhandler
 
 highlight all "---.*---" yellow
 highlight feedlist ".*(0/0))" black

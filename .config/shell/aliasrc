@@ -22,9 +22,8 @@ se() {
 }
 
 # === Editor-Verknüpfungen ===
-alias \
-	e="$EDITOR" \
-	v="$EDITOR"
+alias   e="$EDITOR"
+alias   v="$EDITOR"
 
 # === Verbosität und Einstellungen, die man so ziemlich immer will ===
 alias \
@@ -68,25 +67,28 @@ alias \
 	ffmpeg="ffmpeg -hide_banner"
 
 # List Befehle
+    alias l="ls_extended -s"
+    alias ll="ls_extended -A -s"
+    alias ls="ls_extended -lhsI"
+    alias la="ls_extended -lh -s -A -i"
 #   alias ls='lsd'
-#    alias l='ls -l'
-#    alias la='ls -a'
-#    alias lla='ls -la'
-#    alias lt='ls --tree'
-    alias l="ls_extended -h -s -I"
-    alias ls="ls -hN --color=auto --group-directories-first"
-    alias lsd="lsd -a --color=auto --group-directories-first"
+#   alias l='ls -l'
+#   alias la='ls -a'
+#   alias lla='ls -la'
+#   alias lt='ls --tree'
+#   alias ls="ls -hN --color=auto --group-directories-first"
+#   alias lsd="lsd -a --color=auto --group-directories-first"
+#	ls="ls -hN --color=auto --group-directories-first"
 
 
 # Befehle mit Farbausgabe (wenn möglich)
-    alias fzf='fzf --preview "bat --color=always --style=numbers --line-range=:500 {}"'
-    alias grep="grep --color=auto"
-#    alias diff="diff --color=auto"
-    alias ccat="highlight --out-format=ansi"
-    alias ip="ip -color=auto"
+alias   fzf='fzf --preview "bat --color=always --style=numbers --line-range=:500 {}"'
+alias   grep="grep --color=auto"
+#alias  diff="diff --color=auto"
+alias   ccat="highlight --out-format=ansi"
+alias   ip="ip -color=auto"
 
 #	fzf="fzf --height=-3" \
-#	ls="ls -hN --color=auto --group-directories-first" \
 
 # These common commands are just too long! Abbreviate them.
 alias \
@@ -97,26 +99,22 @@ alias \
     YT="youtube-viewer" \
     sdn="shutdown -h now" \
     wm="wikiman"
-# za="zathura" \
 
-alias ref="shortcuts >/dev/null; source ${XDG_CONFIG_HOME:-$HOME/.config}/shell/shortcutrc ; source ${XDG_CONFIG_HOME:-$HOME/.config}/shell/zshnameddirrc"
+alias za="zathura"
 
-alias wetter="less -S ${XDG_CACHE_HOME:-$HOME/.cache}/weatherreport" \
+alias   ref="shortcuts >/dev/null; source ${XDG_CONFIG_HOME:-$HOME/.config}/shell/shortcutrc ; source ${XDG_CONFIG_HOME:-$HOME/.config}/shell/zshnameddirrc"
 
-alias \
-    aquarium="asciiquarium" \
-    bonsai="cbonsai"
+alias   wetter="less -S ${XDG_CACHE_HOME:-$HOME/.cache}/weatherreport" \
+
+alias   aquarium="asciiquarium" \
+alias   bonsai="cbonsai"
 
 # Standby
-alias standby="systemd-inhibit --what=handle-lid-switch --why='Musik hören' sleep infinity"
+alias   standby="systemd-inhibit --what=handle-lid-switch --why='Musik hören' sleep infinity"
 
 # Timer
-alias timer="termdown"
+alias   timer="termdown"
 
 alias talk='env \
   MOZ_WEBRTC_AUTO_GAIN_CONTROL=0 \
   firefox --new-window --kiosk "https://meet.jit.si/Tiling/WindowManager" 2>/dev/null'
-
-# rsync promt um daten von usenet zu verschieben und verzeichnisse zu löschen
-# Jetzt als Skript verfügbar: ~/.local/bin/usenet
-#alias usenet="rsync -av --chown=sergi:wheel --chmod=Du=rwx,Dg=rwx,Do= --chmod=Fu=rw,Fg=rw,Fo= /var/lib/sabnzbd/Downloads/complete/ /home/sergi/Downloads/.usenext/  && sudo rm -r /var/lib/sabnzbd/Downloads/complete"

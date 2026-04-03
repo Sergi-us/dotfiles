@@ -1,5 +1,5 @@
 #!/bin/sh
-# 2026-03-07 SARBS
+## 2026-03-28   SARBS
 # Persistente Zwischenablage mit rofi
 # Ersetzt das alte cliphist-Skript und die vorherige clipctl-Version.
 #
@@ -59,34 +59,37 @@ do_paste() {
 
 	# Placeholder zurück in Newlines wandeln und in CLIPBOARD legen
 	printf '%s' "$selection" | sed "s/$PLACEHOLDER/\n/g" | xclip -i -selection clipboard
-	notify-send  "Clipboard" "In Zwischenablage"
+	notify-send  "󰅉 Clipboard" "In Zwischenablage"
 }
 
 # Historie verwalten: Einträge löschen, alles leeren
 do_manage() {
-	choice=$(printf "Eintrag löschen\nHistorie leeren\nZwischenablage leeren\nAbbrechen" | \
-		rofi -dmenu -i -p "Verwalten:")
+	choice=$(printf "󱘜 leeren\n󱓥 Einträge löschen\n Historie leeren\n󰋖 Hilfe anzeigen\n Nichts tun" | \
+		rofi -dmenu -i -p "Zwischenablage:")
 
 	case "$choice" in
-		"Eintrag löschen")
+		"󱓥 Einträge löschen")
 			[ ! -s "$HISTFILE" ] && notify-send "Clipboard" "Historie ist leer" && return 0
 			selection=$(tac "$HISTFILE" | rofi -dmenu -i -p "Löschen:" -l 15) || return 0
 			[ -n "$selection" ] || return 0
 			grep -Fxv "$selection" "$HISTFILE" > "${HISTFILE}.tmp"
 			mv "${HISTFILE}.tmp" "$HISTFILE"
-			notify-send  "Clipboard" "Eintrag gelöscht"
+			notify-send  "Zwischenablage" "󱘜 Eintrag gelöscht"
 			;;
-		"Historie leeren")
+		" Historie leeren")
 			confirm=$(printf "Nein\nJa" | \
 				rofi -dmenu -i -p "Gesamte persistente Historie unwiderruflich löschen?")
 			[ "$confirm" = "Ja" ] || return 0
 			: > "$HISTFILE"
-			notify-send  "Clipboard" "Historie geleert"
+			notify-send  "Zwischenablage" "󱘜 Historie geleert"
 			;;
-		"Zwischenablage leeren")
+		"󱘜 leeren")
 			printf '' | xclip -i -selection primary 2>/dev/null
 			printf '' | xclip -i -selection clipboard 2>/dev/null
-			notify-send  "Clipboard" "Zwischenablage geleert"
+			notify-send  "Zwischenablage" "󱘜 geleert"
+			;;
+		"󰋖 Hilfe anzeigen")
+			do_help "rofi"
 			;;
 		*) return 0 ;;
 	esac
@@ -193,6 +196,36 @@ do_clip_paste() {
 	fi
 }
 
+# Hilfe anzeigen
+do_help() {
+	help_text="clipctl - Persistente Zwischenablage (SARBS)
+Ein Werkzeug zur Verwaltung der X11-Zwischenablage inkl.
+Tastenkürzel (Standard):
+  Mod+c  - Auswahl in Historie speichern
+  Mod+v  - Eintrag aus Historie wählen und einfügen
+  Mod+x  - Historie verwalten: löschen, leeren
+           (dieses Menu)
+
+Text-Aktionen (Zwischenablage-Historie):
+  copy    - Speichert den aktuellen PRIMARY/CLIPBOARD-Inhalt
+            in der Historie.
+  paste   - Öffnet ein rofi-Menü zur Auswahl eines
+            gespeicherten Eintrags.
+            (auswahl wird ins CLIPBOARD gelegt)
+  manage  - Öffnet ein rofi-Menü zur Verwaltung der Historie"
+
+
+	# Wenn explizit "rofi" übergeben wurde, erzwinge rofi.
+	# Ansonsten: Im Terminal Text ausgeben, sonst als rofi-Dialog anzeigen.
+	if [ "$1" = "rofi" ]; then
+		rofi -e "$help_text"
+	elif [ -t 1 ]; then
+		printf "%s\n" "$help_text"
+	else
+		rofi -e "$help_text"
+	fi
+}
+
 # --- Hauptlogik ---
 
 case "$1" in
@@ -203,18 +236,10 @@ case "$1" in
 	file-cut)   do_file_cut "$@" ;;
 	file-paste) do_file_paste "$@" ;;
 	clip-paste) do_clip_paste "$@" ;;
+	-h|--help|help) do_help ;;
 	*)
-		printf "clipctl - Persistente Zwischenablage\n\n"
-		printf "Verwendung: clipctl <Aktion>\n\n"
-		printf "Text-Aktionen:\n"
-		printf "  copy    - Zwischenablage in Historie speichern\n"
-		printf "  paste   - Aus Historie wählen (rofi) → CLIPBOARD\n"
-		printf "  manage  - Historie verwalten (löschen, leeren)\n"
-		printf "\nDatei-Aktionen (lf-Integration):\n"
-		printf "  file-copy <pfade>  - Dateien zum Kopieren vormerken\n"
-		printf "  file-cut <pfade>   - Dateien zum Verschieben vormerken\n"
-		printf "  file-paste [ziel]  - Vorgemerkte Dateien einfügen\n"
-		printf "  clip-paste [ziel]  - Zwischenablage als Datei speichern\n"
-		exit 0
+		# Zeige Hilfe, wenn keine oder ungültige Argumente übergeben wurden
+		do_help
+		exit 1
 		;;
 esac

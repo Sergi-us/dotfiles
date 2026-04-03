@@ -1,0 +1,626 @@
+#!/bin/bash
+## 2026-03-29 SARBS - Universelles Aufnahmeskript (Rofi)
+## Unterstützt: Intel (VAAPI), AMD (VAAPI), NVIDIA (NVENC), Software-Fallback (libx264)
+## GPU-Erkennung automatisch oder per ROFIRECORD_GPU=intel|amd|nvidia|software
+
+# ══════════════════════════════════════════════════════════════════════════════
+# [1] ALLGEMEINE KONFIGURATION
+# ══════════════════════════════════════════════════════════════════════════════
+
+VIDEO_DIR="$HOME/Videos/scr"
+AUDIO_DIR="$HOME/Podcast/aufnahmen"
+VIDEO_FORMAT="mkv"
+AUDIO_FORMAT="flac"
+AUDIO_CODEC="flac"              # flac oder opus
+AUDIO_SAMPLERATE="44100"
+AUDIO_BITRATE="256k"            # Nur für Nicht-FLAC-Codecs relevant
+FRAMERATE="30"
+THREAD_QUEUE="4096"             # Input-Puffer für x11grab/pulse
+STATUSBAR="dwmblocks"           # Spielt noch keine Rolle im Skript
+
+# Statusleisten-Icons (Nerd Font Symbole)
+ICON_SCREENCAST=" "
+ICON_MONITOR="󰍹 "
+ICON_REACTION=" "
+ICON_AUDIO=" "
+ICON_WEBCAM=" "
+
+# ══════════════════════════════════════════════════════════════════════════════
+# [2] GPU-ERKENNUNG (Automatisch + Override)
+# ══════════════════════════════════════════════════════════════════════════════
+
+detect_gpu() {
+    # Override per Umgebungsvariable: ROFIRECORD_GPU=intel|amd|nvidia|software
+    if [ -n "$ROFIRECORD_GPU" ]; then
+        echo "$ROFIRECORD_GPU"
+        return
+    fi
+
+    local gpu_info
+    gpu_info=$(lspci 2>/dev/null | grep -iE "VGA|3D|Display")
+
+    # Reihenfolge: Dedizierte GPU bevorzugen (NVIDIA > AMD > Intel)
+    # Die AMD Option muss spezifiziert werden ()
+    if echo "$gpu_info" | grep -qi "nvidia"; then
+        echo "nvidia"
+    elif echo "$gpu_info" | grep -qi "amd\|radeon"; then
+        echo "amd"
+    elif echo "$gpu_info" | grep -qi "intel"; then
+        echo "intel"
+    else
+        echo "software"
+    fi
+}
+
+# ══════════════════════════════════════════════════════════════════════════════
+# [3] GPU-SPEZIFISCHE PROFILE
+# ══════════════════════════════════════════════════════════════════════════════
+#
+# Jedes Profil setzt nur die GPU-spezifischen Variablen.
+# Die allgemeinen Einstellungen (oben) gelten immer.
+#
+# Variablen die pro GPU gesetzt werden:
+#   GPU_TYPE        - Kennung (intel, amd, nvidia, software)
+#   VIDEO_CODEC     - ffmpeg Encoder-Name
+#   VIDEO_BITRATE   - Ziel-Bitrate
+#   VIDEO_MINRATE   - Minimale Bitrate (falls verwendet)
+#   VIDEO_MAXRATE   - Maximale Bitrate
+#   VIDEO_BUFSIZE   - VBV-Puffergröße
+#   GOP_SIZE        - Keyframe-Intervall
+#   HW_ACCEL_INIT   - ffmpeg Hardware-Initialisierung (z.B. -vaapi_device ...)
+#   VF_UPLOAD       - Video-Filter für Hardware-Upload (z.B. format=nv12,hwupload)
+#   ENCODE_PARAMS   - Codec-spezifische Encoding-Parameter
+#   SW_ENCODE_PARAMS - Fallback Software-Encoding-Parameter
+
+load_gpu_profile() {
+    GPU_TYPE="$1"
+
+    case "$GPU_TYPE" in
+        intel)
+            VIDEO_CODEC="hevc_vaapi"
+            VIDEO_BITRATE="4M"
+            VIDEO_MINRATE="2M"
+            VIDEO_MAXRATE="9M"
+            VIDEO_BUFSIZE="10M"
+            GOP_SIZE="60"
+            VAAPI_DEVICE="/dev/dri/renderD128"
+            HW_ACCEL_INIT="-vaapi_device $VAAPI_DEVICE"
+            VF_UPLOAD="format=nv12,hwupload"
+            ENCODE_PARAMS="-b:v $VIDEO_BITRATE -minrate $VIDEO_MINRATE -maxrate $VIDEO_MAXRATE -bufsize $VIDEO_BUFSIZE"
+            SW_ENCODE_PARAMS="-preset medium -crf 23 -maxrate $VIDEO_MAXRATE -bufsize $VIDEO_BUFSIZE -g $GOP_SIZE"
+            ;;
+        amd)
+            VIDEO_CODEC="hevc_vaapi"       # HEVC: bessere Qualität pro Bit als H.264
+            VIDEO_MAXRATE="8M"             # Obergrenze für Bitrate-Spitzen
+            VIDEO_BUFSIZE="12M"            # VBV-Puffer (1.5x maxrate)
+            GOP_SIZE="60"                  # Keyframe alle 2 Sek. bei 30fps
+            VAAPI_QP="22"                  # CQP Qualität (1-51, niedriger = besser, 18-24 empfohlen)
+            VAAPI_DEVICE="/dev/dri/renderD128"
+            HW_ACCEL_INIT="-vaapi_device $VAAPI_DEVICE"
+            VF_UPLOAD="format=nv12,hwupload"
+            ENCODE_PARAMS="-rc_mode CQP -qp $VAAPI_QP -maxrate $VIDEO_MAXRATE -bufsize $VIDEO_BUFSIZE -g $GOP_SIZE"
+            SW_ENCODE_PARAMS="-preset medium -crf 20 -maxrate $VIDEO_MAXRATE -bufsize $VIDEO_BUFSIZE -g $GOP_SIZE"
+            ;;
+        nvidia)
+            VIDEO_CODEC="h264_nvenc"
+            VIDEO_BITRATE="4M"
+            VIDEO_MINRATE="2M"
+            VIDEO_MAXRATE="9M"
+            VIDEO_BUFSIZE="10M"
+            GOP_SIZE="60"
+            NVENC_PRESET="medium"
+            NVENC_TUNE="hq"
+            NVENC_CRF="23"
+            HW_ACCEL_INIT=""
+            VF_UPLOAD=""
+            ENCODE_PARAMS="-preset $NVENC_PRESET -tune $NVENC_TUNE -crf $NVENC_CRF -b:v $VIDEO_BITRATE -minrate $VIDEO_MINRATE -maxrate $VIDEO_MAXRATE -bufsize $VIDEO_BUFSIZE"
+            SW_ENCODE_PARAMS="-preset medium -crf 23 -b:v $VIDEO_BITRATE -minrate $VIDEO_MINRATE -maxrate $VIDEO_MAXRATE -bufsize $VIDEO_BUFSIZE"
+            ;;
+        software|*)
+            VIDEO_CODEC="libx264"
+            VIDEO_BITRATE="4M"
+            VIDEO_MAXRATE="6M"
+            VIDEO_BUFSIZE="8M"
+            GOP_SIZE="60"
+            HW_ACCEL_INIT=""
+            VF_UPLOAD=""
+            ENCODE_PARAMS="-preset medium -crf 23 -b:v $VIDEO_BITRATE -maxrate $VIDEO_MAXRATE -bufsize $VIDEO_BUFSIZE -g $GOP_SIZE"
+            SW_ENCODE_PARAMS="$ENCODE_PARAMS"
+            ;;
+    esac
+}
+
+# ══════════════════════════════════════════════════════════════════════════════
+# [4] AUDIO-ERKENNUNG (Automatisch + Override)
+# ══════════════════════════════════════════════════════════════════════════════
+#
+# Zwei getrennte Quellen:
+#   System-Audio = Monitor des Default-Sinks (was du über Lautsprecher/Kopfhörer hörst)
+#   Mikrofon     = Default-Source (dein Aufnahme-Eingang, z.B. Funkmikro)
+
+# System-Audio ermitteln (Monitor des Default-Ausgabegeräts)
+detect_system_audio() {
+    # Override per Umgebungsvariable
+    if [ -n "$ROFIRECORD_SYSTEM_AUDIO" ]; then
+        echo "$ROFIRECORD_SYSTEM_AUDIO"
+        return
+    fi
+
+    # Default-Sink ermitteln und ".monitor" anhängen
+    local default_sink
+    default_sink=$(pactl get-default-sink 2>/dev/null)
+    if [ -n "$default_sink" ]; then
+        echo "${default_sink}.monitor"
+        return
+    fi
+
+    # Fallback: Ersten verfügbaren Monitor-Source suchen
+    local monitor_source
+    monitor_source=$(pactl list sources short 2>/dev/null | grep "monitor" | head -n1 | awk '{print $2}')
+    if [ -n "$monitor_source" ]; then
+        echo "$monitor_source"
+        return
+    fi
+
+    notify "Kein System-Audio-Monitor gefunden"
+    return 1
+}
+
+# Mikrofon ermitteln (Default-Aufnahmegerät)
+detect_microphone() {
+    # Override per Umgebungsvariable
+    if [ -n "$ROFIRECORD_MICROPHONE" ]; then
+        echo "$ROFIRECORD_MICROPHONE"
+        return
+    fi
+
+    # Default-Source ist das Standard-Aufnahmegerät (Mikrofon)
+    local default_source
+    default_source=$(pactl get-default-source 2>/dev/null)
+    if [ -n "$default_source" ]; then
+        # Sicherstellen, dass es kein Monitor ist (das wäre System-Audio)
+        if echo "$default_source" | grep -q "monitor"; then
+            notify "Warnung: Default-Source ist ein Monitor, kein Mikrofon"
+        fi
+        echo "$default_source"
+        return
+    fi
+
+    # Fallback: Erste Source die KEIN Monitor ist
+    local mic_source
+    mic_source=$(pactl list sources short 2>/dev/null | grep -v "monitor" | head -n1 | awk '{print $2}')
+    if [ -n "$mic_source" ]; then
+        echo "$mic_source"
+        return
+    fi
+
+    notify "Kein Mikrofon gefunden"
+    return 1
+}
+
+# ══════════════════════════════════════════════════════════════════════════════
+# [5] HILFSFUNKTIONEN
+# ══════════════════════════════════════════════════════════════════════════════
+
+notify() {
+    notify-send "rofirecord" "$1"
+}
+
+updateicon() {
+    echo "$1" > /tmp/recordingicon
+    pkill -RTMIN+9 "${STATUSBAR}"
+}
+
+killrecording() {
+    if [ -f /tmp/recordingpid ]; then
+        local pid
+        pid=$(cat /tmp/recordingpid)
+        if ps -p "$pid" > /dev/null 2>&1; then
+            kill -SIGTERM "$pid" 2>/dev/null
+            notify "Aufnahme beendet"
+        else
+            notify "Kein aktiver Aufnahmeprozess gefunden"
+        fi
+        rm -f /tmp/recordingpid
+        updateicon ""
+    else
+        notify "Keine Aufnahme aktiv"
+    fi
+}
+
+# Hauptmonitor-Auflösung ermitteln (mit mehrstufigem Fallback)
+get_primary_monitor_resolution() {
+    local resolution
+
+    # 1. Primary Monitor suchen
+    resolution=$(xrandr --current | grep -w "primary" | grep -oE '[0-9]+x[0-9]+' | head -n1)
+
+    # 2. Erster connected Monitor
+    if [ -z "$resolution" ]; then
+        resolution=$(xrandr --current | grep " connected" | head -n1 | grep -oE '[0-9]+x[0-9]+\+[0-9]+\+[0-9]+' | cut -d'+' -f1)
+    fi
+
+    # 3. Desktop-Auflösung via xdpyinfo
+    if [ -z "$resolution" ]; then
+        resolution=$(xdpyinfo 2>/dev/null | grep dimensions | grep -oE '[0-9]+x[0-9]+' | head -n1)
+    fi
+
+    # 4. Letzter Fallback
+    if [ -z "$resolution" ]; then
+        resolution="1920x1080"
+        notify "Warnung: Auflösung nicht ermittelt, verwende Fallback: $resolution"
+    fi
+
+    echo "$resolution"
+}
+
+# ══════════════════════════════════════════════════════════════════════════════
+# [6] HARDWARE-ENCODER-PRÜFUNG
+# ══════════════════════════════════════════════════════════════════════════════
+
+# Universeller Encoder-Check mit automatischem Fallback auf libx264
+check_hw_encoder() {
+    # Software braucht keinen Check
+    if [[ "$GPU_TYPE" == "software" ]]; then
+        return 0
+    fi
+
+    # VAAPI: Prüfen ob Device existiert
+    if [[ "$GPU_TYPE" == "intel" || "$GPU_TYPE" == "amd" ]]; then
+        if [ ! -e "$VAAPI_DEVICE" ]; then
+            notify "VAAPI-Device $VAAPI_DEVICE nicht gefunden – Fallback auf Software"
+            _fallback_to_software
+            return 1
+        fi
+    fi
+
+    # Prüfen ob der Encoder in ffmpeg verfügbar ist
+    if ! ffmpeg -hide_banner -encoders 2>/dev/null | grep -q "$VIDEO_CODEC"; then
+        notify "Encoder $VIDEO_CODEC nicht verfügbar – Fallback auf Software"
+        _fallback_to_software
+        return 1
+    fi
+
+    # VAAPI: Prüfen ob Initialisierung klappt
+    if [[ "$GPU_TYPE" == "intel" || "$GPU_TYPE" == "amd" ]]; then
+        if ! ffmpeg -hide_banner -init_hw_device vaapi=hw:"$VAAPI_DEVICE" \
+             -f lavfi -i nullsrc -t 0.1 -vf 'format=nv12,hwupload' \
+             -c:v "$VIDEO_CODEC" -f null - 2>/dev/null; then
+            notify "VAAPI-Initialisierung fehlgeschlagen – Fallback auf Software"
+            _fallback_to_software
+            return 1
+        fi
+    fi
+
+    return 0
+}
+
+# Fallback auf Software-Encoding
+_fallback_to_software() {
+    VIDEO_CODEC="libx264"
+    HW_ACCEL_INIT=""
+    VF_UPLOAD=""
+    ENCODE_PARAMS="$SW_ENCODE_PARAMS"
+}
+
+# ══════════════════════════════════════════════════════════════════════════════
+# [7] AUFNAHME-FUNKTIONEN
+# ══════════════════════════════════════════════════════════════════════════════
+#
+# Audio-Quellen-Logik:
+#   System-Audio = Monitor des Default-Sinks  (detect_system_audio)
+#   Mikrofon     = Default-Source              (detect_microphone)
+#
+# Aufnahme-Modi:
+#   screencast_system   - Bildschirm + System-Audio
+#   screencast_mic      - Bildschirm + Mikrofon
+#   screencast_monitor  - Einzelner Monitor + Auswahl System/Mikro
+#   screencast_reaction - Bildschirm + Mikrofon + System-Audio gemischt
+#   audio               - Nur Mikrofon
+#   webcam              - Webcam + Mikrofon
+
+# --- Hilfsfunktion: Gemeinsamer ffmpeg-Start für Bildschirmaufnahmen ---
+# Argumente: $1=audio_source (PulseAudio-Name), $2=output_datei, $3=resolution
+#            $4=display_input (z.B. ":0" oder ":0+1920+0")
+_record_screen_single_audio() {
+    local audio_source="$1"
+    local out="$2"
+    local resolution="$3"
+    local display_input="$4"
+
+    check_hw_encoder
+
+    local vf_flag=""
+    if [ -n "$VF_UPLOAD" ]; then
+        vf_flag="-vf $VF_UPLOAD"
+    fi
+
+    nice -n -10 ffmpeg -y \
+        $HW_ACCEL_INIT \
+        -itsoffset -0.225 \
+        -thread_queue_size "$THREAD_QUEUE" \
+        -f x11grab -framerate "$FRAMERATE" -video_size "$resolution" -i "$display_input" \
+        -probesize 10M -analyzeduration 10M \
+        -thread_queue_size "$THREAD_QUEUE" \
+        -f pulse -sample_rate "$AUDIO_SAMPLERATE" -channels 2 -i "$audio_source" \
+        -af "aresample=$AUDIO_SAMPLERATE:async=1000" \
+        $vf_flag \
+        -c:v "$VIDEO_CODEC" $ENCODE_PARAMS \
+        -c:a "$AUDIO_CODEC" -ar "$AUDIO_SAMPLERATE" \
+        "$out" &
+    echo $! > /tmp/recordingpid
+}
+
+# --- Vollbild-Screencast mit System-Audio ---
+screencast_system() {
+    local sys_audio
+    sys_audio=$(detect_system_audio) || return 1
+
+    local resolution
+    resolution=$(get_primary_monitor_resolution)
+    local out="$VIDEO_DIR/screencast-$(date '+%y%m%d-%H%M-%S').$VIDEO_FORMAT"
+
+    _record_screen_single_audio "$sys_audio" "$out" "$resolution" "$DISPLAY"
+    notify "Screencast gestartet (System-Audio)"
+    updateicon "$ICON_SCREENCAST"
+}
+
+# --- Vollbild-Screencast mit Mikrofon ---
+screencast_mic() {
+    local mic
+    mic=$(detect_microphone) || return 1
+
+    local resolution
+    resolution=$(get_primary_monitor_resolution)
+    local out="$VIDEO_DIR/screencast-mic-$(date '+%y%m%d-%H%M-%S').$VIDEO_FORMAT"
+
+    _record_screen_single_audio "$mic" "$out" "$resolution" "$DISPLAY"
+    notify "Screencast gestartet (Mikrofon)"
+    updateicon "$ICON_SCREENCAST"
+}
+
+# --- Einzelner Monitor aufnehmen (nur Video, ohne Ton) ---
+screencast_monitor() {
+    # Monitor auswählen
+    local selected_monitor
+    selected_monitor="$(xrandr --listmonitors | tail -n +2 | awk '{print $4}' \
+        | rofi -dmenu -i -p "Monitor auswählen")"
+
+    if [ -z "$selected_monitor" ]; then
+        notify "Keine Monitorauswahl getroffen, Aufnahme abgebrochen."
+        return 1
+    fi
+
+    # Auflösung und Offset ermitteln
+    local monitor_info
+    monitor_info=$(xrandr | grep -w "$selected_monitor" | grep " connected")
+
+    if [ -z "$monitor_info" ]; then
+        notify "Monitor $selected_monitor nicht gefunden oder nicht verbunden"
+        return 1
+    fi
+
+    local resolution offset=""
+    local full_geometry
+    full_geometry=$(echo "$monitor_info" | grep -oE '[0-9]+x[0-9]+\+[0-9]+\+[0-9]+' | head -n1)
+
+    if [ -n "$full_geometry" ]; then
+        resolution=$(echo "$full_geometry" | cut -d'+' -f1)
+        local x_offset y_offset
+        x_offset=$(echo "$full_geometry" | cut -d'+' -f2)
+        y_offset=$(echo "$full_geometry" | cut -d'+' -f3)
+        offset="+${x_offset}+${y_offset}"
+    else
+        resolution=$(echo "$monitor_info" | grep -oE '[0-9]+x[0-9]+' | head -n1)
+        notify "Warnung: Offset nicht ermittelt, verwende Vollbild-Modus"
+    fi
+
+    if [ -z "$resolution" ]; then
+        notify "Fehler: Auflösung für Monitor $selected_monitor nicht ermittelt"
+        return 1
+    fi
+
+    local out="$VIDEO_DIR/monitor-${selected_monitor}-$(date '+%y%m%d-%H%M-%S').$VIDEO_FORMAT"
+
+    check_hw_encoder
+
+    local vf_flag=""
+    if [ -n "$VF_UPLOAD" ]; then
+        vf_flag="-vf $VF_UPLOAD"
+    fi
+
+    nice -n -10 ffmpeg -y \
+        $HW_ACCEL_INIT \
+        -thread_queue_size "$THREAD_QUEUE" \
+        -f x11grab -framerate "$FRAMERATE" -video_size "$resolution" -i "$DISPLAY$offset" \
+        $vf_flag \
+        -c:v "$VIDEO_CODEC" $ENCODE_PARAMS \
+        -an \
+        "$out" &
+    echo $! > /tmp/recordingpid
+    notify "Monitor-Aufnahme: $selected_monitor (ohne Ton)"
+    updateicon "$ICON_MONITOR"
+}
+
+# --- Reaction: Bildschirm + Mikrofon + System-Audio (gemischt auf eine Spur) ---
+screencast_reaction() {
+    local mic sys_audio
+    mic=$(detect_microphone) || return 1
+    sys_audio=$(detect_system_audio) || return 1
+
+    local resolution
+    resolution=$(get_primary_monitor_resolution)
+    local out="$VIDEO_DIR/reaction-$(date '+%y%m%d-%H%M-%S').$VIDEO_FORMAT"
+
+    # Sicherstellen, dass System-Audio nicht stumm ist
+    pactl set-source-mute "$sys_audio" 0 2>/dev/null
+
+    check_hw_encoder
+
+    # Filter-Complex: Audio mixen + optionaler HW-Upload
+    local filter_complex map_params
+    if [ -n "$VF_UPLOAD" ]; then
+        filter_complex="-filter_complex [1:a][2:a]amix=inputs=2:duration=longest[aout];[0:v]${VF_UPLOAD}[vout]"
+        map_params="-map [vout] -map [aout]"
+    else
+        filter_complex="-filter_complex [1:a][2:a]amix=inputs=2:duration=longest[aout]"
+        map_params="-map 0:v -map [aout]"
+    fi
+
+    nice -n -10 ffmpeg -y \
+        $HW_ACCEL_INIT \
+        -itsoffset -0.225 \
+        -thread_queue_size "$THREAD_QUEUE" \
+        -f x11grab -framerate "$FRAMERATE" -video_size "$resolution" -i "$DISPLAY" \
+        -thread_queue_size "$THREAD_QUEUE" \
+        -f pulse -sample_rate "$AUDIO_SAMPLERATE" -channels 2 -i "$mic" \
+        -thread_queue_size "$THREAD_QUEUE" \
+        -f pulse -sample_rate "$AUDIO_SAMPLERATE" -channels 2 -i "$sys_audio" \
+        $filter_complex \
+        $map_params \
+        -c:v "$VIDEO_CODEC" $ENCODE_PARAMS \
+        -c:a "$AUDIO_CODEC" -ar "$AUDIO_SAMPLERATE" \
+        "$out" &
+
+    echo $! > /tmp/recordingpid
+    notify "Reaction gestartet (Mikrofon + System-Audio)"
+    updateicon "$ICON_REACTION"
+}
+
+# --- Reine Audioaufnahme (Mikrofon) ---
+audio() {
+    local mic
+    mic=$(detect_microphone) || return 1
+
+    local out="$AUDIO_DIR/audio-$(date '+%y%m%d-%H%M-%S').$AUDIO_FORMAT"
+    ffmpeg -f pulse -i "$mic" -c:a "$AUDIO_CODEC" "$out" &
+    echo $! > /tmp/recordingpid
+    notify "Audioaufnahme gestartet (Mikrofon)"
+    updateicon "$ICON_AUDIO"
+}
+
+# --- Webcamaufnahme (Mikrofon) ---
+webcam() {
+    local mic
+    mic=$(detect_microphone) || return 1
+
+    local out="$VIDEO_DIR/webcam-$(date '+%y%m%d-%H%M-%S').$VIDEO_FORMAT"
+
+    # Verfügbare Webcams
+    local devices
+    devices=$(ls /dev/video* 2>/dev/null)
+    if [ -z "$devices" ]; then
+        notify "Keine Webcam gefunden"
+        return 1
+    fi
+
+    # Webcam auswählen wenn mehrere vorhanden
+    local webcam
+    if [ "$(echo "$devices" | wc -l)" -gt 1 ]; then
+        webcam=$(echo "$devices" | rofi -dmenu -i -p "Webcam auswählen")
+        if [ -z "$webcam" ]; then
+            notify "Keine Webcam ausgewählt"
+            return 1
+        fi
+    else
+        webcam="$devices"
+    fi
+
+    local resolution="640x480"
+
+    check_hw_encoder
+
+    # Webcam: Reduzierte Bitrate
+    local webcam_encode_params
+    if [[ "$VIDEO_CODEC" == "libx264" ]]; then
+        webcam_encode_params="-preset medium -crf 23 -b:v 2M -g $GOP_SIZE"
+    elif [[ "$VIDEO_CODEC" == *"vaapi"* ]]; then
+        webcam_encode_params="-rc_mode CBR -b:v 2M -maxrate 3M -bufsize 4M -g $GOP_SIZE"
+    elif [[ "$VIDEO_CODEC" == *"nvenc"* ]]; then
+        webcam_encode_params="-preset ${NVENC_PRESET:-medium} -tune ${NVENC_TUNE:-hq} -crf ${NVENC_CRF:-23} -b:v 2M"
+    else
+        webcam_encode_params="-b:v 2M"
+    fi
+
+    local vf_flag=""
+    if [ -n "$VF_UPLOAD" ]; then
+        vf_flag="-vf $VF_UPLOAD"
+    fi
+
+    ffmpeg -y \
+        $HW_ACCEL_INIT \
+        -thread_queue_size "$THREAD_QUEUE" \
+        -f v4l2 -i "$webcam" -video_size "$resolution" \
+        -thread_queue_size "$THREAD_QUEUE" \
+        -f pulse -sample_rate "$AUDIO_SAMPLERATE" -channels 2 -i "$mic" \
+        $vf_flag \
+        -c:v "$VIDEO_CODEC" $webcam_encode_params \
+        -c:a "$AUDIO_CODEC" -ar "$AUDIO_SAMPLERATE" \
+        "$out" &
+
+    echo $! > /tmp/recordingpid
+    notify "Webcamaufnahme gestartet (Mikrofon)"
+    updateicon "$ICON_WEBCAM"
+}
+
+# ══════════════════════════════════════════════════════════════════════════════
+# [8] ROFI-MENÜ
+# ══════════════════════════════════════════════════════════════════════════════
+
+askrecording() {
+    local choice
+    choice="$(printf "Bildschirm + Systemton\nBildschirm + Mikrofon\nMonitor wählen (ohne Ton)\nReaktion (Mikro + Systemton)\nAudioaufnahme\nWebcam" \
+        | rofi -dmenu -i -p "Aufnahme starten")"
+    case "$choice" in
+        "Bildschirm + Systemton")        screencast_system ;;
+        "Bildschirm + Mikrofon")         screencast_mic ;;
+        "Monitor wählen (ohne Ton)")     screencast_monitor ;;
+        "Reaktion (Mikro + Systemton)")  screencast_reaction ;;
+        Audioaufnahme)                   audio ;;
+        Webcam)                          webcam ;;
+        *) notify "Keine Auswahl getroffen" ;;
+    esac
+}
+
+asktoend() {
+    local response
+    response="$(printf "Ja\nNein" | rofi -dmenu -i -p "Aufnahme läuft, beenden?")"
+    [ "$response" = "Ja" ] && killrecording
+}
+
+# ══════════════════════════════════════════════════════════════════════════════
+# [9] INITIALISIERUNG & HAUPTLOGIK
+# ══════════════════════════════════════════════════════════════════════════════
+
+# Abhängigkeiten prüfen
+if ! command -v ffmpeg &> /dev/null; then
+    notify "ffmpeg ist nicht installiert."
+    exit 1
+fi
+
+if ! command -v rofi &> /dev/null; then
+    notify "rofi ist nicht installiert."
+    exit 1
+fi
+
+# Verzeichnisse sicherstellen
+[ ! -d "$VIDEO_DIR" ] && mkdir -p "$VIDEO_DIR" && notify "Video-Verzeichnis erstellt: $VIDEO_DIR"
+[ ! -d "$AUDIO_DIR" ] && mkdir -p "$AUDIO_DIR" && notify "Audio-Verzeichnis erstellt: $AUDIO_DIR"
+
+# GPU erkennen und Profil laden
+GPU_TYPE=$(detect_gpu)
+load_gpu_profile "$GPU_TYPE"
+
+# Hauptlogik
+case "$1" in
+    system)   screencast_system ;;
+    mic)      screencast_mic ;;
+    monitor)  screencast_monitor ;;
+    reaction) screencast_reaction ;;
+    audio)    audio ;;
+    webcam)   webcam ;;
+    kill)     killrecording ;;
+    *)
+        ([ -f /tmp/recordingpid ] && asktoend) || askrecording
+        ;;
+esac

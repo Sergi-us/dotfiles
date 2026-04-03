@@ -1,9 +1,10 @@
 #!/bin/sh
-## 2025-01-09 SARBS
+## 2026-03-28   SARBS
+# TODO Umbenennung zu askpass oder rofipass (incl. Systemweiter integration)
 # Dieses Skript ist die SUDO_ASKPASS-Variable, was bedeutet, dass es als
 # Passwortabfrage verwendet wird, wenn nötig.
 
-# dmenu -fn Monospace-16 -P -p "$1" <&- && echo
-# rofi -dmenu -password -p "$1" -theme sarbs-pass && echo
-# rofi -dmenu -password -p "$1" -theme-str 'window { width: 40%; } listview { enabled: false; }' && echo
-rofi -dmenu -password -p "$1" -theme-str 'window { width: 50%; padding: 2%; } mainbox { children: [prompt, entry]; } prompt { margin: 0 0 1% 0; } entry { expand: true; } listview { enabled: false; }' && echo
+# dmenu -fn Monospace-16 -P -p "$1" <&-
+# rofi -dmenu -password -p "$1" -theme sarbs-pass
+# rofi -dmenu -password -p "$1" -theme-str 'window { width: 40%; } listview { enabled: false; }'
+rofi -dmenu -password -p "$1" -theme-str 'window { width: 50%; padding: 2%; } mainbox { children: [prompt, entry]; } prompt { margin: 0 0 1% 0; } entry { expand: true; } listview { enabled: false; }'

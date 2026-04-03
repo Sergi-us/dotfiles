@@ -1,4 +1,5 @@
 #!/bin/sh
+## 2026-03-28   SARBS
 ## 2025-10-31 SARBS - DEV
 # Universelles Unmount-Skript mit Prozess-Management und intelligentem HDD-Poweroff
 # - Interaktive Prozess-Behandlung
@@ -7,6 +8,11 @@
 # - Kritische Benachrichtigungen
 
 set -e
+
+# Menü-Befehl definieren (Zentrale Stelle für einfache Anpassungen)
+rofi_menu() {
+    rofi -dmenu -i -location 0 -theme-str 'window { width: 50%; } listview { lines: 10; }' "$@"
+}
 
 # Funktion für kritische Benachrichtigungen
 notify_critical() {
@@ -22,8 +28,8 @@ notify_normal() {
 handle_processes_using_directory() {
     directory=$1
 
-    # Verwende fuser für bessere Performance
-    process_pids=$(fuser -v "$directory" 2>&1 | awk 'NR>1 {print $2}' | grep -E '^[0-9]+$' || true)
+    # Verwende fuser -m für deutlich bessere Performance (scannt Mountpoint, nicht rekursiv Dateien)
+    process_pids=$(fuser -m "$directory" 2>/dev/null || true)
 
     if [ -n "$process_pids" ]; then
         # Prozess-Details sammeln
@@ -40,23 +46,23 @@ handle_processes_using_directory() {
 
             # Interaktive Abfrage
             action=$(echo -e "Prozesse sanft beenden (SIGTERM)\nProzesse erzwingen (SIGKILL)\nAbbrechen" | \
-                     dmenu -i -p "Prozesse blockieren das Aushängen. Was tun?")
+                     rofi_menu -p "Prozesse blockieren das Aushängen. Was tun?")
 
             case "$action" in
                 "Prozesse sanft beenden"*)
                     echo "$process_pids" | xargs -r kill -15 2>/dev/null || true
                     sleep 2
                     # Prüfen ob noch Prozesse laufen
-                    remaining=$(fuser -v "$directory" 2>&1 | awk 'NR>1 {print $2}' | grep -E '^[0-9]+$' || true)
+                    remaining=$(fuser -m "$directory" 2>/dev/null || true)
                     if [ -n "$remaining" ]; then
-                        notify_normal "⚠️ Einige Prozesse laufen noch" "Versuche SIGKILL..."
+                        notify_normal " Einige Prozesse laufen noch" "Versuche SIGKILL..."
                         echo "$remaining" | xargs -r kill -9 2>/dev/null || true
                     fi
                     notify_normal "✓ Prozesse beendet" "Directory ist jetzt frei"
                     ;;
                 "Prozesse erzwingen"*)
                     echo "$process_pids" | xargs -r kill -9 2>/dev/null || true
-                    notify_critical "⚠️ Prozesse gekillt" "Du Monster! 👹"
+                    notify_critical " Prozesse gekillt" "Du Monster! 󰯈 "
                     ;;
                 "Abbrechen")
                     notify_normal "Abgebrochen" "Unmount wurde abgebrochen"
@@ -121,23 +127,32 @@ save_poweroff_policy() {
 }
 
 # HDD sicher herunterfahren
+# - Erst udisksctl (schaltet sauber Port-Strom aus), falls nicht vorhanden Fallback zu hdparm
 poweroff_hdd() {
     device=$1
     base_device=$(echo "$device" | sed 's/[0-9]*$//')
 
-    notify_normal "💾 HDD wird heruntergefahren..." "/dev/${base_device}"
+    notify_normal " HDD wird heruntergefahren..." "/dev/${base_device}"
 
-    # Erst sync, dann hdparm
+    # Erst sync für alle Fälle
     sync
-    if command -v hdparm >/dev/null 2>&1; then
+
+    # 1. Bevorzugt udisksctl (entfernt auch das Device sauber aus dem Kernel)
+    if command -v udisksctl >/dev/null 2>&1; then
+        udisksctl power-off -b "/dev/${base_device}" 2>/dev/null || true
+        notify_normal "✓ HDD heruntergefahren" "/dev/${base_device} ist jetzt im Standby (udisksctl)"
+    # 2. Fallback auf hdparm (flush Cache, dann Standby/Sleep)
+    elif command -v hdparm >/dev/null 2>&1; then
+        sudo -A hdparm -f "/dev/${base_device}" 2>/dev/null || true
         sudo -A hdparm -Y "/dev/${base_device}" 2>/dev/null || true
-        notify_normal "✓ HDD heruntergefahren" "/dev/${base_device} ist jetzt im Standby"
+        notify_normal "✓ HDD heruntergefahren" "/dev/${base_device} ist jetzt im Standby (hdparm)"
     else
-        notify_critical "⚠️ hdparm nicht installiert" "HDD konnte nicht heruntergefahren werden"
+        notify_critical " Weder udisksctl noch hdparm gefunden" "HDD konnte nicht heruntergefahren werden"
     fi
 }
 
 # Hauptskript
+# (lsblk bleibt hier als Laufwerkserkennung, da es robust für alle möglichen Devices wie Crypto und MTP agiert)
 mounteddroids="$(grep simple-mtpfs /etc/mtab 2>/dev/null | awk '{print "📱" $2}' || true)"
 lsblkoutput="$(lsblk -nrpo "name,type,size,mountpoint" 2>/dev/null || true)"
 mounteddrives="$(echo "$lsblkoutput" | awk '($2=="part"||$2=="crypt")&&$4!~/\/boot|\/home$|SWAP/&&length($4)>1{printf "💾%s (%s)\n",$4,$3}')"
@@ -150,7 +165,7 @@ if [ -z "$allunmountable" ]; then
     exit 1
 fi
 
-chosen="$(echo "$allunmountable" | dmenu -i -p "Welches Laufwerk aushängen?")"
+chosen="$(echo "$allunmountable" | rofi_menu -p "Welches Laufwerk aushängen?")"
 [ -z "$chosen" ] && exit 0
 
 chosen="${chosen%% *}"
@@ -161,7 +176,7 @@ mountpoint="/${chosen#*/}"
 handle_processes_using_directory "$mountpoint"
 
 # Sync durchführen mit Benachrichtigung
-notify_normal "🔄 Synchronisiere Daten..." "Stelle sicher, dass alle Daten geschrieben sind"
+notify_normal "󰓦 Synchronisiere Daten..." "Stelle sicher, dass alle Daten geschrieben sind"
 sync
 
 # Device-Name für HDD-Check ermitteln
@@ -169,9 +184,9 @@ device_name=$(findmnt -n -o SOURCE "$mountpoint" 2>/dev/null | sed 's/.*\///' ||
 
 # Laufwerk aushängen
 if sudo -A umount -l "$mountpoint" 2>/dev/null; then
-    notify_normal "✓ Gerät ausgehängt" "$chosen wurde erfolgreich ausgehängt"
+    notify_normal " Gerät ausgehängt" "$chosen wurde erfolgreich ausgehängt"
 else
-    notify_critical "❌ Fehler beim Aushängen" "Konnte $chosen nicht aushängen"
+    notify_critical " Fehler beim Aushängen" "Konnte $chosen nicht aushängen"
     exit 1
 fi
 
@@ -179,7 +194,7 @@ fi
 cryptid="$(echo "$lsblkoutput" | grep "/${chosen#*/}$" | awk '{print $1}' || true)"
 if [ -n "$cryptid" ] && [ -b "/dev/mapper/${cryptid##*/}" ]; then
     if sudo -A cryptsetup close "${cryptid##*/}" 2>/dev/null; then
-        notify_normal "🔒 Verschlüsselung geschlossen" "LUKS-Container ist wieder sicher verschlossen"
+        notify_normal " Verschlüsselung geschlossen" "LUKS-Container ist wieder sicher verschlossen"
     fi
 fi
 
@@ -193,7 +208,7 @@ if [ -n "$device_name" ] && is_rotating_disk "$device_name"; then
     # USB-HDD? -> Automatisch herunterfahren (außer Policy=never)
     if is_usb_device "$device_name"; then
         if [ "$POWEROFF_POLICY" != "never" ]; then
-            notify_normal "💡 USB-HDD erkannt" "Wird automatisch heruntergefahren"
+            notify_normal " USB-HDD erkannt" "Wird automatisch heruntergefahren"
             poweroff_hdd "$device_name"
         fi
     # Interne HDD -> Je nach Policy handeln
@@ -209,7 +224,7 @@ if [ -n "$device_name" ] && is_rotating_disk "$device_name"; then
                 # Frage mit erweiterten Optionen
                 device_info=$(lsblk -ndo MODEL,SIZE "/dev/${base_device}" 2>/dev/null || echo "Unbekannt")
                 choice=$(printf "Ja\nNein\nImmer automatisch\nNie automatisch" | \
-                         dmenu -i -p "Interne HDD herunterfahren? ($device_info)")
+                         rofi_menu -p "Interne HDD herunterfahren? ($device_info)")
 
                 case "$choice" in
                     "Ja")
@@ -218,11 +233,11 @@ if [ -n "$device_name" ] && is_rotating_disk "$device_name"; then
                     "Immer automatisch")
                         save_poweroff_policy "always"
                         poweroff_hdd "$device_name"
-                        notify_normal "⚙️ Einstellung gespeichert" "HDDs werden ab jetzt immer automatisch heruntergefahren"
+                        notify_normal " Einstellung gespeichert" "HDDs werden ab jetzt immer automatisch heruntergefahren"
                         ;;
                     "Nie automatisch")
                         save_poweroff_policy "never"
-                        notify_normal "⚙️ Einstellung gespeichert" "HDDs werden nicht mehr heruntergefahren"
+                        notify_normal " Einstellung gespeichert" "HDDs werden nicht mehr heruntergefahren"
                         ;;
                 esac
                 ;;
@@ -231,4 +246,4 @@ if [ -n "$device_name" ] && is_rotating_disk "$device_name"; then
 fi
 
 # Finale Bestätigung
-notify_normal "✅ Vorgang abgeschlossen" "Das Gerät kann jetzt sicher entfernt werden"
+notify_normal " Vorgang abgeschlossen" "Das Gerät kann jetzt sicher entfernt werden"

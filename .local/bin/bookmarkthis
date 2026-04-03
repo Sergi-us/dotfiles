@@ -1,37 +1,129 @@
 #!/bin/sh
-## 2026-03-07 SARBS
-# Markierten Text (PRIMARY) als Snippet speichern
-# Duplikate werden erkannt, Kommentar kann per rofi hinzugefügt werden
+## 2026-03-31 SARBS
+# Markierten Text (PRIMARY) als Snippet/Bookmark speichern, abrufen oder bearbeiten
+# Duplikate werden erkannt, Kommentar kann per Rofi hinzugefügt werden
 
 file="${XDG_DATA_HOME:-$HOME/.local/share}/sarbs/snippets"
-bookmark="$(xclip -o 2>/dev/null)"
 
-[ -z "$bookmark" ] && notify-send "Bookmark" "Zwischenablage ist leer" && exit 0
+# Rofi setup
+rofi_menu() {
+	rofi -dmenu -i -l 20 -theme-str 'window { width: 80%; }' "$@"
+}
 
-# Duplikat-Prüfung (nur den Link-Teil vergleichen, ohne Kommentar)
-if grep -Fq "$bookmark" "$file" 2>/dev/null; then
-	notify-send "Bookmark" "Bereits vorhanden:\n$bookmark"
-	exit 0
-fi
+case "$1" in
+	"-type")
+		# Typisieren eines ausgewählten Snippets
+		[ ! -s "$file" ] && notify-send "Bookmark" "Keine Snippets vorhanden" && exit 1
 
-# Optionaler Kommentar per rofi (ESC = kein Kommentar)
-comment=$(printf '' | rofi -dmenu -p "Kommentar (optional):" \
-	-theme-str 'window { width: 60%; }') 2>/dev/null
+		# Wir blenden Zeilen aus, die mit # beginnen (reine Kommentarzeilen)
+		selected=$(grep -v '^#' "$file" | rofi_menu -p "Link/Snippet:")
+		[ -z "$selected" ] && exit 0
 
-# Eintrag zusammenbauen und oben in die Datei schreiben
-if [ -n "$comment" ]; then
-	entry=$(printf '%-60s # %s' "$bookmark" "$comment")
-else
-	entry="$bookmark"
-fi
+		# Nur den Link-Teil extrahieren (erstes Feld bis zum ersten Leerzeichen)
+		url=$(printf '%s\n' "$selected" | awk '{print $1}')
+		xdotool type "$url"
+		;;
 
-# Neuen Eintrag oben einfügen (neueste zuerst)
-temp=$(mktemp)
-printf '%s\n' "$entry" > "$temp"
-cat "$file" >> "$temp"
-mv "$temp" "$file"
+	"-open")
+		# Ausgewähltes Snippet im Browser öffnen
+		[ ! -s "$file" ] && notify-send "Bookmark" "Keine Snippets vorhanden" && exit 1
 
-# Vorschau kürzen
-preview=$(printf '%.80s' "$bookmark")
-[ ${#bookmark} -gt 80 ] && preview="${preview}…"
-notify-send "Bookmark" "Gespeichert:\n$preview"
+		selected=$(grep -v '^#' "$file" | rofi_menu -p "Im Browser öffnen:")
+		[ -z "$selected" ] && exit 0
+
+		url=$(printf '%s\n' "$selected" | awk '{print $1}')
+		
+		# In den Hintergrund abschieben, damit das Skript nicht blockiert
+		if [ -n "$BROWSER" ]; then
+			$BROWSER "$url" >/dev/null 2>&1 &
+		else
+			xdg-open "$url" >/dev/null 2>&1 &
+		fi
+		;;
+
+	"-edit")
+		# Bearbeiten der Liste (Löschen / Kommentar ändern)
+		[ ! -s "$file" ] && notify-send "Bookmark" "Keine Snippets vorhanden" && exit 1
+
+		# Zeilen ausblenden, die mit # beginnen (reine Kommentarzeilen)
+		selected=$(grep -v '^#' "$file" | rofi_menu -p "Eintrag bearbeiten:")
+		[ -z "$selected" ] && exit 0
+
+		url=$(printf '%s\n' "$selected" | awk '{print $1}')
+		# Den alten Kommentar extrahieren, falls vorhanden (# und alles danach)
+		old_comment=$(printf '%s\n' "$selected" | sed -n 's/.*#[[:space:]]*//p')
+
+		# Aktion wählen
+		action=$(printf "Löschen\nKommentar bearbeiten" | rofi_menu -p "Aktion für: $(printf '%.30s...' "$url")")
+
+		case "$action" in
+			"Löschen")
+				temp=$(mktemp)
+				grep -v -F "$selected" "$file" > "$temp"
+				mv "$temp" "$file"
+				notify-send "Bookmark" "Eintrag gelöscht:\n$(printf '%.50s' "$url")"
+				;;
+			"Kommentar bearbeiten")
+				# Alten Kommentar in Rofi vorbefüllen
+				new_comment=$(rofi -dmenu -p "Neuer Kommentar:" -filter "$old_comment" -theme-str 'window { width: 60%; }' </dev/null)
+
+				# Wenn Rofi mit ESC abgebrochen wurde
+				[ $? -ne 0 ] && exit 0
+
+				if [ -n "$new_comment" ]; then
+					new_entry=$(printf '%-60s # %s' "$url" "$new_comment")
+				else
+					new_entry="$url"
+				fi
+
+				# Zeile in der Datei ersetzen
+				temp=$(mktemp)
+				awk -v old="$selected" -v new="$new_entry" '$0 == old {print new; next} {print}' "$file" > "$temp"
+				mv "$temp" "$file"
+
+				notify-send "Bookmark" "Kommentar aktualisiert."
+				;;
+		esac
+		;;
+
+	*)
+		# Normales Speichern (PRIMARY Selection)
+		bookmark="$(xclip -o 2>/dev/null)"
+
+		[ -z "$bookmark" ] && notify-send "Bookmark" "Zwischenablage ist leer" && exit 0
+
+		# Falls die Datei nicht existiert (und deren Ordner), anlegen
+		mkdir -p "${file%/*}"
+		[ ! -f "$file" ] && touch "$file"
+
+		# Duplikat-Prüfung (nur den Link-Teil vergleichen)
+		if grep -Fq "$bookmark" "$file" 2>/dev/null; then
+			notify-send "Bookmark" "Bereits vorhanden:\n$bookmark"
+			exit 0
+		fi
+
+		# Optionaler Kommentar per Rofi (ESC = Speichern abbrechen)
+		comment=$(printf '' | rofi -dmenu -p "Kommentar (optional):" -theme-str 'window { width: 60%; }')
+
+		# Abbruch durch Benutzer (ESC in Rofi)
+		[ $? -ne 0 ] && notify-send "Bookmark" "Speichern abgebrochen" && exit 0
+
+		# Eintrag zusammenbauen
+		if [ -n "$comment" ]; then
+			entry=$(printf '%-60s # %s' "$bookmark" "$comment")
+		else
+			entry="$bookmark"
+		fi
+
+		# Neuen Eintrag oben einfügen (neueste zuerst)
+		temp=$(mktemp)
+		printf '%s\n' "$entry" > "$temp"
+		cat "$file" >> "$temp"
+		mv "$temp" "$file"
+
+		# Vorschau für Benachrichtigung kürzen
+		preview=$(printf '%.80s' "$bookmark")
+		[ ${#bookmark} -gt 80 ] && preview="${preview}…"
+		notify-send "Bookmark" "Gespeichert:\n$preview"
+		;;
+esac
