@@ -1,13 +1,50 @@
 #!/bin/sh
-## 2025-01-09 SARBS
+## 2025-02-10 SARBS
 
-# If transmission-daemon is running, will ask to kill, else will ask to start.
+# WOFÜR IST DIESES SKRIPT?
+# Dieses Skript ist ein An/Aus-Schalter (Toggle) für 'transmission-daemon'.
+# Transmission ist ein bekannter, ressourcenschonender BitTorrent-Client.
+# Der 'daemon' läuft lautlos im Hintergrund und lädt Torrents herunter/hoch,
+# ohne dass ein grafisches Fenster geöffnet sein muss.
+#
+# NUTZUNGSSZENARIO:
+# 1. Du möchtest eine große Datei über Torrent laden (z.B. eine Linux-ISO).
+# 2. Du startest den Daemon über dieses Skript ("Ja, einschalten").
+# 3. Du gibst dem Daemon den Magnet-Link/die Torrent-Datei (z.B. via 'transmission-remote'
+#    oder über ein Webinterface, falls konfiguriert).
+# 4. Der Daemon lädt still im Hintergrund.
+# 5. Wenn du das Netzwerk für etwas anderes (z.B. Video-Calls) komplett frei brauchst,
+#    nutzt du dieses Skript, um den Daemon schnell mit einem Klick zu beenden ("Nein/Ja").
+#
+# INTERAKTION MIT STATUSBAR:
+# Am Ende sendet das Skript ein Signal (RTMIN+7) an 'dwmblocks'. Dadurch aktualisiert
+# sich das Torrent-Modul in deiner Statusleiste sofort und zeigt an, ob Transmission
+# gerade läuft oder nicht.
 
-if pidof transmission-daemon >/dev/null ;
-then
-	[ "$(printf "Nein\\nJa" | dmenu -i -p "transmission-daemon ausschalten?")" = "Ja" ] && killall transmission-daemon && notify-send "transmission-daemon disabled."
+rofi_menu() {
+    rofi -dmenu -i -location 0 -theme-str 'window { width: 20%; } listview { lines: 2; }' "$@"
+}
+
+if pidof transmission-daemon >/dev/null; then
+    # Daemon läuft -> Frage, ob beendet werden soll
+	if [ "$(printf "Nein\nJa" | rofi_menu -p "transmission-daemon ausschalten?")" = "Ja" ]; then
+        killall transmission-daemon
+        notify-send "Transmission" "Daemon wurde beendet."
+    fi
 else
-	ifinstalled transmission-cli || exit
-	[ "$(printf "Nein\\nJa" | dmenu -i -p "transmission daemon einschalten?")" = "Ja" ] && transmission-daemon && notify-send "transmission-daemon enabled."
+    # Daemon läuft nicht -> Frage, ob gestartet werden soll
+    # Prüfe vorher, ob das Programm überhaupt installiert ist
+	if ! command -v transmission-daemon >/dev/null 2>&1; then
+        notify-send -u critical "Fehlt" "transmission-daemon ist nicht installiert."
+        exit 1
+    fi
+
+	if [ "$(printf "Nein\nJa" | rofi_menu -p "transmission-daemon einschalten?")" = "Ja" ]; then
+        transmission-daemon
+        notify-send "Transmission" "Daemon wurde gestartet."
+    fi
 fi
-sleep 3 && pkill -RTMIN+7 "${STATUSBAR:-dwmblocks}"
+
+# Kurze Pause geben, damit der Prozess Zeit hat zu starten/enden,
+# dann die Statusleiste (dwmblocks) aktualisieren.
+sleep 1 && pkill -RTMIN+7 "${STATUSBAR:-dwmblocks}"

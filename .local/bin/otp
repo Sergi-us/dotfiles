@@ -1,45 +1,110 @@
 #!/bin/sh
-## 2025-01-09 SARBS
-# TODO Testen!!!
+## 2025-02-10 SARBS
+# Ein Skript zum Scannen und Hinzufügen von Einmalpasswörtern (OTP / 2FA) zu pass.
+# (Die Code-Generierung/Kopieren wird über rofi-pass gehandhabt)
+# 
+# ABHÄNGIGKEITEN:
+# - pass: Der Standard-Passwortmanager
+# - pass-otp: Erweiterung für pass zur OTP-Generierung
+# - maim: Screenshot-Tool (wird verwendet, um einen Bereich abzufotografieren)
+# - zbar (zbarimg): Erkennt und dekodiert QR-Codes aus Bilddateien
+# - ntp: Für 'ntpdate' zur Zeitsynchronisierung (TOTPs sind extrem zeitkritisch!)
+#
+# WIE DER QR-SCAN FUNKTIONIERT:
+# 1. 'maim -s' pausiert den Bildschirm. Dein Mauszeiger wird zu einem Fadenkreuz.
+# 2. Du ziehst mit gedrückter Maustaste ein Rechteck über den angezeigten QR-Code.
+# 3. Das Bild wird kurzzeitig als Datei gespeichert.
+# 4. 'zbarimg' liest diese Bilddatei ein und extrahiert den geheimen OTP-URI.
+# 5. 'pass otp append' hängt diesen geheimen URI an eine *bestehende* (oder neue)
+#    Passwort-Datei in deinem Pass-Store an. Die bisherigen Passwörter gehen 
+#    dadurch NICHT verloren!
+#    WICHTIG: Wenn die Zieldatei bereits ein OTP enthält, wird 'pass otp append'
+#    durch die '-f' (force) Option angewiesen, das alte OTP durch das neue zu
+#    ersetzen, ohne das eigentliche Passwort anzutasten.
 
-# Erhalte ein Einmalpasswort oder füge ein OTP-Geheimnis zu deinem pass-otp-Speicher hinzu.
+# Funktion zur Prüfung von Abhängigkeiten mit Benachrichtigung
+check_dep() {
+    for cmd in "$@"; do
+        if ! command -v "$cmd" >/dev/null 2>&1; then
+            notify-send -u critical "Fehlendes Tool" "Das Tool '$cmd' ist nicht installiert. Bitte nachinstallieren."
+            exit 1
+        fi
+    done
+}
 
-ifinstalled pass pass-otp || exit 1
+rofi_menu() {
+    rofi -dmenu -i -location 0 -theme-str 'window { width: 40%; } listview { lines: 8; }' "$@"
+}
 
-dir="${PASSWORD_STORE_DIR}"
+check_dep pass rofi notify-send
 
-choice="$({ echo "🆕add" ; echo "🕙sync-time" ; ls "$dir"/*-otp.gpg ;} | sed "s/.*\///;s/-otp.gpg//" | dmenu -p "Wähle ein 2FA:")"
+# Prüfe, ob pass-otp als Erweiterung in pass installiert ist
+if ! pass otp help >/dev/null 2>&1; then
+    notify-send -u critical "Fehlende Abhängigkeit" "Die pass-Erweiterung 'pass-otp' ist nicht installiert."
+    exit 1
+fi
 
-case $choice in
-	🆕add )
-		ifinstalled maim zbar || exit 1
+dir="${PASSWORD_STORE_DIR:-$HOME/.password-store}"
 
-		temp=$(mktemp -p "$XDG_RUNTIME_DIR" --suffix=.png)
-		otp="otp-test-script"
-		trap 'rm -f $temp; pass rm -f $otp' HUP INT QUIT TERM PWR EXIT
+# Hilfsfunktion, um alle Passwörter aufzulisten
+get_pass_list() {
+    cd "$dir" 2>/dev/null && find . -type f -name "*.gpg" | sed 's|^\./||; s|\.gpg$||' | sort
+}
 
-		notify-send "Scanne das Bild." "Scanne den OTP-QR-Code."
+# Da "Code kopieren" über rofi-pass läuft, bieten wir hier nur noch die Admin-Aktionen an
+action="$({ echo "➕ Neues OTP scannen & hinzufügen" ; echo "🕙 Zeit synchronisieren" ;} | rofi_menu -p "OTP Aktion:")"
 
-		maim -s "$temp" || exit 1
-		info="$(zbarimg -q "$temp")"
+# Beenden, falls nichts ausgewählt wurde
+[ -z "$action" ] && exit 0
+
+case "$action" in
+	"➕ Neues OTP scannen & hinzufügen" )
+		check_dep maim zbarimg
+
+		temp=$(mktemp -p "${XDG_RUNTIME_DIR:-/tmp}" --suffix=.png)
+		trap 'rm -f "$temp" >/dev/null 2>&1' HUP INT QUIT TERM PWR EXIT
+
+		notify-send "Scanne das Bild." "Ziehe mit der Maus ein Rechteck über den OTP-QR-Code auf dem Bildschirm."
+
+		# Macht einen Screenshot des markierten Bereichs
+		if ! maim -s "$temp"; then
+			notify-send -u critical "Scan abgebrochen" "Es wurde kein Bereich ausgewählt."
+			exit 1
+		fi
+		
+		# Liest den QR-Code aus dem Screenshot
+		if ! info="$(zbarimg -q "$temp" 2>/dev/null)"; then
+			notify-send -u critical "Scan fehlgeschlagen" "Kein QR-Code im Bild gefunden. Versuche es genauer."
+			exit 1
+		fi
+		# Extrahiere nur den reinen URI, entferne den Präfix
 		info="${info#QR-Code:}"
 
-		if echo "$info" | pass otp insert "$otp"; then
-			while true ; do
-				export name="$(echo | dmenu -p "Gib diesem Einmalpasswort einen ein-Wort-Namen:")"
-				echo "$name" | grep -q -- "^[A-z0-9-]\+$" && break
-			done
-			pass mv "$otp" "$name-otp"
-			notify-send "Erfolgreich hinzugefügt." "$name-otp wurde erstellt."
+        # Biete alle existierenden Passwörter als Zuordnung an
+        pass_list=$(get_pass_list)
+        name=$(echo "$pass_list" | rofi_menu -p "Zu welchem Passwort soll OTP hinzugefügt werden?")
+        [ -z "$name" ] && exit 0 # Abbruch bei leerer Eingabe
+        
+        # Wichtig: pass-otp append mit -f (force)
+        # Laut manpage fragt 'append', wenn bereits ein OTP in der Datei existiert,
+        # ob dieses überschrieben werden soll. In einem nicht-interaktiven Skript
+        # würde das hängen bleiben. Daher nutzen wir '-f' (force), damit das neue
+        # OTP das alte ersetzt (falls eines existiert). Das normale Passwort bleibt
+        # dabei erhalten!
+		if echo "$info" | pass otp append -f "$name" >/dev/null 2>&1; then
+			notify-send "Erfolgreich hinzugefügt." "OTP wurde zu '$name' hinzugefügt."
 		else
-			notify-send "Keine OTP-Daten gefunden." "Versuche das Bild erneut genauer zu scannen."
+			notify-send -u critical "Fehler" "Konnte die OTP-Daten nicht zu '$name' hinzufügen."
 		fi
 		;;
-	🕙sync-time )
-		ifinstalled ntp || exit 1
+
+	"🕙 Zeit synchronisieren" )
+		check_dep ntpdate sudo
 		notify-send -u low "🕙 Zeit synchronisieren..." "Zeit mit entfernten NTP-Servern synchronisieren..."
-		updatedata="$(sudo ntpdate pool.ntp.org)" &&
-		notify-send -u low "🕙 Zeit synchronisieren..." "Fertig. Zeit geändert um ${updatedata#*offset }"
+		if updatedata="$(sudo ntpdate pool.ntp.org 2>&1)"; then
+			notify-send -u low "🕙 Zeit synchronisieren..." "Fertig. Zeit geändert um ${updatedata##* }"
+		else
+			notify-send -u critical "Fehler bei Zeitsync" "Konnte Zeit nicht synchronisieren. Braucht sudo-Rechte."
+		fi
 		;;
-	*) pass otp -c ${choice}-otp ;;
 esac

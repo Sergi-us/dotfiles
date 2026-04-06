@@ -1,0 +1,86 @@
+#!/bin/sh
+## 2025-02-10 SARBS
+
+# WOFÜR IST DIESES SKRIPT?
+# Dieses Skript ermöglicht das schnelle Einhängen (Mounten) von lokalen
+# Windows-Netzwerkfreigaben (CIFS/SMB), z.B. von einem NAS oder Router, via Rofi.
+# Es nutzt 'avahi' um verfügbare Server im Netzwerk automatisch zu finden!
+#
+# WIE MAN ES NUTZT:
+# 1. Skript aufrufen (z.B. per Keybinding).
+# 2. Rofi zeigt alle im Netzwerk gefundenen SMB-Server (NAS-Geräte) an.
+# 3. Wähle ein NAS aus. Das Skript sucht dann nach den freigegebenen Ordnern.
+# 4. Rofi zeigt die gefundenen Freigaben (Ordner) an.
+# 5. Wähle eine Freigabe. Das Skript mountet diese automatisch nach /mnt/<Freigabename>.
+#
+# VORAUSSETZUNGEN (WICHTIG):
+# - Du brauchst das Paket 'avahi' (und der avahi-daemon muss laufen).
+# - Du brauchst 'smbclient' (um die Ordner des NAS aufzulisten).
+# - Du brauchst 'cifs-utils' (für den mount -t cifs Befehl).
+# - Damit das Skript das NAS ohne ständige Passwort-Abfrage mounten kann, muss
+#   dein Benutzer sudo-Rechte ohne Passwortabfrage haben.
+#   (sudoers Datei: "%wheel ALL=(ALL) NOPASSWD: ALL")
+
+# Funktion zur Prüfung von Abhängigkeiten
+check_dep() {
+    for cmd in "$@"; do
+        if ! command -v "$cmd" >/dev/null 2>&1; then
+            notify-send -u critical "Fehlendes Tool" "Das Tool '$cmd' ist nicht installiert. Bitte nachinstallieren."
+            exit 1
+        fi
+    done
+}
+
+rofi_menu() {
+    rofi -dmenu -i -location 0 -theme-str 'window { width: 30%; } listview { lines: 8; }' "$@"
+}
+
+# Prüfe, ob alle nötigen Tools installiert sind
+check_dep avahi-browse smbclient mount rofi notify-send
+
+# Durchsuchen von mDNS/DNS-SD-Diensten mit dem Avahi-Daemon...
+# awk extrahiert den 4. Parameter (den Hostnamen)
+srvname=$(avahi-browse _smb._tcp -t 2>/dev/null | awk '{print $4}' | rofi_menu -p "Welches NAS verbinden?")
+[ -z "$srvname" ] && exit 1
+
+notify-send "Netzwerkscan" "Suche nach Netzwerkfreigaben auf '$srvname'. Bitte warten..."
+
+# Freigabe-Ordner auswählen...
+# smbclient loggt sich anonym (-N) ein und listet (-L) alle Freigaben.
+# Wir filtern nach 'Disk' (echte Ordner, keine Drucker) und extrahieren den Namen.
+share=$(smbclient -L "$srvname" -N 2>/dev/null | grep -w "Disk" | awk '{print $1}' | rofi_menu -p "Welchen Ordner einhängen?")
+[ -z "$share" ] && exit 1
+
+# SMB-URL formatieren (z.B. //mein-nas.local/Backup)
+share2mnt="//${srvname}.local/${share}"
+
+sharemount() {
+    # Prüfen, ob das Ziel schon irgendwo gemountet ist
+	mounted=$(mount -v | grep "$share2mnt")
+    
+    # Wenn der Ordner /mnt/<share> noch nicht existiert, lege ihn an
+    if [ ! -d "/mnt/$share" ]; then
+        if ! sudo mkdir -p "/mnt/$share" >/dev/null 2>&1; then
+            notify-send -u critical "Fehler" "Konnte Ordner /mnt/$share nicht erstellen. Sudo-Rechte prüfen!"
+            exit 1
+        fi
+    fi
+
+    # Wenn es noch nicht gemountet ist, dann jetzt mounten
+	if [ -z "$mounted" ]; then
+        # Hier wird ohne Passwort (-o user=nobody,password="",noperm) gemountet!
+        # Falls dein NAS ein Passwort braucht, müsstest du hier credentials angeben.
+        if sudo mount -t cifs "$share2mnt" -o user=nobody,password="",noperm "/mnt/$share" >/dev/null 2>&1; then
+            notify-send "NAS verbunden" "Netzwerkfreigabe '$share' wurde unter /mnt/$share eingehängt."
+            exit 0
+        else
+            notify-send -u critical "Fehler beim Mounten" "Konnte '$share2mnt' nicht einhängen."
+            exit 1
+        fi
+	else
+	    notify-send "Info" "Netzwerkfreigabe '$share' ist bereits eingehängt."
+        exit 1
+    fi
+}
+
+sharemount

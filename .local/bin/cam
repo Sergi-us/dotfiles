@@ -1,15 +1,49 @@
-#!/bin/bash
-## 2025-01-08 SARBS
-# Webcam-Script mit dmenu-Abfrage
+#!/bin/sh
+## 2025-02-10 SARBS
+# Webcam-Script mit Rofi-Abfrage
 
-# Funktion zum Auflisten aller verfügbaren Videogeräte
+# Abhängigkeiten prüfen
+for cmd in v4l2-ctl mpv rofi; do
+    if ! command -v "$cmd" >/dev/null 2>&1; then
+        notify-send -u critical "Fehlende Abhängigkeit" "Bitte installiere '$cmd' für das Webcam-Skript."
+        exit 1
+    fi
+done
+
+# HINWEIS ZU MEHREREN DEVICES PRO KAMERA:
+# Es ist normal, dass eine Webcam mehrere /dev/video* Nodes erstellt.
+# Grund ist der Video4Linux2 (V4L2) Treiber:
+# - video0: Meist der 'Video Capture Node' (Der echte Bild-Stream für mpv).
+# - video1: Meist der 'Metadata Node' (z.B. für Hardware-Autofokus oder Belichtung). 
+#           Hier schlägt mpv fehl, da es keine echten Bilddaten sind.
+# Wir listen bewusst alle auf, falls der Capture-Node abweicht.
+
+# Funktion zum Auflisten aller verfügbaren Videogeräte mit bereinigtem Namen
 list_video_devices() {
-    v4l2-ctl --list-devices | grep -oP '/dev/video\d+'
+    # v4l2-ctl listet Geräte im Format:
+    # Integrated Camera: Integrated C (usb-0000:07:00.4-2.1):
+    #         /dev/video0
+    # Wir extrahieren den Namen VOR der Klammer (usb-...)
+    v4l2-ctl --list-devices | awk '
+        /^\t\/dev\/video/ { if(name != "") print $1 " [" name "]" }
+        /^[^[:space:]]/ {
+            name=$0;
+            # Entferne den (usb-...) Teil und den nachfolgenden Doppelpunkt
+            sub(/ \([^\)]+\):?$/, "", name);
+            # Falls am Ende noch ein Doppelpunkt ist, auch den entfernen
+            sub(/:$/, "", name);
+        }
+    '
 }
 
 # Funktion zum Überprüfen, ob ein Gerät eine Android Webcam ist
 is_android_webcam() {
     v4l2-ctl --device="$1" --all 2>/dev/null | grep -q "Android Webcam"
+}
+
+# Zentrale Rofi-Menü Definition
+rofi_menu() {
+    rofi -dmenu -i -location 0 -theme-str 'window { width: 50%; } listview { lines: 5; }' "$@"
 }
 
 # Konfigurationsvariablen
@@ -19,21 +53,18 @@ PIXELFORMAT="MJPG"
 
 # Reduzierte GPU-Optionen für mpv
 MPV_BASE_OPTIONS="--untimed --no-cache --no-osc --no-input-default-bindings --profile=low-latency --input-conf=/dev/null --title=webcam"
-# MPV_BASE_OPTIONS="--untimed --no-cache --no-osc --no-input-default-bindings --profile=low-latency --input-conf=/dev/null --title=webcam --vo=x11 --hwdec=no"
 STANDARD_FILTERS="crop=1080:1080,scale=1080:1080"
-# STANDARD_FILTERS="hue=s=0,crop=720:720,scale=720:720"
 ANDROID_FILTERS="rotate=PI/2,hue=s=0,crop=1080:1080,hflip,vflip"
-ANDROID_ROTATION=""  # Dann diese Variable leer lassen
-# ANDROID_FILTERS="hue=s=0,crop=1450:1080,hflip,vflip"
-# ANDROID_ROTATION="--video-rotate=90"
+ANDROID_ROTATION=""
 
-# Alle verfügbaren Videogeräte auflisten und mit dmenu auswählen
-DEVICE=$(list_video_devices | dmenu -p "Wähle Webcam:")
-# Überprüfen, ob ein Gerät ausgewählt wurde
-if [ -z "$DEVICE" ]; then
-    echo "Kein Videogerät ausgewählt."
-    exit 1
-fi
+# Geräte auflisten und Auswahl treffen
+selected=$(list_video_devices | rofi_menu -p "Wähle Webcam:")
+
+[ -z "$selected" ] && exit 0
+
+# Extrahiere nur den /dev/video Pfad (das erste Wort)
+DEVICE=$(echo "$selected" | awk '{print $1}')
+
 # Konfiguriere das Gerät basierend auf dem Typ
 if is_android_webcam "$DEVICE"; then
     RESOLUTION=$ANDROID_RESOLUTION
@@ -46,9 +77,13 @@ else
 fi
 
 # Setze die Auflösung
-WIDTH=$(echo $RESOLUTION | cut -d'x' -f1)
-HEIGHT=$(echo $RESOLUTION | cut -d'x' -f2)
-v4l2-ctl --set-fmt-video=width=$WIDTH,height=$HEIGHT,pixelformat=$PIXELFORMAT --device=$DEVICE
+WIDTH=$(echo "$RESOLUTION" | cut -d'x' -f1)
+HEIGHT=$(echo "$RESOLUTION" | cut -d'x' -f2)
 
-# Starte MPV mit den konfigurierten Optionen und beschränke CPU-Nutzung
-nice -n 10 mpv $MPV_BASE_OPTIONS $ROTATION --vf="$FILTERS" $DEVICE
+notify-send "Starte Webcam" "Kamera: $DEVICE\nAuflösung: $RESOLUTION"
+
+# Auflösung setzen (läuft im Hintergrund, um nicht zu blockieren)
+v4l2-ctl --set-fmt-video="width=$WIDTH,height=$HEIGHT,pixelformat=$PIXELFORMAT" --device="$DEVICE" >/dev/null 2>&1
+
+# Starte MPV mit den konfigurierten Optionen
+nice -n 10 mpv $MPV_BASE_OPTIONS $ROTATION --vf="$FILTERS" "$DEVICE" >/dev/null 2>&1

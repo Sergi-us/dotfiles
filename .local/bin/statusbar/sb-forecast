@@ -28,18 +28,18 @@ checkforecast() {
 }
 
 getprecipchance() {
-	echo "$weatherdata" | sed '16q;d' |    # Zeile 16 aus Datei extrahieren
-		grep -wo "[0-9]*%" |           # Zahlenfolge gefolgt von '%' finden
-		sort -rn |                     # Absteigend sortieren
-		head -1q                       # Erste Zeile extrahieren
+	echo "$weatherdata" | sed '16q;d' |     # Zeile 16 aus Datei extrahieren
+		grep -wo "[0-9]*%" |                # Zahlenfolge gefolgt von '%' finden
+		sort -rn |                          # Absteigend sortieren
+		head -1q                            # Erste Zeile extrahieren
 }
 
 getdailyhighlow() {
-	echo "$weatherdata" | sed '13q;d' |      # Zeile 13 aus Datei extrahieren
-		grep -o "m\\([-+]\\)*[0-9]\\+" | # Temperaturen im Format "m<Vorzeichen><Zahl>" finden
-		sed 's/[+m]//g' |                # '+' und 'm' entfernen
-		sort -g |                        # Aufsteigend sortieren
-		sed -e 1b -e '$!d'               # Erste und letzte Zeile extrahieren
+	echo "$weatherdata" | sed '13q;d' |     # Zeile 13 aus Datei extrahieren
+		grep -o "m\\([-+]\\)*[0-9]\\+" |    # Temperaturen im Format "m<Vorzeichen><Zahl>" finden
+		sed 's/[+m]//g' |                   # '+' und 'm' entfernen
+		sort -g |                           # Aufsteigend sortieren
+		sed -e 1b -e '$!d'                  # Erste und letzte Zeile extrahieren
 }
 
 readfile() { weatherdata="$(cat "$weatherreport")" ;}
@@ -50,7 +50,7 @@ showweather() {
 	low=$(echo $temps | cut -d' ' -f1)
 	high=$(echo $temps | cut -d' ' -f2)
 	avg=$(( (low + high) / 2 ))
-	printf "%s󰔄 \n" "$avg"
+	printf "%s󰔄\n" "$avg"
 }
 
 showtodayforecast() {

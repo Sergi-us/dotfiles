@@ -1,5 +1,5 @@
 #!/bin/sh
-## 2025-01-09 SARBS
+## 2025-02-10 SARBS
 
 # Zeigt ein Doppler-RADAR für den bevorzugten Standort des Benutzers.
 
@@ -7,7 +7,12 @@ secs=6000 # Lade ein neues Doppler-Radar herunter, wenn seit $secs Sekunden kein
 radarloc="${XDG_CACHE_HOME:-$HOME/.cache}/radar"
 doppler="${XDG_CACHE_HOME:-$HOME/.cache}/doppler.gif"
 
-pickloc() { chosen="$(echo "DE: BAW: Baden-Württemberg
+rofi_menu() {
+    rofi -dmenu -i -location 0 -theme-str 'window { width: 35%; } listview { lines: 25; }' "$@"
+}
+
+pickloc() { 
+    chosen="$(echo "DE: BAW: Baden-Württemberg
 DE: BAY: Bayern
 DE: BBB: Berlin
 DE: BBB: Brandenburg
@@ -258,17 +263,18 @@ AF: TZ: Tanzania
 AF: TN: Tunisia
 AF: ZM: Zambia
 AF: KE: Kenya
-AF: AO: Angola" | dmenu -r -i -l 30 -p "Wähle ein Radar als Standard:" | tr "[:lower:]" "[:upper:]")"
+AF: AO: Angola" | rofi_menu -p "Wähle ein Radar als Standard:" | tr "[:lower:]" "[:upper:]")"
 
-# Sicherstellen, dass der Benutzer nicht abgebrochen hat.
-[ -z "$chosen" ] && exit 1
+    # Sicherstellen, dass der Benutzer nicht abgebrochen hat.
+    [ -z "$chosen" ] && exit 1
 
-# Setze Kontinentcode und Radarcode.
-continentcode=${chosen%%:*}
-radarcode=${chosen#* } radarcode=${radarcode%:*}
+    # Setze Kontinentcode und Radarcode.
+    continentcode=${chosen%%:*}
+    radarcode=${chosen#* } radarcode=${radarcode%:*}
 
-# Schreibe Codes in $radarloc Datei.
- printf "%s,%s\\n" "$continentcode" "$radarcode" > "$radarloc" ;}
+    # Schreibe Codes in $radarloc Datei.
+    printf "%s,%s\n" "$continentcode" "$radarcode" > "$radarloc" 
+}
 
 getdoppler() {
 	cont=$(cut -d',' -f1 "$radarloc")
@@ -286,14 +292,22 @@ getdoppler() {
 showdoppler() { setsid -f mpv --no-osc --loop=inf --no-terminal "$doppler" ;}
 
 case $BLOCK_BUTTON in
-	1) [ ! -f "$radarloc" ] && pickloc && getdoppler
-	[ $(($(date '+%s') - $(stat -c %Y "$doppler"))) -gt "$secs" ] && getdoppler
-	showdoppler ;;
-	2) pickloc && getdoppler && showdoppler ;;
-	3) notify-send "🗺️ Doppler RADAR Modul" "\- Linksklick für lokales Doppler-RADAR.
+	1) 
+        [ ! -f "$radarloc" ] && pickloc && getdoppler
+	    [ $(($(date '+%s') - $(stat -c %Y "$doppler"))) -gt "$secs" ] && getdoppler
+	    showdoppler 
+        ;;
+	2) 
+        pickloc && getdoppler && showdoppler 
+        ;;
+	3) 
+        notify-send "🗺️ Doppler RADAR Modul" "\- Linksklick für lokales Doppler-RADAR.
 - Mittelklick zum Ändern des RADAR-Standorts.
-Nach $secs Sekunden wird das Doppler-RADAR automatisch aktualisiert."  ;;
-	6) setsid -f "$TERMINAL" -e "$EDITOR" "$0" ;;
+Nach $secs Sekunden wird das Doppler-RADAR automatisch aktualisiert."  
+        ;;
+	6) 
+        setsid -f "$TERMINAL" -e "$EDITOR" "$0" 
+        ;;
 esac
 
 echo " "

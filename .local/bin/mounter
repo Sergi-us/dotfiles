@@ -91,7 +91,7 @@ done)"
 # der sicherste Weg in awk/grep ist es, einfach alle "disk" Typen mit aufzunehmen, die NICHT root-devices für "part" sind.
 # Wir lösen es einfach: Alles was "part", "rom", "crypt" ist ODER "disk" ABER wir filtern später die Disks raus,
 # von denen wir wissen, dass sie Partitionen haben.
-disks_with_parts=$(lsblk -rnpo pkname | grep -v "^$" | sort -u)
+disks_with_parts=$(lsblk -rnpo pkname 2>/dev/null | grep -v "^$" | sort -u)
 
 normalparts="$(lsblk -Ppo name,type,size,label,mountpoint,fstype,uuid 2>/dev/null | grep -v 'FSTYPE="crypto_LUKS"' | while read -r line; do
     [ -z "$line" ] && continue
@@ -220,31 +220,22 @@ case "$marker" in
             num=$((num + 1))
         done
 
-        # 1. ZUERST stellen wir sicher, dass das sudo-Passwort frisch eingegeben wurde.
-        #    `sudo -A true` zwingt das System, das `dmenupass` Rofi-Fenster aufzurufen (falls das Sudo-Timeout abgelaufen ist).
-        #    Das muss hier passieren, BEVOR die Pipe startet. In einer Pipe starten beide Seiten exakt gleichzeitig,
-        #    was bedeuten würde, dass Rofi 2x zeitgleich aufgerufen wird (1x für LUKS, 1x von sudo für dmenupass) -> Crash!
-        sudo -A true || {
-            notify-send "✗ Fehler" "Sudo-Authentifizierung fehlgeschlagen"
-            exit 1
-        }
+        # LUKS-Passwort via Rofi abfragen (Rofi muss komplett beendet sein,
+        # bevor sudo -A aufgerufen wird, sonst kollidieren zwei Rofi-Instanzen)
+        lukspw=$(rofi -dmenu -password -p "LUKS Passwort für ${device##*/}: " \
+            -theme-str 'window { width: 30%; padding: 2%; } mainbox { children: [prompt, entry]; } listview { enabled: false; }')
 
-        # 2. JETZT (wo sudo authentifiziert ist) können wir die 100% sichere Pipe bauen,
-        #    ohne das LUKS-Passwort in einer unsicheren Variable im RAM zwischenzuspeichern.
-        #    WICHTIG: Rofi sendet am Ende immer einen Zeilenumbruch (\n). Cryptsetup nimmt diesen mit
-        #    und sagt "Falsches Passwort", wenn wir das nicht vorher mit `tr -d '\n'` wegschneiden!
-        #    Wir fangen den Error per `2>&1` ab, um das Ergebnis hübsch im notify-send zu zeigen.
-        #    HINWEIS: Auf der rechten Seite KEIN `sudo -A` benutzen! Da sudo durch die Zeile davor
-        #    bereits authorisiert ist, reicht ein normales `sudo`. Ein `-A` würde sudo bei kleinen Timing-Problemen
-        #    verleiten, wild das ASKPASS-Skript aufzurufen, was den bekannten "Rofi already running"-Crash erzeugt!
-        if ! error_msg=$(rofi -dmenu -password -p "LUKS Passwort für ${device##*/}: " \
-            -theme-str 'window { width: 30%; padding: 2%; } mainbox { children: [prompt, entry]; } listview { enabled: false; }' | \
-            tr -d '\n' | sudo cryptsetup -d - open "$device" "usb$num" 2>&1); then
+        # Abbruch, wenn kein Passwort eingegeben wurde (z.B. Esc gedrückt)
+        [ -z "$lukspw" ] && exit 0
 
-            # Zeigt den cryptsetup Error (z.B. "Kein Schlüssel mit dieser Passphrase verfügbar") im Notify!
-            notify-send "✗ Entschlüsselung fehlgeschlagen" "$error_msg"
+        # Passwort via printf (ohne Zeilenumbruch) an cryptsetup übergeben.
+        # sudo -A kann jetzt gefahrlos ASKPASS aufrufen, da Rofi geschlossen ist.
+        if ! error_msg=$(printf "%s" "$lukspw" | sudo -A cryptsetup open --key-file=- "$device" "usb$num" 2>&1); then
+            notify-send "✗ Entschlüsselung fehlgeschlagen" "${error_msg:-Unbekannter Fehler}"
+            lukspw=""
             exit 1
         fi
+        lukspw=""
 
         # Kurze Pause für den Kernel, um das gemappte Block-Gerät zu registrieren
         sleep 0.5

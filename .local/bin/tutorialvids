@@ -1,8 +1,13 @@
 #!/bin/sh
-## 2025-01-09 SARBS
+## 2025-02-10 SARBS
 # This gives the user a list of videos they can select and watch without a
 # browser. If you want to check a tutorial video, it makes it easy. I'll
 # add/remove videos from this list as I go on.
+
+# Zentrale Rofi-Menü Definition
+rofi_menu() {
+    rofi -dmenu -i -location 0 -theme-str 'window { width: 60%; } listview { lines: 20; }' "$@"
+}
 
 vidlist="
 Sergi - dwm (window manager)        https://youtu.be/eb1-zqIoo_I
@@ -23,4 +28,15 @@ Luke - colorschemes with pywal      https://youtu.be/Es79N_9BblE?si
 Luke - vi mode in shell             https://youtu.be/eLEo4OQ-cuQ?si
 Luke - pass (password manager)      https://youtu.be/sVkURNfxPd4?si
 "
-echo "$vidlist" | grep -P "^$(echo "$vidlist" | grep "https:" | sed 's/\t.*//g' | dmenu -i -p "Anleitung für? (ESC zum verlassen)" -l 20 | awk '{print $1}')\s" | sed 's/.*\t//' | xargs -r mpv
+
+# 1. Zeige das Menü an. Wir filtern vorher leere Zeilen heraus.
+# 2. Awk extrahiert danach das letzte Feld ($NF), welches immer die URL ist.
+selected_url=$(echo "$vidlist" | grep -v "^$" | rofi_menu -p "Anleitung für?" | awk '{print $NF}')
+
+# Beenden, wenn nichts ausgewählt wurde oder keine URL gefunden wurde
+[ -z "$selected_url" ] && exit 0
+
+notify-send "Tutorial startet" "Lade Video in mpv..."
+
+# Spiele das Video mit mpv ab
+mpv "$selected_url" >/dev/null 2>&1 &
