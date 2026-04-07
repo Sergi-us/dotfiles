@@ -232,20 +232,25 @@ killrecording() {
 get_primary_monitor_resolution() {
     local resolution
 
-    # 1. Primary Monitor suchen
-    resolution=$(xrandr --current | grep -w "primary" | grep -oE '[0-9]+x[0-9]+' | head -n1)
+    # 1. Aktiven Primary Monitor suchen (mit +X+Y)
+    resolution=$(xrandr --current | grep -w "primary" | grep -oE '[0-9]+x[0-9]+\+[0-9]+\+[0-9]+' | head -n1 | cut -d'+' -f1)
 
-    # 2. Erster connected Monitor
+    # 2. Erster connected Monitor mit aktiver Auflösung
     if [ -z "$resolution" ]; then
-        resolution=$(xrandr --current | grep " connected" | head -n1 | grep -oE '[0-9]+x[0-9]+\+[0-9]+\+[0-9]+' | cut -d'+' -f1)
+        resolution=$(xrandr --current | grep -w "connected" | grep -oE '[0-9]+x[0-9]+\+[0-9]+\+[0-9]+' | head -n1 | cut -d'+' -f1)
     fi
 
-    # 3. Desktop-Auflösung via xdpyinfo
+    # 3. Desktop-Auflösung (gesamte Arbeitsfläche)
+    if [ -z "$resolution" ]; then
+        resolution=$(xrandr --current | grep -oE 'current [0-9]+ x [0-9]+' | sed 's/current //; s/ x /x/' | head -n1)
+    fi
+
+    # 4. Letzter Fallback via xdpyinfo
     if [ -z "$resolution" ]; then
         resolution=$(xdpyinfo 2>/dev/null | grep dimensions | grep -oE '[0-9]+x[0-9]+' | head -n1)
     fi
 
-    # 4. Letzter Fallback
+    # 5. Absoluter Fallback
     if [ -z "$resolution" ]; then
         resolution="1920x1080"
         notify "Warnung: Auflösung nicht ermittelt, verwende Fallback: $resolution"

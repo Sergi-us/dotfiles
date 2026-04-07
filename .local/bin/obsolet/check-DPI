@@ -1,4 +1,5 @@
 #!/bin/sh
+# Obsolet - setdpi hat den Job übernommen
 
 # Berechne DPI für beliebige Displays
 echo "Gib Breite in Pixel ein:"; read px_w

@@ -2,6 +2,25 @@
 ## 2025-02-10 SARBS
 # Webcam-Script mit Rofi-Abfrage
 
+# Konfigurationsvariablen
+ANDROID_RESOLUTION="1920x1080"
+# STANDARD_RESOLUTION="1080x1080"
+PIXELFORMAT="MJPG"
+
+# Reduzierte GPU-Optionen für mpv
+MPV_BASE_OPTIONS="--untimed --no-cache --no-osc --no-input-default-bindings --profile=low-latency --input-conf=/dev/null --title=webcam"
+# STANDARD_FILTERS="crop=1080:1080,scale=1080:1080"
+ANDROID_FILTERS="rotate=PI/2,hue=s=0,crop=1080:1080,hflip,vflip"
+ANDROID_ROTATION=""
+
+# HINWEIS ZU MEHREREN DEVICES PRO KAMERA:
+# Es ist normal, dass eine Webcam mehrere /dev/video* Nodes erstellt.
+# Grund ist der Video4Linux2 (V4L2) Treiber:
+# - video0: Meist der 'Video Capture Node' (Der echte Bild-Stream für mpv).
+# - video1: Meist der 'Metadata Node' (z.B. für Hardware-Autofokus oder Belichtung).
+#           Hier schlägt mpv fehl, da es keine echten Bilddaten sind.
+# Wir listen bewusst alle auf, falls der Capture-Node abweicht.
+
 # Abhängigkeiten prüfen
 for cmd in v4l2-ctl mpv rofi; do
     if ! command -v "$cmd" >/dev/null 2>&1; then
@@ -9,14 +28,6 @@ for cmd in v4l2-ctl mpv rofi; do
         exit 1
     fi
 done
-
-# HINWEIS ZU MEHREREN DEVICES PRO KAMERA:
-# Es ist normal, dass eine Webcam mehrere /dev/video* Nodes erstellt.
-# Grund ist der Video4Linux2 (V4L2) Treiber:
-# - video0: Meist der 'Video Capture Node' (Der echte Bild-Stream für mpv).
-# - video1: Meist der 'Metadata Node' (z.B. für Hardware-Autofokus oder Belichtung). 
-#           Hier schlägt mpv fehl, da es keine echten Bilddaten sind.
-# Wir listen bewusst alle auf, falls der Capture-Node abweicht.
 
 # Funktion zum Auflisten aller verfügbaren Videogeräte mit bereinigtem Namen
 list_video_devices() {
@@ -45,17 +56,6 @@ is_android_webcam() {
 rofi_menu() {
     rofi -dmenu -i -location 0 -theme-str 'window { width: 50%; } listview { lines: 5; }' "$@"
 }
-
-# Konfigurationsvariablen
-ANDROID_RESOLUTION="1920x1080"
-STANDARD_RESOLUTION="1080x1080"
-PIXELFORMAT="MJPG"
-
-# Reduzierte GPU-Optionen für mpv
-MPV_BASE_OPTIONS="--untimed --no-cache --no-osc --no-input-default-bindings --profile=low-latency --input-conf=/dev/null --title=webcam"
-STANDARD_FILTERS="crop=1080:1080,scale=1080:1080"
-ANDROID_FILTERS="rotate=PI/2,hue=s=0,crop=1080:1080,hflip,vflip"
-ANDROID_ROTATION=""
 
 # Geräte auflisten und Auswahl treffen
 selected=$(list_video_devices | rofi_menu -p "Wähle Webcam:")

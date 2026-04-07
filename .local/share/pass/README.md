@@ -88,32 +88,11 @@ Damit kannst du komplette Logins (User + PW + 2FA) automatisieren.
 
 ---
 
-## 📷 QR-Codes importieren
+## 📷 OTP QR-Codes zum Passwort hinzufügen
 
-Viele Dienste geben dir einen QR-Code statt eines Klartext-Secrets.  
-Mit `zbarimg` kannst du den QR-Code direkt auslesen und in `pass-otp` importieren.
+nutze das `otp` Skript oder das Binding `AltGr+D`
 
-### Installation (Arch Linux)
-```sh
-sudo pacman -S zbar
-```
-
-### QR-Code auslesen
-```sh
-zbarimg qrcode.png
-```
-
-Beispielausgabe:
-```
-QR-Code:otpauth://totp/GitHub:meinuser?secret=JBSWY3DPEHPK3PXP&issuer=GitHub
-```
-
-### Direkt in pass importieren
-```sh
-zbarimg qrcode.png | cut -d: -f2- | pass otp insert github/meinuser
-```
-
-→ liest den QR-Code aus und speichert ihn direkt in `pass`.
+kurzbeschreibung ergänzen
 
 ---
 
@@ -128,10 +107,11 @@ zbarimg qrcode.png | cut -d: -f2- | pass otp insert github/meinuser
 ---
 
 ## ✅ Kurzablauf
-1. Secret oder QR-Code vom Dienst holen  
-2. `otpauth://` URI bauen oder `pass otp insert` nutzen  
-3. In `pass`-Eintrag speichern  
-4. Mit `pass otp` oder `rofi-pass` Codes abrufen  
-5. Optional: Autotype konfigurieren für vollautomatisches Login  
+1. PGP-Schlüssel für pass erstellen
+2. Secret oder QR-Code vom Dienst holen
+3. `otpauth://` URI bauen oder `pass otp insert` nutzen
+4. In `pass`-Eintrag speichern
+5. Mit `pass otp` oder `rofi-pass` Codes abrufen
+6. Optional: Autotype konfigurieren für vollautomatisches Login
 
 ---

@@ -1,6 +1,7 @@
 #!/bin/bash
 ## 2025-06-15 SERGI
 ## Multi-Platform Terminal Chat Viewer
+# Obsolet. Maxi hat eine Serverlösung geschrieben
 ## Unterstützt: YouTube, Twitch
 ## TODO alles testen
 ## TODO loggingauswertung implementieren

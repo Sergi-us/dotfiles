@@ -307,4 +307,7 @@ config.bind('tsb', 'config-cycle content.blocking.enabled true false')
 # EXTRENE Konfigurationen und Tools
 # ================================================================================
 
-config.source('qutewal.py')
+import os
+qutewal_path = os.path.expanduser('~/.local/src/qutewal/qutewal.py')
+if os.path.exists(qutewal_path):
+    config.source(qutewal_path)

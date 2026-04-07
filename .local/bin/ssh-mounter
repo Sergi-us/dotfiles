@@ -1,0 +1,63 @@
+#!/bin/sh
+## 2026-04-07 SARBS
+# Mountet SSH-Server aus der ~/.ssh/config via sshfs
+# Abhängigkeiten: sshfs, rofi, awk
+
+set -e
+
+# Menü-Befehl definieren
+rofi_menu() {
+    rofi -dmenu -i -location 0 -theme-str 'window { width: 30%; } listview { lines: 10; }' "$@"
+}
+
+config_file="${HOME}/.ssh/config"
+if [ ! -f "$config_file" ]; then
+    notify-send -u critical "✗ Fehler" "~/.ssh/config nicht gefunden."
+    exit 1
+fi
+
+# Lese ~/.ssh/config aus, finde alle 'Host' Einträge
+# Ignoriere Wildcards (*, ?) und den speziellen 'aur' Eintrag
+hosts=$(awk '/^Host / {for (i=2; i<=NF; i++) if ($i !~ /[*?]/ && $i != "aur") print $i}' "$config_file" 2>/dev/null)
+
+if [ -z "$hosts" ]; then
+    notify-send "ℹ️ Info" "Keine geeigneten Hosts in ~/.ssh/config gefunden."
+    exit 0
+fi
+
+# Rofi Auswahl
+chosen="$(echo "$hosts" | awk '{print "[SSH] " $0}' | rofi_menu -p 'Server mounten:')"
+[ -z "$chosen" ] && exit 0
+
+# Hostnamen extrahieren
+hostname="${chosen#\[SSH\] }"
+
+# Zielverzeichnis festlegen (Im Server-Ordner)
+base_dir="${HOME}/Server"
+mount_dir="${base_dir}/${hostname}"
+
+# Zielverzeichnisse erstellen falls nicht existent
+if [ ! -d "$mount_dir" ]; then
+    mkdir -p "$mount_dir"
+fi
+
+# Prüfen, ob bereits gemountet
+if findmnt -M "$mount_dir" >/dev/null 2>&1; then
+    notify-send "ℹ️ Info" "$hostname ist bereits in $mount_dir gemountet."
+    exit 0
+fi
+
+# Mounten via sshfs (Ziel ist Root-Verzeichnis des Servers "/")
+notify-send "Verbinde..." "Mounting $hostname nach $mount_dir"
+
+# Optionen:
+# reconnect: Automatisch neu verbinden bei Abbrüchen
+# ServerAliveInterval/CountMax: Hält die Verbindung aktiv und erkennt Timeouts
+if sshfs "${hostname}:/" "$mount_dir" -o reconnect,ServerAliveInterval=15,ServerAliveCountMax=3; then
+    notify-send "✔ Server gemountet" "$hostname ist nun unter $mount_dir verfügbar."
+else
+    notify-send -u critical "✗ Fehler" "Konnte $hostname nicht mounten."
+    # Leeres Verzeichnis aufräumen bei Fehler
+    rmdir "$mount_dir" 2>/dev/null || true
+    exit 1
+fi

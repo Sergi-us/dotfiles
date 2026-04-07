@@ -1,0 +1,50 @@
+#!/bin/sh
+## 2026-04-07 SARBS
+# Unmountet SSH-Server, die via sshfs eingehängt wurden
+# Abhängigkeiten: sshfs, rofi, findmnt
+
+set -e
+
+# Menü-Befehl definieren
+rofi_menu() {
+    rofi -dmenu -i -location 0 -theme-str 'window { width: 50%; } listview { lines: 10; }' "$@"
+}
+
+# Finde alle aktiven sshfs Mounts
+# findmnt gibt TARGET und SOURCE aus (z.B. /home/sergi/Server/rpi rpi:/)
+mounts=$(findmnt -t fuse.sshfs -n -o TARGET,SOURCE 2>/dev/null || true)
+
+if [ -z "$mounts" ]; then
+    notify-send "ℹ️ Info" "Keine aktiven SSH-Mounts gefunden."
+    exit 0
+fi
+
+# Formatieren für Rofi
+formatted_mounts=$(echo "$mounts" | while read -r target source; do
+    # Target Pfad etwas kürzen (HOME durch ~ ersetzen)
+    short_target=$(echo "$target" | sed "s|^${HOME}|~|")
+    printf "[SSH] %s (%s)\n" "$short_target" "$source"
+done)
+
+chosen=$(echo "$formatted_mounts" | rofi_menu -p 'Welchen Server aushängen?')
+[ -z "$chosen" ] && exit 0
+
+# Target extrahieren
+target_short="${chosen#\[SSH\] }"
+target_short="${target_short%% (*}"
+
+# ~ wieder zu HOME expandieren
+target=$(echo "$target_short" | sed "s|^~|${HOME}|")
+
+# Aushängen versuchen
+notify-send "Trennen..." "Hänge $target aus..."
+
+# fusermount3 für FUSE-Mounts bevorzugt (verursacht weniger Rechteprobleme als umount)
+if fusermount3 -u "$target" 2>/dev/null || umount "$target" 2>/dev/null; then
+    notify-send "✔ Server ausgehängt" "$target wurde erfolgreich getrennt."
+    # Wenn Verzeichnis nun leer ist, räumen wir es auf (verhindert Datenmüll)
+    rmdir "$target" 2>/dev/null || true
+else
+    notify-send -u critical "✗ Fehler" "Konnte $target nicht aushängen. Möglicherweise noch von lf oder Terminal belegt."
+    exit 1
+fi
