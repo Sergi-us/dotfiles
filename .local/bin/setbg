@@ -30,7 +30,31 @@ esac
 
 # Falls hellwal installiert ist, benutze es.
 if command -v hellwal >/dev/null 2>&1 ; then
-	hellwal -i "$(readlink -f $bgloc)" --dark --check-contrast -o ~/.cache/wal/ -s "${XDG_CONFIG_HOME:-$HOME/.config}/hellwal/postrun" -q
+	hellwal_opts="--dark"
+
+	if command -v magick >/dev/null 2>&1 ; then
+		# Auflösung für die Analyse: Je kleiner, desto schneller. Je größer, desto genauer.
+		sample_size="300x300"
+		mean=$(magick "$(readlink -f "$bgloc")" -resize "$sample_size" -format "%[fx:mean]" info: 2>/dev/null)
+	elif command -v convert >/dev/null 2>&1 ; then
+		sample_size="300x300"
+		mean=$(convert "$(readlink -f "$bgloc")" -resize "$sample_size" -format "%[fx:mean]" info: 2>/dev/null)
+	fi
+
+	if [ -n "$mean" ] && command -v bc >/dev/null 2>&1 ; then
+		# Dynamische Kontrastanpassung bei dunklen Bildern
+		if [ "$(echo "$mean < 0.35" | bc -l)" -eq 1 ]; then
+			hellwal_opts="$hellwal_opts --check-contrast -b 0.9"
+		elif [ "$(echo "$mean < 0.55" | bc -l)" -eq 1 ]; then
+			hellwal_opts="$hellwal_opts --check-contrast -b 0.7"
+		else
+			hellwal_opts="$hellwal_opts --check-contrast"
+		fi
+	else
+		hellwal_opts="$hellwal_opts --check-contrast"
+	fi
+
+	hellwal -i "$(readlink -f "$bgloc")" $hellwal_opts -o ~/.cache/wal/ -s "${XDG_CONFIG_HOME:-$HOME/.config}/hellwal/postrun" -q
 # Weiche auf pywal aus, falls hellwal nicht verfügbar ist
 elif command -v wal >/dev/null 2>&1 ; then
 	wal -n -i "$(readlink -f $bgloc)" -o "${XDG_CONFIG_HOME:-$HOME/.config}/wal/postrun" >/dev/null 2>&1
