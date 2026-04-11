@@ -13,16 +13,17 @@ Terminal=false
 Icon=chromium
 Type=Application
 Categories=Network;WebBrowser;
-MimeType=application/rdf+xml;application/xhtml+xml;application/xhtml_xml;text/html;text/xml;x-scheme-handler/http;x-scheme-handler/https;
+MimeType=application/xhtml+xml;text/html;x-scheme-handler/http;x-scheme-handler/https;
 Actions=new-window;new-private-window;
 # Gnome and KDE 3 uses Comment.
+Name[de]=󰨡 Chromium
 
 [Desktop Action new-window]
-Name=New Window
-Name[de]=Neues Fenster
-Exec=/usr/bin/chromium
+Name=󰨡 New Window
+Name[de]=󰨡 Neues Fenster
+Exec=chromium
 
 [Desktop Action new-private-window]
-Name=New Incognito Window
-Name[de]=Neues Inkognito-Fenster
-Exec=/usr/bin/chromium --incognito
+Name=󰨡 New Incognito Window
+Name[de]=󰨡 Neues Inkognito-Fenster
+Exec=chromium --incognito

@@ -1,4 +1,5 @@
 [Desktop Entry]
 Type=Application
-Name=Browser
+Name=󰨡 Browser
 Exec=qutebrowser %u
+Name[de]=󰨡 Browser

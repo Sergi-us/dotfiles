@@ -1,6 +1,6 @@
 [Desktop Entry]
 Type=Application
-Name=mpv Media Player
+Name=󰨡 mpv Media Player
 GenericName=󰨡 Multimedia player
 Comment=Play movies and songs
 Comment[de]=Filme und Musik abspielen
@@ -13,3 +13,5 @@ MimeType=application/ogg;application/x-ogg;application/mxf;application/sdp;appli
 X-KDE-Protocols=appending,file,ftp,hls,http,https,mms,mpv,rtmp,rtmps,rtmpt,rtmpts,rtp,rtsp,rtsps,sftp,srt,srtp,webdav,webdavs
 StartupWMClass=mpv
 Keywords=mpv;media;player;video;audio;tv;
+Name[de]=󰨡 mpv Media Player
+GenericName[de]=󰨡 Multimedia player

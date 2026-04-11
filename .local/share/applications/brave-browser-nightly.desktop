@@ -14,15 +14,16 @@ Terminal=false
 Icon=brave-browser-nightly
 Type=Application
 Categories=Network;WebBrowser;
-MimeType=application/pdf;application/rdf+xml;application/rss+xml;application/xhtml+xml;application/xhtml_xml;application/xml;image/gif;image/jpeg;image/png;image/webp;text/html;text/xml;x-scheme-handler/http;x-scheme-handler/https;
+MimeType=application/xhtml+xml;text/html;x-scheme-handler/http;x-scheme-handler/https;
 Actions=new-window;new-private-window;
+Name[de]=󰨡 Brave Web Browser (nightly)
 
 [Desktop Action new-window]
-Name=New Window
-Name[de]=Neues Fenster
+Name=󰨡 New Window
+Name[de]=󰨡 Neues Fenster
 Exec=brave-nightly
 
 [Desktop Action new-private-window]
-Name=New Incognito Window
-Name[de]=Neues Inkognito-Fenster
+Name=󰨡 New Incognito Window
+Name[de]=󰨡 Neues Inkognito-Fenster
 Exec=brave-nightly --incognito

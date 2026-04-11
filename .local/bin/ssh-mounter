@@ -26,8 +26,15 @@ if [ -z "$hosts" ]; then
 fi
 
 # Rofi Auswahl
-chosen="$(echo "$hosts" | awk '{print "[SSH] " $0}' | rofi_menu -p 'Server mounten:')"
+chosen="$( (echo "$hosts" | awk '{print "[SSH] " $0}'; echo "[Edit] ssh bearbeiten") | rofi_menu -p 'Server mounten:' )"
+
 [ -z "$chosen" ] && exit 0
+
+# .ssh/config direkt mit dem Editor bearbeiten
+if [ "$chosen" = "[Edit] ssh bearbeiten" ]; then
+    setsid -f "$TERMINAL" -e "$EDITOR" "$config_file" >/dev/null 2>&1
+    exit 0
+fi
 
 # Hostnamen extrahieren
 hostname="${chosen#\[SSH\] }"

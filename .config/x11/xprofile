@@ -63,16 +63,34 @@ export QT_SCALE_FACTOR_ROUNDING_POLICY=PassThrough      # Bestimmt, wie nicht-ga
 # export QT_ENABLE_HIGHDPI_SCALING=1                    # Option ist - Qt6: veraltet, Qt5: default seit 5.14
 # export QT_AUTO_SCREEN_SCALE_FACTOR=1                  # Überschreibt QT_SCALE_FACTOR (kommt vieleicht in frage als alternative zu chromium wrapper skripten )
 
+# ===   xset Anfängerkurs (Auskommentierte Beispiele)     ===
+# X11 Einstellungen für Bildschirm, Stromsparen und Tastatur
 # === Bildschirm (kann mit MOD+Löschen beinflusst werden) ===
-xset s off          # Bildschirmschoner deaktivieren
-xset -dpms          # Energiesparmodus deaktivieren
-xset s noblank      # Kein automatisches Bildschirm-Blanking
-setbg &             # Setzt den Hintergrund mit dem `setbg` Skript
+
+xset s noblank                  # Kein automatisches Bildschirm-Blanking
+
+# DPMS (Display Power Management Signaling - Monitor abschalten/Stromsparen)
+xset -dpms                      # Energiesparmodus deaktivieren
+# xset +dpms                    # Aktiviert Stromsparen (Standard)
+# xset dpms 600 900 1200        # Setzt Timer (in Sekunden): 10min Standby, 15min Suspend, 20min komplett aus
+# xset dpms force off           # Schaltet den Monitor sofort aus (z.B. nützlich in Skripten wie sysact)
+
+# 2. Screensaver ('s' - Bildschirmschoner / Bildschirm schwarz machen)
+xset s off                      # Bildschirmschoner deaktivieren
+# xset s on                     # Bildschirmschoner aktivieren
+# xset s 300                    # Bildschirmschoner nach 5 Minuten (300 Sekunden) Inaktivität aktivieren
+
+# Tastatur Auto-Repeat ('r' - Wie schnell Tasten wiederholen, wenn gedrückt gehalten)
+xset r rate 300 50              # Verzögerung 300ms, dann 50 Wiederholungen pro Sekunde (sehr schnell, gut für (N)Vim)
+
+# Status abfragen ('q' - Query)
+# xset q                        # Zeigt im Terminal alle aktuell aktiven xset-Werte an
+
+setbg &                         # Setzt den Hintergrund mit dem `setbg` Skript
 
 # === Verhalten von Eingabegeräten ===
-xbanish &           # Mauszeiger beim Tippen ausblenden
+xbanish &                       # Mauszeiger beim Tippen ausblenden
 # xinput set-prop 10 "libinput Natural Scrolling Enabled" 1     # Aktiviert Natural Scrolling (Mac-like)
-
 
 ## Lädt Xresources Farben/Einstellungen beim Start
 ## TODO Trennen von Skalierung und Farben

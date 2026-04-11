@@ -18,6 +18,7 @@ unsetopt PROMPT_SP 2>/dev/null
 # ===                       Standardprogramme                               ===
 #  ===========================================================================
 export EDITOR="nvim"
+export NVIM_NO_BG_WAIT=1
 export TERMINAL="st"
 export TERMINAL_PROG="st"
 export BROWSER="qutebrowser"

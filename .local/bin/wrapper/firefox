@@ -3,7 +3,7 @@
 # Firefox Wrapper - liest SCALE_FACTOR aus State-Datei
 
 # Manuelle Skalierung (überschreibt Auto-Erkennung)
-# SCALE_FACTOR=1.5
+# SCALE_FACTOR=1.0
 
 # Lese berechneten Skalierungsfaktor aus State-Datei (geschrieben von .xprofile)
 state_file="${XDG_STATE_HOME:-$HOME/.local/state}/xsession/scale"

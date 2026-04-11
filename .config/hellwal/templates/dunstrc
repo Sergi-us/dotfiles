@@ -1,17 +1,17 @@
 [global]
     monitor = 0
     follow = keyboard
-    width = 350
+    width = 300
     height = (0, 300)
     offset = (15, 25)
     notification_limit = 20
-    font = JetBrains Mono Nerd Font 8
-    line_height = 4
-    frame_width = 2
+    font = JetBrains Mono Nerd Font ExtraLight 8
+    line_height = 2
+    frame_width = 1
     corner_radius = 8
     separator_height = 1
     separator_color = frame
-    padding = 8
+    padding = 2
     horizontal_padding = 12
     text_icon_padding = 15
     transparency = 0
