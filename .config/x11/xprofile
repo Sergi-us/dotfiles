@@ -102,12 +102,40 @@ export GPG_TTY=$(tty)
 export SSH_AUTH_SOCK=$(gpgconf --list-dirs agent-ssh-socket)
 gpg-connect-agent updatestartuptty /bye >/dev/null
 
-# === Liste der automatisch zu startenden Programme ===
-autostart="mpd dunst unclutter pipewire remapd picom -d"
+# === Init-System Erkennung und Service-Start ===
+# Erkennt, welches Init-System verwendet wird, um Dienste bedarfsgerecht
+# zu starten (verhindert Konflikte mit Systemd User-Services).
+if command -v systemctl >/dev/null 2>&1 && systemctl --user is-system-running >/dev/null 2>&1; then
+	INIT_SYSTEM="systemd"
+elif [ -d /run/openrc ]; then
+	INIT_SYSTEM="openrc"
+elif [ -d /run/dinit ] || command -v dinitctl >/dev/null 2>&1; then
+	INIT_SYSTEM="dinit"
+else
+	INIT_SYSTEM="unknown"
+fi
+export INIT_SYSTEM
 
-for program in $autostart; do
-	pidof -sx "$program" || "$program" &
-done >/dev/null 2>&1
+# Bei Systemd verlassen wir uns auf die definierten Systemd-User-Targets.
+# Bei OpenRC/Dinit starten wir die fehlenden Dienste manuell als Fallback.
+if [ "$INIT_SYSTEM" != "systemd" ]; then
+	# Dienste, die von Systemd verwaltet werden und hier nur als Fallback laufen:
+	autostart_services="mpd dunst pipewire wireplumber"
+
+	for svc in $autostart_services; do
+		pidof -sx "$svc" >/dev/null 2>&1 || "$svc" >/dev/null 2>&1 &
+	done
+fi
+
+# Dienste, die *immer* von X11 gestartet werden sollen (unabhängig vom Init-System,
+# z.B. weil sie keine eigenen Systemd-Services haben):
+always_start="unclutter remapd"
+for svc in $always_start; do
+	pidof -sx "$svc" >/dev/null 2>&1 || "$svc" >/dev/null 2>&1 &
+done
+
+# picom als Hintergrunddienst starten (-b daemonize)
+pidof -sx picom >/dev/null 2>&1 || picom -b
 
 # Stellt sicher, dass xrdb fertig ist, bevor DWM gestartet wird
 [ -n "$xrdbpid" ] && wait "$xrdbpid"

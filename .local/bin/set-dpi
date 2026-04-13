@@ -1,13 +1,13 @@
 #!/bin/sh
 ## 2026-02-16   SARBS
-# Zentrale DPI/Skalierungs-Konfiguration fuer X11-Sitzungen.
+# Zentrale DPI/Skalierungs-Konfiguration für X11-Sitzungen.
 # Berechnet Hardware-DPI, wendet DISPLAY_ADJUST an, setzt State-Dateien
 # und konfiguriert xrandr + Umgebungsvariablen.
 #
 # Aufruf:
 #   set-dpi           Interaktiver Modus - zeigt Werte, fragt vor Anwendung
-#   set-dpi -s        Start/Silent - fuer xprofile (setzt alles ohne Ausgabe)
-#   set-dpi -a        Apply - wendet sofort an ohne Rueckfrage (fuer Skripte)
+#   set-dpi -s        Start/Silent - für xprofile (setzt alles ohne Ausgabe)
+#   set-dpi -a        Apply - wendet sofort an ohne Rueckfrage (für Skripte)
 #   set-dpi -d        Dry-Run - zeigt nur berechnete Werte, aendert nichts
 #   set-dpi -j N      Justierung auf N% setzen und anwenden (persistent)
 #
@@ -15,7 +15,7 @@
 #   FORCE_DPI=192      Ueberspringt Auto-Erkennung + Adjust komplett
 #   FORCE_SCALE=1.25   Ueberspringt Scale-Ableitung
 
-# === Default fuer DISPLAY_ADJUST ===
+# === Default für DISPLAY_ADJUST ===
 # Greift nur wenn State-Datei noch nicht existiert (frisches System).
 # Danach bestimmt ausschliesslich set-dpi -j den Wert.
 DISPLAY_ADJUST_DEFAULT=0
@@ -45,7 +45,7 @@ case "$1" in
 	-h|--help)
 		echo "Verwendung: set-dpi [-s|-a|-d|-j N|-h]"
 		echo "  (ohne)   Interaktiver Modus"
-		echo "  -s       Start/Silent (fuer xprofile)"
+		echo "  -s       Start/Silent (für xprofile)"
 		echo "  -a       Apply (sofort anwenden)"
 		echo "  -d       Dry-Run (nur anzeigen)"
 		echo "  -j N     Justierung auf N% setzen und anwenden"
@@ -182,7 +182,7 @@ apply_dpi() {
 	rofi_conf="${XDG_CONFIG_HOME:-$HOME/.config}/rofi/config.rasi"
 	[ -f "$rofi_conf" ] && sed -i "s/dpi: [0-9]*/dpi: $MASTER_DPI/" "$rofi_conf"
 
-	# Umgebungsvariablen exportieren (fuer Kindprozesse)
+	# Umgebungsvariablen exportieren (für Kindprozesse)
 	export XCURSOR_SIZE
 	export MASTER_DPI
 	export SCALE_FACTOR
@@ -191,7 +191,7 @@ apply_dpi() {
 	export QT_SCALE_FACTOR=$SCALE_FACTOR
 }
 
-# === Display-Info fuer Ausgabe sammeln ===
+# === Display-Info für Ausgabe sammeln ===
 get_display_info() {
 	_primary=$(xrandr 2>/dev/null | grep " connected primary" | awk '{print $1}')
 	[ -z "$_primary" ] && _primary=$(xrandr 2>/dev/null | grep " connected" | head -n 1 | awk '{print $1}')
