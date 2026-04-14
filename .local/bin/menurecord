@@ -492,6 +492,85 @@ screencast_reaction() {
     updateicon "$ICON_REACTION"
 }
 
+# --- Stream + Aufnahme (YouTube/Twitch) ---
+stream_screencast() {
+    local mic sys_audio
+    mic=$(detect_microphone) || return 1
+    sys_audio=$(detect_system_audio) || return 1
+
+    local resolution
+    resolution=$(get_primary_monitor_resolution)
+    local out="$VIDEO_DIR/stream-$(date '+%y%m%d-%H%M-%S').$VIDEO_FORMAT"
+
+    # Sicherstellen, dass System-Audio nicht stumm ist
+    pactl set-source-mute "$sys_audio" 0 2>/dev/null
+
+    check_hw_encoder
+
+    # RTMP braucht H.264 und AAC
+    if [ "$VIDEO_CODEC" = "hevc_vaapi" ]; then
+        VIDEO_CODEC="h264_vaapi"
+    fi
+    local stream_audio_codec="aac"
+
+    # Stream Keys
+    local yt_key tw_key
+    yt_key="$(cat ~/.local/share/yt/stream-key 2>/dev/null)"
+    tw_key="$(cat ~/.local/share/twitch/stream-key 2>/dev/null)"
+
+    if [ -z "$yt_key" ] && [ -z "$tw_key" ]; then
+        notify "Keine Stream-Keys gefunden (YT/Twitch)!"
+        return 1
+    fi
+
+    local tee_outputs=""
+    local rtmp_opts="select='v\:0\,a\:0':f=flv:onfail=ignore"
+
+    # matroska (mkv) als format für lokale Aufnahme
+    local rec_opts="select='v\:0\,a\:1\,a\:2':f=matroska"
+
+    if [ -n "$yt_key" ]; then
+        tee_outputs="${tee_outputs}[${rtmp_opts}]rtmp://x.rtmp.youtube.com/live2/${yt_key}|"
+    fi
+    if [ -n "$tw_key" ]; then
+        tee_outputs="${tee_outputs}[${rtmp_opts}]rtmp://live.twitch.tv/live/${tw_key}|"
+    fi
+
+    tee_outputs="${tee_outputs}[${rec_opts}]${out}"
+
+    # Filter-Complex: Audio mixen (Spur 1) + separate Mikro/System-Spuren (Spur 2 & 3)
+    local filter_complex map_params
+    if [ -n "$VF_UPLOAD" ]; then
+        filter_complex="-filter_complex [1:a]volume=1.0[mic];[2:a]volume=0.8[sys];[mic][sys]amix=inputs=2:duration=longest[aout];[0:v]${VF_UPLOAD}[vout]"
+        map_params="-map [vout] -map [aout] -map 1:a -map 2:a"
+    else
+        filter_complex="-filter_complex [1:a]volume=1.0[mic];[2:a]volume=0.8[sys];[mic][sys]amix=inputs=2:duration=longest[aout]"
+        map_params="-map 0:v -map [aout] -map 1:a -map 2:a"
+    fi
+
+    nice -n -10 ffmpeg -y \
+        $HW_ACCEL_INIT \
+        -itsoffset -0.225 \
+        -thread_queue_size "$THREAD_QUEUE" \
+        -f x11grab -framerate "$FRAMERATE" -video_size "$resolution" -i "$DISPLAY" \
+        -thread_queue_size "$THREAD_QUEUE" \
+        -f pulse -sample_rate "$AUDIO_SAMPLERATE" -channels 2 -i "$mic" \
+        -thread_queue_size "$THREAD_QUEUE" \
+        -f pulse -sample_rate "$AUDIO_SAMPLERATE" -channels 2 -i "$sys_audio" \
+        $filter_complex \
+        $map_params \
+        -c:v "$VIDEO_CODEC" $ENCODE_PARAMS \
+        -flags +global_header \
+        -c:a:0 "$stream_audio_codec" -ar "$AUDIO_SAMPLERATE" -b:a:0 128k \
+        -c:a:1 "$stream_audio_codec" -ar "$AUDIO_SAMPLERATE" -b:a:1 256k \
+        -c:a:2 "$stream_audio_codec" -ar "$AUDIO_SAMPLERATE" -b:a:2 256k \
+        -f tee "$tee_outputs" &
+
+    echo $! > /tmp/recordingpid
+    notify "Stream gestartet (YT/Twitch + Aufnahme)"
+    updateicon "$ICON_SCREENCAST"
+}
+
 # --- Reine Audioaufnahme (Mikrofon) ---
 audio() {
     local mic
@@ -574,13 +653,14 @@ webcam() {
 
 askrecording() {
     local choice
-    choice="$(printf "Bildschirm + Systemton\nBildschirm + Mikrofon\nMonitor wählen (ohne Ton)\nReaktion (Mikro + Systemton)\nAudioaufnahme\nWebcam" \
+    choice="$(printf "Bildschirm + Systemton\nBildschirm + Mikrofon\nMonitor wählen (ohne Ton)\nReaktion (Mikro + Systemton)\nStream + Aufnahme (YT/Twitch)\nAudioaufnahme\nWebcam" \
         | rofi -dmenu -i -p "Aufnahme starten")"
     case "$choice" in
         "Bildschirm + Systemton")        screencast_system ;;
         "Bildschirm + Mikrofon")         screencast_mic ;;
         "Monitor wählen (ohne Ton)")     screencast_monitor ;;
         "Reaktion (Mikro + Systemton)")  screencast_reaction ;;
+        "Stream + Aufnahme (YT/Twitch)") stream_screencast ;;
         Audioaufnahme)                   audio ;;
         Webcam)                          webcam ;;
         *) notify "Keine Auswahl getroffen" ;;
@@ -622,6 +702,7 @@ case "$1" in
     mic)      screencast_mic ;;
     monitor)  screencast_monitor ;;
     reaction) screencast_reaction ;;
+    stream)   stream_screencast ;;
     audio)    audio ;;
     webcam)   webcam ;;
     kill)     killrecording ;;
