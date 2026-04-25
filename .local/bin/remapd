@@ -1,5 +1,6 @@
 #!/bin/bash
 ## 2025-01-09 SARBS
+# Abhängigkeiten: remaps, udevadm
 
 # Rerun the remaps script whenever a new input device is added.
 

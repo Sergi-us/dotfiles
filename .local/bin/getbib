@@ -1,5 +1,6 @@
 #!/bin/sh
 ## 2025-01-09 SARBS
+# Abhängigkeiten: curl, pdfinfo, pdftotext, sed
 # ist von Luke übrig und hat irgentwas mit sienen Bibeltexten zu tun...
 [ -z "$1" ] && echo "Gib entweder eine PDF-Datei oder einen DOI als Argument an." && exit
 

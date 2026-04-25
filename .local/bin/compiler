@@ -1,7 +1,21 @@
 #!/bin/sh
-## 2025-01-08 SARBS
-# Dieses Skript kompiliert oder führt eine abschließende Operation an einem Dokument durch, lasse dieses Skript über vim ausführen. Kompiliert .tex, groff (.mom, .ms), .rmd, .md, .org. Öffnet .sent Dateien als sent-Präsentationen. Führt Skripte basierend auf der Dateierweiterung oder dem Shebang aus. Beachte, dass .tex-Dateien, die du mit XeLaTeX kompilieren möchtest, die Zeichenkette "xelatex" irgendwo in einem Kommentar/Befehl in den ersten 5 Zeilen enthalten sollten.
-# TODO Funktion überprüfen. Die Logik ist interessant und lässt sich auf viele weitere Dateiformate anwenden. Ich denke an die typischen Markdown zu html konwerter...
+## 2025-01-08 SARBS extra
+
+# ABHÄNGIGKEITEN
+# GNU:  head
+# rest: cargo, cc, cpp, getcomproot, go, groff, java, pandoc, preconv, python, refer, sed, setsid, sudo, tex
+
+# Dieses Skript kompiliert oder führt eine abschließende Operation an einem
+# Dokument durch, lasse dieses Skript über vim ausführen. Kompiliert .tex, groff
+# (.mom, .ms), .rmd, .md, .org. Öffnet .sent Dateien als sent-Präsentationen.
+# Führt Skripte basierend auf der Dateierweiterung oder dem Shebang aus.
+# Beachte, dass .tex-Dateien, die du mit XeLaTeX kompilieren möchtest, die
+# Zeichenkette "xelatex" irgendwo in einem Kommentar/Befehl in den ersten 5
+# Zeilen enthalten sollten.
+
+# TODO Funktion überprüfen. Die Logik ist interessant und lässt sich auf viele
+# weitere Dateiformate anwenden. Ich denke an die typischen Markdown zu html
+# konwerter...
 
 file="${1}"
 ext="${file##*.}"

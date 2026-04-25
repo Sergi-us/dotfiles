@@ -1,5 +1,6 @@
 #!/bin/bash
 ## 2025-03-07 SARBS
+# Abhängigkeiten: GNU Coreutils (cat, chmod, cp, head, mkdir, mktemp, mv, sleep), curl, jq
 # youtube_stats - Holt YouTube-Kanalstatistiken und alle Videostatistiken via
 # Shell-Skript und curl und js
 # Cronjob erstellen:

@@ -1,5 +1,6 @@
 #!/bin/sh
 ## 2025-01-09 SARBS
+# Abhängigkeiten: mpc, pidof
 
 # This loop will update the mpd statusbar module whenever a command changes the music player's status. mpd must be running on X's start for this to work.
 

@@ -1,5 +1,6 @@
 #!/bin/bash
 ## 2025-02-26 SARBS
+# Abhängigkeiten: GNU Coreutils (basename, cat), file
 # Dieses Skript zeigt per Argument eine Datei an oder
 # listet interaktiv alle Dateien im Verzeichnis auf.
 # Wird die Auswahl abgebrochen (STRG+C), so wechselt es in das Verzeichnis.

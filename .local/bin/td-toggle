@@ -1,5 +1,6 @@
 #!/bin/sh
 ## 2025-02-10 SARBS
+# Abhängigkeiten: GNU Coreutils (sleep), killall, notify-send, pkill, rofi
 
 # WOFÜR IST DIESES SKRIPT?
 # Dieses Skript ist ein An/Aus-Schalter (Toggle) für 'transmission-daemon'.

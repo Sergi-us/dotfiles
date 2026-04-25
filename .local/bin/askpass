@@ -1,0 +1,7 @@
+#!/bin/sh
+## 2025-02-10 SARBS core
+# Abhängigkeiten: rofi
+# Dieses Skript ist die SUDO_ASKPASS-Variable, was bedeutet, dass es als
+# Passwortabfrage verwendet wird, wenn nötig (z.B. von sudo -A).
+
+rofi -dmenu -password -p "$1" -theme-str 'window { width: 50%; padding: 2%; } mainbox { children: [prompt, entry]; } prompt { margin: 0 0 1% 0; } entry { expand: true; } listview { enabled: false; }'

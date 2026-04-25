@@ -1,5 +1,6 @@
 #!/bin/sh
 ## 2025-01-09 SARBS
+# Abhängigkeiten: GNU Coreutils (basename, wc), pgrep
 # TODO muss gefixt werden
 # TODO prüfen ob überhaupt notwendig seit der Umstellung auf newsraft !
 

@@ -1,5 +1,6 @@
 #!/bin/sh
 ## 2025-01-09 SARBS
+# Abhängigkeiten: GNU Coreutils (readlink), sed
 
 # Ein Hilfsskript für LaTeX/groff-Dateien, das von `compiler` und `opout` verwendet wird. Der Benutzer kann die Hauptdatei eines größeren Projekts als Kommentar hinzufügen:
 # % root = mainfile.tex

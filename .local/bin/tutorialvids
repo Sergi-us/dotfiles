@@ -1,5 +1,6 @@
 #!/bin/sh
 ## 2025-02-10 SARBS
+# Abhängigkeiten: awk, file, mpv, notify-send, rofi
 # This gives the user a list of videos they can select and watch without a
 # browser. If you want to check a tutorial video, it makes it easy. I'll
 # add/remove videos from this list as I go on.

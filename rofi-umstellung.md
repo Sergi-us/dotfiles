@@ -23,7 +23,7 @@ und `-l` (Anzahl der Zeilen) kompatibel sind.
 
  `displayselect` (Monitor-Setup)
  `mounter` & `unmounter` (Laufwerke ein/aushängen)
- `dmenupass` (Passwortabfrage)
+ `askpass` (ersetzt `dmenupass` - Passwortabfrage)
  `clipctl` & `dmenucliphist` (Zwischenablage)
  `bookmarkthis` (Lesezeichen-Verwaltung)
  `st-urlhandler` Liest den Terminal und sucht nach links kann in die zwischenablage kopieren oder direkt öffnen
@@ -40,14 +40,15 @@ und `-l` (Anzahl der Zeilen) kompatibel sind.
  `killer` (Prozesse beenden)
  `statusbar/sb-kbselect` & `statusbar/sb-doppler` (Statusleisten-Module)
  `sysact` (Power-Menü)
-* `dmenuhandler`, URL/Datei-Öffner
+ `linkhandler` (ersetzt `dmenuhandler`, URL/Datei-Öffner)
+* `dmenuhandler` (URL/Datei-Öffner - Altes Skript)
  `mountcifs` (ersetzt `dmenumountcifs` - Netzwerklaufwerke)
 * `dmenumountcifs` (Netzwerklaufwerke - Altes Skript)
 
 ## 2. Konfigurationsdateien (`.config/` und andere)
 Hier sind Tastenkombinationen, Regeln für Fenster oder Auto-Kommandos definiert, die an `dmenu` gebunden sind.
 
-* `.config/shell/profile` (Definiert `dmenupass` als `SUDO_ASKPASS`)
+ `.config/shell/profile` (Definiert `askpass` als `SUDO_ASKPASS`)
 * `.config/picom/picom.conf` & `.config/picom/picom.conf.bac` (Fensterregeln, z.B. Transparenz/Schatten für `class_g = 'dmenu'`. Rofi hat eine eigene Klasse, z.B. `Rofi`)
 * `.config/nsxiv/exec/key-handler` & `.config/sxiv/exec/key-handler` (Bildbetrachter-Aktionen, die ein Menü aufrufen)
 * `.config/nvim/lua/config/autocmds.lua` (Auto-Kompilierung für den dmenu-Source-Code beim Speichern)

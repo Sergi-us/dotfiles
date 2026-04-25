@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# Abhängigkeiten: GNU Coreutils (basename, cat, mkdir, touch, wc), find, fzf, git
 # dotfiles-sarbs - Dotfiles Management Tool
 # 2025-01-09 SARBS DEV V9 - KISS Edition mit fzf + Preview
 # Verwaltet öffentliche und private Dotfiles mit Hardlinks

@@ -1,5 +1,6 @@
 #!/bin/sh
 ## 2025-01-09 SARBS
+# Abhängigkeiten: GNU Coreutils (basename, dirname, readlink, rm), file, find, synctex
 
 # Clears the build files of a LaTeX/XeLaTeX build.
 # I have vim run this file whenever I exit a .tex file.

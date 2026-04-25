@@ -1,5 +1,6 @@
 #!/bin/sh
 ## 2025-03-10 SARBS
+# Abhängigkeiten: GNU Coreutils (head), awk, notify-send, ps, sensors, setsid
 
 # Temperatur-Schwellenwert
 TEMP_THRESHOLD=99

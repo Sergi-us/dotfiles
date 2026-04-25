@@ -1,5 +1,6 @@
 #!/bin/sh
 ## 2025-02-10 SARBS
+# Abhängigkeiten: GNU Coreutils (mktemp, sort), find, info, notify-send, pass, rofi, sed, sudo, zbarimg
 # Ein Skript zum Scannen und Hinzufügen von Einmalpasswörtern (OTP / 2FA) zu pass.
 # (Die Code-Generierung/Kopieren wird über rofi-pass gehandhabt)
 # 

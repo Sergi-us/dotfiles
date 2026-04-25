@@ -1,5 +1,6 @@
 #!/bin/sh
 ## 2025-01-09 SARBS
+# Abhängigkeiten: GNU Coreutils (cp, date, dirname, mktemp), ffmpeg, file, tag
 # Obsolet, ich mache das im Player
 
 # Funktion zur Anzeige der Nutzungsanweisung und Beendigung des Skripts

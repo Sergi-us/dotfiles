@@ -1,7 +1,9 @@
 #!/bin/sh
 ## 2025-10-10   SARBS
+# Abhängigkeiten: GNU Coreutils (basename, dirname, head, mkdir, sleep), count, curl, jq, mpc, notify-send, sed
 # ~/.local/bin/lyrics-fetch-batch
 # Lädt Lyrics für mehrere Songs mit Rate-Limiting
+# ist in dem Musikplayer 'rmpc' eingebunden
 
 lyrics_dir="$HOME/.local/share/lyrics"
 count=0

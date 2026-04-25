@@ -1,5 +1,6 @@
 #!/bin/bash
 ## 2025-01-08 SARBS
+# Abhängigkeiten: GNU Coreutils (rm), ffmpeg, file
 
 # Pfad zum Verzeichnis mit den AVI-Dateien
 movie_dir=$(pwd)

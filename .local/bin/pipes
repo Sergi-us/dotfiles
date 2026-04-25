@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 ## 2025-01-09 SARBS
+# Abhängigkeiten: GNU Coreutils (basename, cat, stty), tput
 # Soll als Bildschirmschohner umfunktioniert werden...
 
 

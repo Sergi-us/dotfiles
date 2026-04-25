@@ -1,5 +1,6 @@
 #!/bin/bash
 ## 2025-01-09 SARBS
+# Abhängigkeiten: GNU Coreutils (cut, rm, tr), pacman
 # Das Skript prüft die 'progs.csv' von GitHub ob alle Pakete auf dem lokalen System installiert sind und gibt auch alle installierten Pakete aus.
 # Prüft keine aus Git instalierten tools
 

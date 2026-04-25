@@ -1,5 +1,6 @@
 #!/bin/sh
 ## 2025-01-09 SARBS
+# Abhängigkeiten: GNU Coreutils (link), curl, sed, transadd
 # Torrent Peertube Videos, erfordert das transadd Skript
 # Das erste Argument ist der Videolink, das zweite ist die Qualität (360, 480 oder 1080)
 # 13/07/20 - Arthur Bais

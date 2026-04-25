@@ -1,5 +1,6 @@
 #!/bin/sh
 ## 2026-03-21 SARBS
+# Abhängigkeiten: GNU Coreutils (readlink), killall, pstree, rofi, set-dpi, slock, xset
 # Ein rofi-Wrapper-Skript für Systemfunktionen.
 
 # Setze die Umgebungsvariable WM auf "dwm" (Dynamic Window Manager)

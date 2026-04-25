@@ -1,5 +1,6 @@
 #!/bin/sh
 ## 2025-01-09 SARBS
+# Abhängigkeiten: qndl
 
 # Podboat sucks. This script replaces it.
 # It reads the newsboat queue, queuing downloads with taskspooler.

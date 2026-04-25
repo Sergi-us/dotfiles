@@ -1,5 +1,6 @@
 #!/bin/sh
 ## 2025-11-21 SARBS
+# Abhängigkeiten: GNU Coreutils (basename, cat, cut, date, mkdir, rm, touch, tr), awk, brightnessctl, diff, notify-send, pkill, setsid, xbacklight
 
 # Zeigt den aggregierten Batteriestand mit Symbolen entsprechend dem Ladestand an
 # Inklusive automatischer Helligkeitsanpassung nach Tagesrhythmus

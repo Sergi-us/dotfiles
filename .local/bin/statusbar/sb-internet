@@ -1,5 +1,6 @@
 #!/bin/sh
 ## 2025-06-13 SARBS
+# Abhängigkeiten: GNU Coreutils (cat, cut, head, sort, stat, yes), awk, iwgetid, nmcli, notify-send, pkill, setsid, wg
 # Anhängigkeiten: nmcli, nmtui, dunst, wireless_tools (iwgetid)
 
 # Prozente in Statusbar anzeigen? (true/false)

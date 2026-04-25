@@ -1,5 +1,6 @@
 #!/bin/sh
 ## 2025-02-10 SARBS
+# Abhängigkeiten: GNU Coreutils (cut, date, stat, tr), curl, notify-send, rofi, setsid
 
 # Zeigt ein Doppler-RADAR für den bevorzugten Standort des Benutzers.
 

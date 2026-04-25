@@ -1,10 +1,12 @@
 #!/bin/sh
-## 2026-03-28   SARBS
+## 2026-03-28   SARBS core
 # Persistente Zwischenablage mit rofi
 # Ersetzt das alte cliphist-Skript und die vorherige clipctl-Version.
-#
-# Abhängigkeiten: xclip, rofi
-#
+
+# ABHÄNGIGKEITEN
+# GNU:  basename, cat, cp, cut, date, dirname, head, mkdir, mv, paste, rm, tac, tail, touch, wc
+# rest: count, file, notify-send, rofi, sed, tex, xclip
+
 # Ablauf:
 #   Mod+c  → clipctl copy    Aktuelle X11-Zwischenablage in Historie speichern
 #   Mod+v  → clipctl paste   Eintrag aus Historie wählen (rofi) → in CLIPBOARD legen

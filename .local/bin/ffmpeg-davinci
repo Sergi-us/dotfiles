@@ -1,5 +1,6 @@
 #!/bin/zsh
 ## 2025-01-08 SARBS
+# Abhängigkeiten: ffmpeg, notify-send
 # ist mit der lfrc in eine Funktion eingebaut
 # Suffix für die konvertierten Dateien
 suffix="_davinci"

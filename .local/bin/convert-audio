@@ -1,5 +1,6 @@
 #!/bin/bash
-## 2025-07-26   SARBS
+## 2025-07-26 SARBS extra
+# Abhängigkeiten: GNU Coreutils (basename, cut, dirname, du), ffmpeg, ffprobe
 # convert-audio - Konvertiert Videos mit PCM-Audio für DaVinci Resolve Linux
 # Installiere in ~/.local/bin/convert-audio
 

@@ -1,6 +1,10 @@
 #!/bin/sh
 ## 2025-01-08 SARBS
 
+# Abhängigkeiten
+# GNU:  cut, tr, wc
+# rest: file, iconv, sed
+
 # TODO Obsolet. geht einfacher in "ncmpcpp" über "Super+m" starten
 # Benötigt ffmpeg
 

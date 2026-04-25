@@ -1,5 +1,6 @@
 #!/bin/sh
 ## 2025-01-09 SARBS
+# Abhängigkeiten: curl, dmenu, lynx, mpv, nsxiv, qndl, sed, setbg, setsid, xclip, xwallpaper, zathura
 
 # Dieses Skript nimmt einen Link entgegen und gibt dmenu einige
 # Auswahlmöglichkeiten, um ihn zu öffnen.

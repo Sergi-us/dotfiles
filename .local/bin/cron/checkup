@@ -1,5 +1,6 @@
 #!/bin/sh
 ## 2025-07-31   SARBS
+# Abhängigkeiten: notify-send, pkill, sudo
 
 # Synchronisiert Repositories und lädt Updates herunter, soll als Cronjob ausgeführt werden.
 

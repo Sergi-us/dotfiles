@@ -1,4 +1,5 @@
 #!/bin/bash
+# Abhängigkeiten: curl, file, fzf, jq, pass
 ######################################################################
 #Copyright (C) 2025  Kris Occhipinti
 #https://filmsbykris.com

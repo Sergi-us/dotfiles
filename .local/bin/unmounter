@@ -1,5 +1,6 @@
 #!/bin/sh
 ## 2026-03-28   SARBS
+# Abhängigkeiten: GNU Coreutils (cat, mkdir, readlink, sleep, sync), awk, findmnt, fuser, hdparm, lsblk, mountpoint, notify-send, ps, rofi, sed, sudo, udisksctl, xargs
 ## 2025-10-31 SARBS - DEV
 # Universelles Unmount-Skript mit Prozess-Management und intelligentem HDD-Poweroff
 # - Interaktive Prozess-Behandlung

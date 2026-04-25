@@ -1,5 +1,6 @@
 #!/bin/bash
-## 2025-07-26   SARBS
+## 2025-07-26   SARBS extra
+# Abhängigkeiten: GNU Coreutils (basename, cut, dirname, du, head, stat), ffmpeg, ffprobe, nvidia-smi
 # convert-yt - Optimiert Videos für YouTube Upload (minimale Dateigröße)
 # Installiere in ~/.local/bin/convert-yt
 

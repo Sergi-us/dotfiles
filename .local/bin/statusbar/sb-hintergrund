@@ -1,5 +1,6 @@
 #!/bin/sh
 ## 2025-03-06 SARBS
+# Abhängigkeiten: notify-send, setbg, setsid
 
 # Wechseln automatisch das Hintergrundbild
 

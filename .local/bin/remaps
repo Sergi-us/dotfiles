@@ -1,4 +1,5 @@
 #!/bin/sh
+# Abhängigkeiten: setxkbmap, xdotool, xmodmap, xset
 ## 2025-10-11 - Angepasst: Caps→Compose, RCtrl→Super_R
 
 # Dieses Skript wird beim Start aufgerufen um Tasten neu zu belegen.

@@ -1,5 +1,6 @@
 #!/bin/sh
-## 2026-03-28   SARBS
+## 2026-03-28 SARBS core
+# Abhängigkeiten: GNU Coreutils (cut, head, id, paste, sort, tail, wc), arandr, awk, bc, dunst, dunstctl, killall, notify-send, rofi, sed, setbg, set-dpi, xrandr
 ## Abhängigkeiten: xrandr, rofi, awk, sed, grep, bc (für Skalierung)
 # Eine Benutzeroberfläche zum Erkennen, Auswählen und plazieren von Bildschirmen.
 # Prüft mit xrandr verbundene Bildschirme und lässt den Benutzer einen zur Verwendung auswählen.

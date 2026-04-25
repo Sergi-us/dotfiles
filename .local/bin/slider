@@ -1,5 +1,6 @@
 #!/bin/sh
 ## 2025-01-09 SARBS
+# Abhängigkeiten: GNU Coreutils (basename, date, mkdir, rm), awk, convert, ffmpeg, file, sed
 
 # Give a file with images and timecodes and creates a video slideshow of them.
 #

@@ -1,5 +1,6 @@
 #!/bin/sh
 ## 2025-01-09 SARBS
+# Abhängigkeiten: notify-send, pacman, setsid
 
 # Zeigt die Anzahl der aktualisierbaren Pakete für Pacman und YAY an.
 

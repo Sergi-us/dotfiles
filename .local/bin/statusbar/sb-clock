@@ -1,5 +1,6 @@
 #!/bin/sh
 ## 2025-03-06 SARBS
+# Abhängigkeiten: GNU Coreutils (date, tr), cal, calcurse, notify-send, sed, setsid
 
 clock=$(date '+%I')
 

@@ -1,5 +1,6 @@
 #!/bin/sh
 ## 2025-08-04   SARBS
+# Abhängigkeiten: GNU Coreutils (df), awk, notify-send, setsid
 
 # Status bar module for disk space
 # $1 should be drive mountpoint, otherwise assumed /.

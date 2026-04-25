@@ -1,7 +1,10 @@
 #!/bin/sh
-## 2025-01-08 SARBS
+## 2025-01-08 SARBS extra
+# Abhängigkeiten: GNU Coreutils (stat), su
+# TODO Reaktivieren und eine Installationslogil eibauen.
 # Ein Wrapper für den arkenfox-updater, der diesen für alle vorhandenen
 # Arkenfox user.js-Dateien auf dem Rechner ausführt.
+
 
 # Bei der Installation von SARBS wird diese Datei nach /usr/local/lib/ kopiert,
 # wo sie durch einen pacman-Hook ausgeführt wird. Der Benutzer sollte dies nicht

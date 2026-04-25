@@ -1,7 +1,12 @@
 #!/bin/sh
-## 2026-03-31 SARBS
+## 2026-03-31 SARBS extra
 # Markierten Text (PRIMARY) als Snippet/Bookmark speichern, abrufen oder bearbeiten
 # Duplikate werden erkannt, Kommentar kann per Rofi hinzugefügt werden
+
+# ABHÄNGIGKEITEN
+# GNU:  cat, mkdir, mktemp, mv, touch
+# Sont: awk, file, notify-send, rofi, sed, xdg-open, xdotool
+# X11:  xclip
 
 file="${XDG_DATA_HOME:-$HOME/.local/share}/sarbs/snippets"
 
@@ -32,7 +37,7 @@ case "$1" in
 		[ -z "$selected" ] && exit 0
 
 		url=$(printf '%s\n' "$selected" | awk '{print $1}')
-		
+
 		# In den Hintergrund abschieben, damit das Skript nicht blockiert
 		if [ -n "$BROWSER" ]; then
 			$BROWSER "$url" >/dev/null 2>&1 &

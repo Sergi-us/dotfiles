@@ -1,5 +1,6 @@
 #!/bin/sh
 ## 2025-02-10 SARBS
+# Abhängigkeiten: GNU Coreutils (cut), notify-send, rofi, sed, xclip, xdotool
 # Das berühmte Skript "Ein Menü von Emojis zum Kopieren anzeigen".
 
 rofi_menu() {

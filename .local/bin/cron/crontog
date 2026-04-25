@@ -1,5 +1,6 @@
 #!/bin/sh
 ## 2025-06-14 SARBS
+# Abhängigkeiten: GNU Coreutils (wc), crontab, notify-send
 
 # Schaltet alle Cronjobs aus/ein.
 # Speichert deaktivierte Crontabs in ~/.config/cronsaved für Backup-Zwecke.

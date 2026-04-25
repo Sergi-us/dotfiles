@@ -1,7 +1,7 @@
 #!/bin/sh
 ## 2026-04-07 SARBS
 # Unmountet SSH-Server, die via sshfs eingehängt wurden
-# Abhängigkeiten: sshfs, rofi, findmnt
+# Abhängigkeiten: GNU Coreutils (rmdir), findmnt, mount, notify-send, rofi, sed, umount
 
 set -e
 

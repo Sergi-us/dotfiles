@@ -1,5 +1,6 @@
 #!/bin/bash
 ## 2025-01-08 SARBS
+# Abhängigkeiten: GNU Coreutils (head, mktemp, mv, rm), convert, ffmpeg, file, notify-send
 # nimmt ein Bild welches im Verzeichniss liegt und fürgt es an alle Musikdateien (als Metadata) ein. Das Skript war eins meiner ersten und ist voll von diesen nerfigen if-Schleifen...
 # TODO if-schleifen überarbeiten
 # TODO .webp konnvertierung zu lf verschieben und hier entfernen

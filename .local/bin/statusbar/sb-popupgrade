@@ -1,5 +1,6 @@
 #!/bin/sh
 ## 2025-01-09 SARBS
+# Abhängigkeiten: pkill, yay
 
 printf "Beginne mit Upgrade.\\n"
 

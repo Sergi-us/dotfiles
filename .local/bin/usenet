@@ -1,5 +1,6 @@
 #!/bin/sh
 ## 2025-11-16   SARBS
+# Abhängigkeiten: GNU Coreutils (basename, cat, mkdir, wc), find, fzf
 # usenet - Usenet Services Manager
 # Verwaltet sabnzbd und nzbhydra2 Services und synchronisiert Downloads
 # TODO Skript nutzer unabhängig machen

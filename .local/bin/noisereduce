@@ -1,5 +1,6 @@
 #!/usr/bin/sh
 ## 2025-01-09 SARBS
+# Abhängigkeiten: GNU Coreutils (basename, cp), ffmpeg, ffprobe, ifinstalled
 
 # Das Skript noisereduce reduziert das Rauschen in einer Video- oder Audiodatei. Es verwendet ffmpeg zur Verarbeitung von Video- und Audiodateien und sox zur Rauschunterdrückung. Das Skript extrahiert den Audio-Teil einer Datei, erstellt ein Rauschprofil und reinigt das Audio. Wenn es sich um ein Video handelt, kombiniert es die gereinigte Audiospur wieder mit der Videospur.
 

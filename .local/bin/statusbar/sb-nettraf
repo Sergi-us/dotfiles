@@ -1,5 +1,6 @@
 #!/bin/sh
 ## 2025-06-13 SARBS
+# Abhängigkeiten: GNU Coreutils (cat, numfmt, sum), notify-send, setsid, su
 ## Angepasst: Zeigt Traffic nur bei aktiver Netzwerkverbindung (Hardware-Check)
 
 # Module showing network traffic. Shows how much data has been received (RX) or

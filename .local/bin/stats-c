@@ -1,5 +1,6 @@
 #!/bin/sh
 ## 2025-11-26 SARBS
+# Abhängigkeiten: GNU Coreutils (head, mktemp, rm, sort, wc)
 
 # Ermittelt Codestatistiken für C-Projekte: LOC (Lines of Code),
 # Kommentar-Verhältnis, Dateianzahl etc. Ignoriert Build-Artefakte,

@@ -1,5 +1,6 @@
 #!/bin/bash
 ## 2025-01-09 SARBS
+# Abhängigkeiten: hostname, rsync
 # Basic Puch skript um HTML seiten auf den Server hoch zu laden
 
 # Lokales Verzeichnis, das hochgeladen werden soll

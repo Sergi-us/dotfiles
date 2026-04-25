@@ -1,5 +1,6 @@
 #!/bin/sh
 ## 2025-01-09 SARBS
+# Abhängigkeiten: GNU Coreutils (readlink, tac, tr), ps, pstree, sed, xprop
 
 # Open a terminal window in the same directory as the currently active window.
 

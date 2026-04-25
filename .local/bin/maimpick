@@ -1,8 +1,9 @@
 #!/bin/sh
 ## 2025-02-10 SARBS
+# Abhängigkeiten: GNU Coreutils (date, mkdir, mktemp, rm), notify-send, rofi, tesseract, xdotool
 
-# Dies ist standardmäßig auf Shift+Druck gebunden und erfordert maim. 
-# Es ermöglicht dir, die Art des Screenshots auszuwählen, einschließlich 
+# Dies ist standardmäßig auf Shift+Druck gebunden und erfordert maim.
+# Es ermöglicht dir, die Art des Screenshots auszuwählen, einschließlich
 # das Bild zu kopieren oder einen Bereich für OCR hervorzuheben.
 
 # Variablen
@@ -15,46 +16,46 @@ ocr_cmd="xclip -sel clip"
 mkdir -p "$pic_dir"
 
 rofi_menu() {
-    rofi -dmenu -i -location 0 -theme-str 'window { width: 35%; } listview { lines: 7; }' "$@"
+    rofi -dmenu -i -location 0 -theme-str 'window { width: 50%; } listview { lines: 7; }' "$@"
 }
 
-choice="$(printf "einen ausgewählten Bereich\naktuelles Fenster\nVollbildschirm\neinen ausgewählten Bereich (kopieren)\naktuelles Fenster (kopieren)\nVollbildschirm (kopieren)\nOCR einen ausgewählten Bereich (kopieren)" | rofi_menu -p "Screenshot Bereich:")"
+choice="$(printf "einen ausgewählten Bereich\naktuelles Fenster\nVollbildschirm\n einen ausgewählten Bereich\n aktuelles Fenster\n Vollbildschirm\n OCR einen ausgewählten Bereich" | rofi_menu -p "Screenshot Tool:")"
 
 [ -z "$choice" ] && exit 0
 
 # Führe Screenshot-Befehl aus und zeige Benachrichtigung
 case "$choice" in
-    "einen ausgewählten Bereich") 
+    "einen ausgewählten Bereich")
         if maim -u -s "${pic_dir}/pic-ausgewählt-${output}"; then
             notify-send "Screenshot gespeichert" "Bereich in ${pic_dir} gespeichert."
         fi
         ;;
-    "aktuelles Fenster") 
+    "aktuelles Fenster")
         if maim -B -q -d 0.2 -i "$(xdotool getactivewindow)" "${pic_dir}/pic-fenster-${output}"; then
             notify-send "Screenshot gespeichert" "Fenster in ${pic_dir} gespeichert."
         fi
         ;;
-    "Vollbildschirm") 
+    "Vollbildschirm")
         if maim -q -d 0.2 "${pic_dir}/pic-vollbild-${output}"; then
             notify-send "Screenshot gespeichert" "Vollbild in ${pic_dir} gespeichert."
         fi
         ;;
-    "einen ausgewählten Bereich (kopieren)") 
+    " einen ausgewählten Bereich")
         if maim -u -s | ${xclip_cmd}; then
             notify-send "Screenshot kopiert" "Ausgewählter Bereich ist in der Zwischenablage."
         fi
         ;;
-    "aktuelles Fenster (kopieren)") 
+    " aktuelles Fenster")
         if maim -q -d 0.2 -i "$(xdotool getactivewindow)" | ${xclip_cmd}; then
             notify-send "Screenshot kopiert" "Aktuelles Fenster ist in der Zwischenablage."
         fi
         ;;
-    "Vollbildschirm (kopieren)") 
+    " Vollbildschirm")
         if maim -q -d 0.2 | ${xclip_cmd}; then
             notify-send "Screenshot kopiert" "Vollbild ist in der Zwischenablage."
         fi
         ;;
-    "OCR einen ausgewählten Bereich (kopieren)") 
+    " OCR einen ausgewählten Bereich")
         tmpfile=$(mktemp /tmp/ocr-XXXXXX.png)
         if maim -u -s > "$tmpfile"; then
             notify-send "Lese Text..." "Führe Texterkennung durch..."

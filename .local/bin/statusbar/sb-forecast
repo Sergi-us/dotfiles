@@ -1,5 +1,6 @@
 #!/bin/sh
 ## 2025-11-16 SARBS
+# Abhängigkeiten: GNU Coreutils (cat, cut, date, head, sort, stat, timeout, tr), notify-send, sed, setsid
 
 # SARBS Wettermodul
 # zeigt in der Statusleistte eine Mitteltemperatur aus Tages- höchst und Tiefstwerten

@@ -1,5 +1,6 @@
 #!/bin/sh
 ## 2025-03-27 SARBS
+# Abhängigkeiten: awk, dunstify, notify-send, pactl, pkill, setsid, wpctl
 
 # TODO Standard widergabegerät wird noch nicht angezeigt
 

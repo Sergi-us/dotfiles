@@ -1,5 +1,6 @@
 #!/bin/sh
 ## 2025-01-09 SARBS
+# Abhängigkeiten: notify-send
 
 # Einige optionale Funktionen in SARBS erfordern Programme, die nicht standardmäßig installiert sind. Ich verwende dieses kleine Skript, um zu überprüfen, ob ein Befehl existiert, und wenn nicht, informiert es den Benutzer darüber, dass dieser Befehl benötigt wird, um fortzufahren. Dies wird in verschiedenen anderen Skripten zur Klarheit verwendet.
 

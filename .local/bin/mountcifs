@@ -1,5 +1,6 @@
 #!/bin/sh
 ## 2025-02-10 SARBS
+# Abhängigkeiten: avahi-browse, awk, mount, notify-send, rofi, smbclient
 
 # WOFÜR IST DIESES SKRIPT?
 # Dieses Skript ermöglicht das schnelle Einhängen (Mounten) von lokalen

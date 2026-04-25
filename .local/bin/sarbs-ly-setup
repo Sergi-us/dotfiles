@@ -1,5 +1,6 @@
 #!/bin/sh
 ## 2025-11-29 SARBS
+# Abhängigkeiten: sudo
 # Konfiguriert ly Display Manager für SARBS
 # Voraussetzung: ly muss bereits installiert sein
 

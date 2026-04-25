@@ -1,5 +1,6 @@
 #!/bin/bash
 ## 2026-03-28   SARBS   TESTVERSION
+# Abhängigkeiten: GNU Coreutils (cat, head, id, mkdir, sleep, sort, tr), find, iconv, lsblk, mountpoint, notify-send, opt, rofi, sed, simple-mtpfs, size, sudo
 ## 2025-08-29   SARBS - ASCII-Marker mit Phyton parsing
 ## Mountet Android-Telefone und USB-Laufwerke (verschlüsselt oder nicht)
 ## WICHTIG: Nutzt ASCII-Marker [TYPE] statt Emojis für Portabilität!

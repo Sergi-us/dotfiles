@@ -1,5 +1,6 @@
 #!/bin/sh
 ## 2025-03-05 SARBS
+# Abhängigkeiten: GNU Coreutils (head), awk, free, notify-send, ps, sed, setsid
 
 # Berechne die aktuelle RAM-Nutzung (benutzt / gesamt) in GB
 ram_usage=$(free --mebi | awk 'NR==2 {printf("%.2fGB von %.1fGB", $3/1024, $2/1024)}')

@@ -1,5 +1,6 @@
 #!/bin/sh
 ## 2025-03-07 SARBS - Angepasst für newsraft
+# Abhängigkeiten: GNU Coreutils (cat, seq, sleep), awk, newsraft, notify-send, pkill, setsid
 
 # Zeigt die Anzahl ungelesener Nachrichten an und ein Lade-Symbol, falls ein Update durchgeführt wird.
 # Beim Klicken wird `newsraft` geöffnet.

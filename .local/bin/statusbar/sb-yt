@@ -1,5 +1,6 @@
 #!/bin/sh
 ## 2025-03-07 SARBS
+# Abhängigkeiten: jq, notify-send, pkill, setsid
 # YouTube-Statusbar-Modul für DWM
 
 # Konfiguration

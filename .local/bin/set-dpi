@@ -1,5 +1,6 @@
 #!/bin/sh
 ## 2026-02-16   SARBS
+# Abhängigkeiten: GNU Coreutils (cat, cut, head, mkdir, tail), awk, bc, info, pidof, pstree, sed, tree, xrandr, xrdb
 # Zentrale DPI/Skalierungs-Konfiguration für X11-Sitzungen.
 # Berechnet Hardware-DPI, wendet DISPLAY_ADJUST an, setzt State-Dateien
 # und konfiguriert xrandr + Umgebungsvariablen.

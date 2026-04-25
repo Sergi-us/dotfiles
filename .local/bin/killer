@@ -1,5 +1,6 @@
 #!/bin/sh
 ## 2025-02-10 SARBS
+# Abhängigkeiten: GNU Coreutils (sort), awk, notify-send, ps, rofi, sed
 # Ein Skript zum Auswählen und Beenden (Killen) von Benutzerprozessen via Rofi.
 # Listet Prozesse sortiert nach Speicherauslastung auf.
 

@@ -1,5 +1,6 @@
 #!/bin/sh
 ## 2026-03-06 SARBS
+# Abhängigkeiten: GNU Coreutils (cut, head, mktemp, sort, wc), awk, bash, lua, sed, sh, xargs, zsh
 
 # Ermittelt Statistiken für Dotfiles-Repositories: Dateitypen, LOC,
 # Kommentar-Verhältnis, Komplexität etc. Erkennt Shell-Skripte anhand

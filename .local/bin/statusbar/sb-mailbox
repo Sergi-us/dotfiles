@@ -1,5 +1,6 @@
 #!/bin/sh
 ## 2025-06-10 SARBS
+# Abhängigkeiten: GNU Coreutils (basename, seq, sleep, wc), find, notify-send, pidof, pkill, setsid
 
 # Zeigt die Anzahl ungelesener E-Mails und ein Symbol je nach Status
 # Geschlossener Briefumschlag wenn keine ungelesenen Mails, geöffneter mit Anzahl wenn ungelesene vorhanden

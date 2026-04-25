@@ -1,5 +1,6 @@
 #!/bin/sh
 ## 2025-04-01 SARBS
+# Abhängigkeiten: GNU Coreutils (cut, sleep, tr), bluetoothctl, info, notify-send, pkill, rfkill, setsid
 
 # Signalnummer für dwmblocks-Aktualisierung (muss mit config.h übereinstimmen)
 SIG=18

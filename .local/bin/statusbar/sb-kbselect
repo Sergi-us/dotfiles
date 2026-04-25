@@ -2,7 +2,7 @@
 ## 2025-02-10 SARBS
 
 # Funktioniert auf jedem Init-System
-# Abhängigkeiten: rofi, xorg-setxkbmap
+# Abhängigkeiten: awk, notify-send, pkill, rofi, setsid, setxkbmap
 
 rofi_menu() {
     rofi -dmenu -i -location 0 -theme-str 'window { width: 30%; } listview { lines: 15; }' "$@"

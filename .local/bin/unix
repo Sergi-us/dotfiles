@@ -1,5 +1,6 @@
 #!/bin/sh
 ## 2025-01-09 SARBS
+# Abhängigkeiten: GNU Coreutils (cat)
 
 #original artwork by http://www.sanderfocus.nl/#/portfolio/tech-heroes
 #converted to shell by #nixers @ irc.unix.chat

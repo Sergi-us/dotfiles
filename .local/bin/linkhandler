@@ -1,0 +1,156 @@
+#!/bin/sh
+## 2025-02-19 SARBS core DEV
+# TODO in SARBS einbinden, der Link soll aus der Primary Selektion oder aus der
+# Zwischenablage stammen können
+# Binding 'AltGr+L'
+
+# Abhängigkeiten: curl, rofi, lynx, mpv, nsxiv, qndl, sed, setbg, setsid, xclip, xwallpaper, zathura
+
+# ==============================================================================
+# ICONS (Nerd Fonts) - Bequem hier anpassen
+# ==============================================================================
+I_LINK=" "      # Für den Rofi Prompt (Link)
+I_OPEN=" "      # Öffnen in / xdg-open / Browser
+I_COPY=" "      # Kopieren
+I_VID=" "       # Video / MPV
+I_IMG=" "       # Bilder / Wallpaper
+I_PDF=" "       # Dokumente
+I_TERM=" "      # Terminal / Vim / Lynx
+I_DL=" "        # Download
+I_SEND=" "      # Weiterleiten (für künftige Skripte)
+# ==============================================================================
+
+# Dieses Skript nimmt einen Link oder Dateipfad entgegen und gibt Rofi einige
+# Auswahlmöglichkeiten, um ihn zu öffnen. Wird meist aus anderen Skripten
+# oder Keybindings aufgerufen.
+
+rofi_menu() {
+    rofi -dmenu -i -location 0 -theme-str 'window { width: 60%; } listview { lines: 14; }' "$@"
+}
+
+# ==============================================================================
+# DEV-MODUS: WIE WIRD DER LINK ÜBERGEBEN?
+# ==============================================================================
+# OPTION 1: Klassischer Parameter
+# feed="${1:-$(echo "" | rofi_menu -p "$I_LINK URL oder Dateipfad einfügen:")}"
+
+# OPTION 4: Hybrid (Parameter > Primary > Clipboard > Eingabe) (aktuell aktiv)
+feed="$1"
+[ -z "$feed" ] && feed="$(xclip -o -selection primary 2>/dev/null)"
+[ -z "$feed" ] && feed="$(xclip -o -selection clipboard 2>/dev/null)"
+[ -z "$feed" ] && feed="$(echo "" | rofi_menu -p "$I_LINK URL einfügen:")"
+# ==============================================================================
+
+# Wenn absolut nichts übergeben/eingetippt wurde, breche ab
+[ -z "$feed" ] && exit 0
+
+# ==============================================================================
+# TEIL 2: AUTOMATISCHES ROUTING (BYPASS)
+# ==============================================================================
+# Wenn ein Link extrem eindeutig ist (wie ein Torrent oder eine E-Mail),
+# überspringen wir das Rofi-Menü komplett und führen die Aktion direkt aus.
+case "$feed" in
+    mailto:*)
+        setsid -f "$TERMINAL" -e neomutt "${feed#mailto:}" >/dev/null 2>&1
+        exit 0
+        ;;
+    magnet:?*)
+        # Erfordert laufenden transmission-daemon
+        transmission-remote -a "$feed" >/dev/null 2>&1 && notify-send "Torrent hinzugefügt"
+        exit 0
+        ;;
+esac
+# ==============================================================================
+
+# ==============================================================================
+# TEIL 3: DYNAMISCHES MENÜ (KONTEXTBASIERT)
+# ==============================================================================
+# Hier analysieren wir die URL, um dem Nutzer nur die Menüpunkte zu zeigen,
+# die für diesen Dateityp oder diese Domain wirklich Sinn ergeben.
+
+if echo "$feed" | grep -qEi "(youtube\.com|youtu\.be|twitch\.tv)"; then
+    # --- VIDEOPLATTFORMEN ---
+    action="$(printf "$I_VID mpv\n$I_VID mpv schwebend\n$I_VID mpv Schleife\n$I_DL YT-DLP Video\n$I_DL YT-DLP Audio\n$I_COPY URL kopieren\n$I_OPEN xdg-open (Systemstandard)\n$I_OPEN Browser" | rofi_menu -p "$I_LINK Video/Stream:")"
+
+elif echo "$feed" | grep -qEi "\.(jpg|jpeg|png|gif|webp)$"; then
+    # --- BILDER ---
+    action="$(printf "$I_IMG nsxiv\n$I_IMG setbg\n$I_DL Download einreihen\n$I_COPY URL kopieren\n$I_OPEN xdg-open (Systemstandard)" | rofi_menu -p "$I_LINK Bild:")"
+
+elif echo "$feed" | grep -qEi "\.(pdf|epub)$"; then
+    # --- DOKUMENTE ---
+    action="$(printf "$I_PDF PDF (zathura)\n$I_DL Download einreihen\n$I_COPY URL kopieren\n$I_OPEN xdg-open (Systemstandard)" | rofi_menu -p "$I_LINK Dokument:")"
+
+elif echo "$feed" | grep -qEi "\.(mp4|mkv|webm|mp3|flac|wav|ogg)$"; then
+    # --- DIREKTE MEDIENDATEIEN (Kein YouTube) ---
+    action="$(printf "$I_VID mpv\n$I_VID mpv Schleife\n$I_DL Download einreihen\n$I_COPY URL kopieren\n$I_OPEN xdg-open (Systemstandard)" | rofi_menu -p "$I_LINK Media:")"
+
+else
+    # --- STANDARDMENÜ (FALLBACK) ---
+    # Wenn die URL/der Pfad in keine der Kategorien oben passt, zeige alles.
+    action="$(printf "$I_OPEN xdg-open (Systemstandard)\n$I_COPY URL kopieren\n$I_OPEN Browser\n$I_TERM lynx\n$I_TERM vim\n$I_DL Download einreihen\n$I_DL YT-DLP einreihen\n$I_DL YT-DLP Audio einreihen\n$I_VID mpv\n$I_IMG nsxiv\n$I_IMG setbg" | rofi_menu -p "$I_LINK Öffnen mit:")"
+fi
+
+# Beenden, falls im Menü Esc gedrückt wurde
+[ -z "$action" ] && exit 0
+
+case "$action" in
+    "$I_OPEN xdg-open (Systemstandard)")
+        setsid -f xdg-open "$feed" >/dev/null 2>&1
+        ;;
+
+	"$I_COPY URL kopieren")
+        echo "$feed" | xclip -selection clipboard
+        ;;
+
+    "$I_VID mpv")
+        setsid -f mpv -quiet "$feed" >/dev/null 2>&1
+        ;;
+
+    "$I_VID mpv Schleife")
+        setsid -f mpv -quiet --loop "$feed" >/dev/null 2>&1
+        ;;
+
+    "$I_VID mpv schwebend")
+        setsid -f "$TERMINAL" -e mpv --geometry=+0-0 --autofit=30% --title="mpvfloat" "$feed" >/dev/null 2>&1
+        ;;
+
+    "$I_DL YT-DLP einreihen")
+        qndl "$feed" >/dev/null 2>&1
+        ;;
+
+    "$I_DL YT-DLP Audio einreihen")
+        qndl "$feed" 'yt-dlp -o "%(title)s.%(ext)s" -f bestaudio --embed-metadata --restrict-filenames'
+        ;;
+
+    "$I_DL Download einreihen")
+        qndl "$feed" 'curl -LO' >/dev/null 2>&1
+        ;;
+
+    "$I_PDF PDF")
+        tmpfile="/tmp/$(echo "$feed" | sed "s|.*/||;s/%20/ /g")"
+        curl -sL "$feed" > "$tmpfile" && zathura "$tmpfile" >/dev/null 2>&1
+        ;;
+
+    "$I_IMG nsxiv")
+        tmpfile="/tmp/$(echo "$feed" | sed "s|.*/||;s/%20/ /g")"
+        curl -sL "$feed" > "$tmpfile" && nsxiv -a "$tmpfile" >/dev/null 2>&1
+        ;;
+
+    "$I_TERM vim")
+        tmpfile="/tmp/$(echo "$feed" | sed "s|.*/||;s/%20/ /g")"
+        curl -sL "$feed" > "$tmpfile" && setsid -f "$TERMINAL" -e "$EDITOR" "$tmpfile" >/dev/null 2>&1
+        ;;
+
+    "$I_IMG setbg")
+        curl -L "$feed" > "$XDG_CACHE_HOME/pic"
+        xwallpaper --zoom "$XDG_CACHE_HOME/pic" >/dev/null 2>&1
+        ;;
+
+    "$I_OPEN Browser")
+        setsid -f "$BROWSER" "$feed" >/dev/null 2>&1
+        ;;
+
+    "$I_TERM lynx")
+        lynx "$feed" >/dev/null 2>&1
+        ;;
+esac

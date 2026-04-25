@@ -1,5 +1,6 @@
 #!/bin/zsh
 ## 2025-01-08 SARBS
+# Abhängigkeiten: ffmpeg, notify-send
 
 # Suffix für die komprimierten Dateien
 suffix="_kompr"

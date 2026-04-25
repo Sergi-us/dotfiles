@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 ## 2025-06-23   SARBS
+# Abhängigkeiten: GNU Coreutils (date, ln, mkdir), unison
 ## sync-sarbs - Bidirektionales Sync-Script Template
 
 # === KONFIGURATION ===

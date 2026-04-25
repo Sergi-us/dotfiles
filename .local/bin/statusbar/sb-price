@@ -1,5 +1,6 @@
 #!/bin/sh
 ## 2025-11-17   SARBS
+# Abhängigkeiten: GNU Coreutils (cat, date, mkdir, rm, stat, uptime), awk, deno, notify-send, sed, setsid
 
 # Cryptocurrency Price Checker
 # SARBS 09.11.2024

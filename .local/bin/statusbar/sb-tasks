@@ -1,5 +1,6 @@
 #!/bin/sh
 ## 2025-01-09 SARBS
+# Abhängigkeiten: awk, notify-send, setsid, tsp
 
 # Zeigt die Anzahl laufender und wartender Hintergrund-Tasks.
 # Benötigt tsp (task-spooler).

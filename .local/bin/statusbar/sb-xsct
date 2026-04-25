@@ -1,5 +1,6 @@
 #!/bin/sh
 ## 2025-11-16 SARBS
+# Abhängigkeiten: GNU Coreutils (cat, date, mkdir, rm, touch), awk, info, notify-send, pkill, reset, setsid, xsct
 # Automatische Farbtemperatur-Anpassung basierend auf Tageszeit
 # Nutzt xsct für sanfte Übergänge zwischen Tag/Nacht-Modi
 

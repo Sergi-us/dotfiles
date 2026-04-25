@@ -75,7 +75,8 @@ export INPUTRC="$XDG_CONFIG_HOME/shell/inputrc"		# ok Shell-Konfigurationsdatei
 export ZDOTDIR="$XDG_CONFIG_HOME/zsh"				# ok Zsh-Konfigurationsverzeichnis
 # export HISTFILE="$XDG_DATA_HOME/history"			# ok Historien-Datei
 export HISTFILE="$XDG_STATE_HOME/zsh/history"		# Nicht DATA_HOME!
-export SUDO_ASKPASS="$HOME/.local/bin/dmenupass"	# ok Sudo Passwortabfrageprogramm
+export SUDO_ASKPASS="$HOME/.local/bin/askpass"		# ok Sudo Passwortabfrageprogramm
+# export SUDO_ASKPASS="$HOME/.local/bin/dmenupass"	# ok Sudo Passwortabfrageprogramm
 
 # === Entwicklung (Optional) ===
 export CARGO_HOME="$XDG_DATA_HOME/cargo"				# ok Rust Cargo Verzeichnis

@@ -1,5 +1,6 @@
 #!/bin/sh
 ## 2025-01-09 SARBS
+# Abhängigkeiten: GNU Coreutils (basename), awk
 
 # When I open an image from the file manager in nsxiv (the image viewer), I want
 # to be able to press the next/previous keys to key through the rest of the

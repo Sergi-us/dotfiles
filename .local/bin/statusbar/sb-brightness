@@ -1,5 +1,6 @@
 #!/bin/sh
 ## 2025-01-09 SARBS
+# Abhängigkeiten: GNU Coreutils (cat), notify-send, setsid
 # Obsolet, Helligkeit wird über das Batteriemodul geregelt
 # Farbtemperatur ist ein eigenes Modul, wenn dann da integrieren
 

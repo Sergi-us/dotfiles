@@ -1,5 +1,6 @@
 #!/bin/sh
 ## 2026-04-09   SARBS
+# Abhängigkeiten: GNU Coreutils (ln, mv, readlink, shuf, unlink), bc, convert, file, find, hellwal, magick, notify-send, pidof, xwallpaper
 
 # Dieses Skript macht Folgendes:
 #	Ohne Argumente: Setzt das Hintergrundbild (beim X-Start).

@@ -1,5 +1,6 @@
 #!/bin/sh
 ## 2025-01-18 SARBS
+# Abhängigkeiten: GNU Coreutils (cat, cut, date, stat, tr), awk, curl, info, ip, notify-send, pkill, setsid, wg
 ## Ermittelt öffentliche IP und Standort - NUR bei Klicks (Signal 0)
 ## Zeigt VPN-Status in Statusleiste, führt Abfragen nur bei Interaktion aus
 

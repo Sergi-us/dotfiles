@@ -1,5 +1,6 @@
 #!/bin/sh
 ## 2025-02-10 SARBS
+# Abhängigkeiten: GNU Coreutils (cut, nice), awk, notify-send, rofi, v4l2-ctl
 # Webcam-Script mit Rofi-Abfrage
 
 # Konfigurationsvariablen
