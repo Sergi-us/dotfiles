@@ -63,6 +63,7 @@ mount /dev/mapper/bezeichnung /mnt/usb
 }}}
 
 Besitzerrechte setzen:
+$USER setzt 'root' zum Besitzer. Ersetze $USER mit deinen Nutzernamen um es später im Nutzerprofil nutzen zu können!
 {{{
 chown $USER:wheel /mnt/usb
 }}}

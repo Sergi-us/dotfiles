@@ -25,8 +25,8 @@ chmod: Wendet die angegebenen Rechte an.
  = find und chown =
 
 {{{
-find /pfad/zum/verzeichnis -exec chown sergi:wheel {} \;
-find /pfad/zum/verzeichnis -exec chown sergi:wheel {} +
+find /pfad/zum/verzeichnis -exec chown $USER:wheel {} \;
+find /pfad/zum/verzeichnis -exec chown $USER:wheel {} +
 }}}
 
 Unterschied von + und \; Das + bewirkt, dass find mehrere Dateinamen gesammelt

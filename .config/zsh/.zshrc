@@ -370,5 +370,3 @@ stty stop undef
 # XDG Konforme zoxide konfiguration
 export _ZO_DATA_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/zoxide"
 eval "$(zoxide init zsh)"
-
-source /home/sergi/.config/broot/launcher/bash/br

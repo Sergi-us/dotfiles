@@ -104,7 +104,7 @@ https://www.nerdbude.com/m_vim.html
 
 == Beenden: ==
 	- :q | :q! | ZQ | YQ | Beendet Vim ohne zu speichern
-	- :x | :wq | ZZ | YY | Beendet Vim mit Speichern
+	- :x | :wq | ZZ | YY | Q | Beendet Vim mit Speichern
 
 == Insert Mode ==
 	- i	wechsel in den insert mode (mit 'ESC' in Normal mode)
