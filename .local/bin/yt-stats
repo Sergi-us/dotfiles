@@ -61,6 +61,21 @@ read_config() {
     fi
 }
 
+# === ABHÄNGIGKEITEN PRÜFEN ===
+check_dependencies() {
+    local deps="curl jq"
+    local missing=0
+    for cmd in $deps; do
+        if ! command -v "$cmd" >/dev/null 2>&1; then
+            echo "Fehler: Abhängigkeit '$cmd' fehlt. Bitte installiere '$cmd'."
+            missing=1
+        fi
+    done
+    if [ $missing -eq 1 ]; then
+        exit 1
+    fi
+}
+
 # === SETUP FUNKTION FÜR ERSTMALIGE EINRICHTUNG ===
 setup_config() {
     echo "YouTube Stats Setup"
@@ -388,6 +403,8 @@ compile_and_save_stats() {
 
 # Hauptfunktion
 main() {
+    check_dependencies
+
     # Prüfe ob Setup-Modus
     if [ "$1" = "setup" ] || [ "$1" = "--setup" ]; then
         setup_config
