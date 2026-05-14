@@ -247,14 +247,12 @@ cmd convert_yt ${{
     clear; tput cup $(($(tput lines)/3)); tput bold
     set -f
     notify-send "Video wird für YouTube konwertiert..."
-    for x in $fx; do
-        if convert-yt "$x"; then
-            lf -remote "send $id reload"
-            notify-send "🎵 Erfolgreich" "Datei $x wurde konvertiert."
-        else
-            notify-send "❌ Fehler" "Datei $x konnte nicht konvertiert werden."
-        fi
-    done
+    if lf-convert yt $fx; then
+        lf -remote "send $id reload"
+        notify-send "🎵 Erfolgreich" "Dateien wurden konvertiert."
+    else
+        notify-send "❌ Fehler" "Dateien konnten nicht konvertiert werden."
+    fi
     notify-send "✅ Verarbeitung abgeschlossen."
 }}
 
@@ -262,14 +260,12 @@ cmd convert_audio ${{
     clear; tput cup $(($(tput lines)/3)); tput bold
     set -f
     notify-send "Audio wird konvertiert..."
-    for x in $fx; do
-        if convert-audio "$x"; then
-            lf -remote "send $id reload"
-            notify-send "🎵 Erfolgreich" "Datei $x wurde konvertiert."
-        else
-            notify-send "❌ Fehler" "Datei $x konnte nicht konvertiert werden."
-        fi
-    done
+    if lf-convert audio $fx; then
+        lf -remote "send $id reload"
+        notify-send "🎵 Erfolgreich" "Dateien wurden konvertiert."
+    else
+        notify-send "❌ Fehler" "Dateien konnten nicht konvertiert werden."
+    fi
     notify-send "✅ Verarbeitung abgeschlossen."
 }}
 
@@ -278,14 +274,12 @@ cmd convert_video ${{
     clear; tput cup $(($(tput lines)/3)); tput bold
     set -f
     notify-send "Video wird konvertiert..."
-    for x in $fx; do
-        if convert-video "$x"; then
-            lf -remote "send $id reload"
-            notify-send "🎵 Erfolgreich" "Datei $x wurde konvertiert."
-        else
-            notify-send "❌ Fehler" "Datei $x konnte nicht konvertiert werden."
-        fi
-    done
+    if lf-convert video $fx; then
+        lf -remote "send $id reload"
+        notify-send "🎵 Erfolgreich" "Dateien wurden konvertiert."
+    else
+        notify-send "❌ Fehler" "Dateien konnten nicht konvertiert werden."
+    fi
     notify-send "✅ Verarbeitung abgeschlossen."
 }}
 

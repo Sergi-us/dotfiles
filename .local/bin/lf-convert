@@ -1,0 +1,246 @@
+#!/bin/sh
+## 2026-05-14 SARBS
+# Abhängigkeiten: GNU Coreutils, ffmpeg, ffprobe, lspci, notify-send
+# Einheitliches Konvertierungsskript für lf
+
+set -e
+
+# ══════════════════════════════════════════════════════════════════════════════
+# [1] ALLGEMEINE KONFIGURATION
+# ══════════════════════════════════════════════════════════════════════════════
+
+# Ausgabeformate (Container)
+# mkv ist am sichersten für den Erhalt aller Audio- und Untertitelspuren.
+YT_FORMAT="mp4"             # Container für YouTube-Uploads (mp4 oder mkv)
+VIDEO_FORMAT="mkv"          # Container für Video-Konvertierung (für DaVinci Resolve)
+AUDIO_FORMAT="mov"          # Container für reine Audio-Konvertierung (für DaVinci Resolve)
+
+# Audio Einstellungen
+YT_AUDIO_CODEC="aac"
+YT_AUDIO_BITRATE="192k"
+
+VIDEO_AUDIO_CODEC="flac"
+VIDEO_AUDIO_SAMPLERATE="48000"
+
+AUDIO_PCM_CODEC="pcm_s16le"
+AUDIO_PCM_SAMPLERATE="48000"
+
+# Video Qualität (CRF = Constant Rate Factor)
+# Niedriger = Bessere Qualität, Größere Datei (18-24 ist ein guter Bereich)
+CRF_YT_1080=24
+CRF_YT_720=23
+CRF_YT_SD=22
+CRF_VIDEO=18
+
+# ══════════════════════════════════════════════════════════════════════════════
+# [2] GPU-ERKENNUNG
+# ══════════════════════════════════════════════════════════════════════════════
+
+detect_gpu() {
+    local gpu_info
+    gpu_info=$(lspci 2>/dev/null | grep -iE "VGA|3D|Display")
+
+    if echo "$gpu_info" | grep -qi "nvidia"; then
+        echo "nvidia"
+    elif echo "$gpu_info" | grep -qi "amd\|radeon"; then
+        echo "amd"
+    elif echo "$gpu_info" | grep -qi "intel"; then
+        echo "intel"
+    else
+        echo "software"
+    fi
+}
+
+GPU_TYPE=$(detect_gpu)
+
+# ══════════════════════════════════════════════════════════════════════════════
+# [3] HILFSFUNKTIONEN
+# ══════════════════════════════════════════════════════════════════════════════
+
+# Untertitel-Codec basierend auf dem Container-Format auswählen
+get_subtitle_codec() {
+    local ext="$1"
+    if [ "$ext" = "mp4" ] || [ "$ext" = "mov" ]; then
+        # MP4/MOV unterstützen standardmäßig keine Subrip/SRT ohne Konvertierung zu mov_text
+        echo "mov_text"
+    else
+        # MKV schluckt alles ohne Probleme
+        echo "copy"
+    fi
+}
+
+# ══════════════════════════════════════════════════════════════════════════════
+# [4] KONVERTIERUNGS-FUNKTIONEN
+# ══════════════════════════════════════════════════════════════════════════════
+
+# -map 0:v? -map 0:a? -map 0:s? kopiert alle existierenden Streams (Video, Audio, Untertitel).
+# Die Video- und Audio-Codecs werden dann pro Stream-Typ überschrieben.
+
+convert_yt() {
+    local input="$1"
+    local dir_name=$(dirname "$input")
+    local base_name=$(basename "$input")
+    local filename="${base_name%.*}"
+    local output="${dir_name}/${filename}_yt.${YT_FORMAT}"
+    local sub_codec=$(get_subtitle_codec "$YT_FORMAT")
+
+    echo "Optimiere für YouTube Upload: $input"
+
+    local resolution
+    resolution=$(ffprobe -v error -select_streams v:0 -show_entries stream=height -of csv=s=x:p=0 "$input" 2>/dev/null || echo "1080")
+
+    local crf
+    if [ "$resolution" -ge 1080 ]; then
+        crf=$CRF_YT_1080
+    elif [ "$resolution" -ge 720 ]; then
+        crf=$CRF_YT_720
+    else
+        crf=$CRF_YT_SD
+    fi
+
+    local vcodec hwaccel_args vf_args encode_args
+
+    case "$GPU_TYPE" in
+        nvidia)
+            vcodec="hevc_nvenc"
+            hwaccel_args="-hwaccel cuda"
+            vf_args=""
+            encode_args="-preset p4 -rc vbr_hq -cq:v $crf -b:v 0"
+            ;;
+        intel|amd)
+            vcodec="hevc_vaapi"
+            hwaccel_args="-vaapi_device /dev/dri/renderD128"
+            vf_args="-vf format=nv12,hwupload"
+            encode_args="-rc_mode CQP -qp $crf"
+            ;;
+        software|*)
+            vcodec="libx265"
+            hwaccel_args=""
+            vf_args=""
+            encode_args="-preset medium -crf $crf"
+            ;;
+    esac
+
+    echo "Verwende GPU: $GPU_TYPE ($vcodec)"
+
+    ffmpeg -y $hwaccel_args -i "$input" \
+           -map 0:v? -map 0:a? -map 0:s? \
+           $vf_args \
+           -c:v "$vcodec" $encode_args \
+           -c:a "$YT_AUDIO_CODEC" -b:a "$YT_AUDIO_BITRATE" \
+           -c:s "$sub_codec" \
+           -movflags +faststart \
+           "$output"
+}
+
+convert_video() {
+    local input="$1"
+    local dir_name=$(dirname "$input")
+    local base_name=$(basename "$input")
+    local filename="${base_name%.*}"
+    local output="${dir_name}/${filename}_video.${VIDEO_FORMAT}"
+    local sub_codec=$(get_subtitle_codec "$VIDEO_FORMAT")
+
+    echo "Konvertiere Video für DaVinci: $input"
+
+    local audio_args="-c:a $VIDEO_AUDIO_CODEC -ar $VIDEO_AUDIO_SAMPLERATE -sample_fmt s16 -compression_level 8"
+    local vcodec hwaccel_args vf_args encode_args
+
+    case "$GPU_TYPE" in
+        nvidia)
+            vcodec="h264_nvenc"
+            hwaccel_args="-hwaccel cuda"
+            vf_args=""
+            encode_args="-preset p4 -b:v 10M -maxrate 15M -bufsize 20M"
+            ;;
+        intel|amd)
+            vcodec="h264_vaapi"
+            hwaccel_args="-vaapi_device /dev/dri/renderD128"
+            vf_args="-vf format=nv12,hwupload"
+            encode_args="-qp $CRF_VIDEO"
+            ;;
+        software|*)
+            vcodec="libx264"
+            hwaccel_args=""
+            vf_args=""
+            encode_args="-preset medium -crf $CRF_VIDEO"
+            ;;
+    esac
+
+    echo "Verwende GPU: $GPU_TYPE ($vcodec)"
+
+    ffmpeg -y $hwaccel_args -i "$input" \
+           -map 0:v? -map 0:a? -map 0:s? \
+           $vf_args \
+           -c:v "$vcodec" $encode_args \
+           $audio_args \
+           -c:s "$sub_codec" \
+           -movflags +faststart \
+           "$output"
+}
+
+convert_audio() {
+    local input="$1"
+    local dir_name=$(dirname "$input")
+    local base_name=$(basename "$input")
+    local filename="${base_name%.*}"
+    
+    local out_format="$AUDIO_FORMAT"
+    
+    # VP9 Video in MOV Containern macht manchmal Probleme, weiche dann auf MP4/MKV aus
+    if [ "$out_format" = "mov" ] && ffprobe -v error -select_streams v:0 -show_entries stream=codec_name -of default=noprint_wrappers=1:nokey=1 "$input" 2>/dev/null | grep -q "vp9"; then
+        out_format="mp4"
+        echo "VP9 Video erkannt - weiche auf mp4 statt mov aus"
+    fi
+    
+    local output="${dir_name}/${filename}_audio.${out_format}"
+    local sub_codec=$(get_subtitle_codec "$out_format")
+
+    echo "Konvertiere Audio-Spur zu PCM: $input"
+
+    ffmpeg -y -i "$input" \
+           -map 0:v? -map 0:a? -map 0:s? \
+           -c:v copy \
+           -c:a "$AUDIO_PCM_CODEC" -ar "$AUDIO_PCM_SAMPLERATE" \
+           -c:s "$sub_codec" \
+           -movflags +faststart \
+           "$output"
+}
+
+# ══════════════════════════════════════════════════════════════════════════════
+# [5] HAUPTLOGIK
+# ══════════════════════════════════════════════════════════════════════════════
+
+if [ $# -lt 2 ]; then
+    echo "Verwendung: $(basename "$0") <modus> <datei>..."
+    echo "Modi: yt, video, audio"
+    exit 1
+fi
+
+MODE="$1"
+shift
+
+for file in "$@"; do
+    if [ ! -f "$file" ]; then
+        echo "Datei nicht gefunden: $file"
+        continue
+    fi
+
+    case "$MODE" in
+        yt)
+            convert_yt "$file"
+            ;;
+        video)
+            convert_video "$file"
+            ;;
+        audio)
+            convert_audio "$file"
+            ;;
+        *)
+            echo "Unbekannter Modus: $MODE"
+            exit 1
+            ;;
+    esac
+done
+
+echo "Alle Konvertierungen abgeschlossen."

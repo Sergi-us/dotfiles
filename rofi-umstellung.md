@@ -29,7 +29,7 @@ und `-l` (Anzahl der Zeilen) kompatibel sind.
  `st-urlhandler` Liest den Terminal und sucht nach links kann in die zwischenablage kopieren oder direkt öffnen
  `st-copyout` Kopiert die ausgabe eines vorherigen befehls in die Zwischenablage
  `dmenurecord`, `dmenurecord-intel`, `dmenurecord-nvidia` (Bildschirmaufnahme) ersetzt durch
- `rofirecord`
+ `menurecord`
  `menuunicode` (ersetzt `dmenuunicode` - Emoji-Auswahl)
  `otp` (Zwei-Faktor-Authentifizierung)
  `maimpick` (Screenshot-Tool)
