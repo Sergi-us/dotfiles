@@ -18,4 +18,4 @@ h		$HOME
 mn		/mnt
 sc		$HOME/.local/bin
 src		$HOME/.local/src
-
+run     /run/media/$USER
