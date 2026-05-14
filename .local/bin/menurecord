@@ -390,7 +390,7 @@ screencast_monitor() {
     # Monitor auswählen
     local selected_monitor
     selected_monitor="$(xrandr --listmonitors | tail -n +2 | awk '{print $4}' \
-        | rofi -dmenu -i -p "Monitor auswählen")"
+        | rofi_menu -p "Monitor auswählen")"
 
     if [ -z "$selected_monitor" ]; then
         notify "Keine Monitorauswahl getroffen, Aufnahme abgebrochen."
@@ -602,7 +602,7 @@ webcam() {
     # Webcam auswählen wenn mehrere vorhanden
     local webcam
     if [ "$(echo "$devices" | wc -l)" -gt 1 ]; then
-        webcam=$(echo "$devices" | rofi -dmenu -i -p "Webcam auswählen")
+        webcam=$(echo "$devices" | rofi_menu -p "Webcam auswählen")
         if [ -z "$webcam" ]; then
             notify "Keine Webcam ausgewählt"
             return 1
@@ -652,10 +652,15 @@ webcam() {
 # [8] ROFI-MENÜ
 # ══════════════════════════════════════════════════════════════════════════════
 
+# Menü-Befehl definieren (Zentrale Stelle für einfache Anpassungen)
+rofi_menu() {
+    rofi -dmenu -i -location 0 -theme-str 'window { width: 35%; } listview { lines: 7; }' "$@"
+}
+
 askrecording() {
     local choice
     choice="$(printf "Bildschirm + Systemton\nBildschirm + Mikrofon\nMonitor wählen (ohne Ton)\nReaktion (Mikro + Systemton)\nStream + Aufnahme (YT/Twitch)\nAudioaufnahme\nWebcam" \
-        | rofi -dmenu -i -p "Aufnahme starten")"
+        | rofi_menu -p "Aufnahme starten")"
     case "$choice" in
         "Bildschirm + Systemton")        screencast_system ;;
         "Bildschirm + Mikrofon")         screencast_mic ;;
@@ -670,7 +675,7 @@ askrecording() {
 
 asktoend() {
     local response
-    response="$(printf "Ja\nNein" | rofi -dmenu -i -p "Aufnahme läuft, beenden?")"
+    response="$(printf "Ja\nNein" | rofi_menu -p "Aufnahme läuft, beenden?")"
     [ "$response" = "Ja" ] && killrecording
 }
 
