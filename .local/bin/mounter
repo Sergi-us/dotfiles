@@ -1,12 +1,11 @@
 #!/bin/bash
-## 2026-03-28   SARBS   TESTVERSION
-# Abhängigkeiten: GNU Coreutils (cat, head, id, mkdir, sleep, sort, tr), find, iconv, lsblk, mountpoint, notify-send, opt, rofi, sed, simple-mtpfs, size, sudo
+## 2026-05-10   SARBS core DEV
+# Abhängigkeiten: GNU Coreutils, find, iconv, lsblk, mountpoint, notify-send, rofi, sed, simple-mtpfs, udisks2 (udisksctl)
 ## 2025-08-29   SARBS - ASCII-Marker mit Phyton parsing
 ## Mountet Android-Telefone und USB-Laufwerke (verschlüsselt oder nicht)
 ## WICHTIG: Nutzt ASCII-Marker [TYPE] statt Emojis für Portabilität!
 ## Die Marker bestimmen die Mount-Logik und Optionen.
 ## Dependencies: dmenu, simple-mtpfs (für Android), cryptsetup (für LUKS)
-## Sudoers-Einträge nötig für: mount, umount, cryptsetup, mkdir in /mnt
 
 IFS='
 '
@@ -14,7 +13,7 @@ IFS='
 # Funktion zum Escapen von Handy-Namen für sichere Filesystem-Namen
 # Entfernt Sonderzeichen und konvertiert zu ASCII
 escape() {
-    echo "$@" | iconv -cf UTF-8 -t ASCII//TRANSLIT | tr -d '[:punct:]' | tr '[:upper:]' '[:lower:]' | tr ' ' '-' | sed "s/-\+/-/g;s/\(^-\|-\$\)//g"
+    echo "$@" | iconv -cf UTF-8 -t ASCII//TRANSLIT | tr -d '[:punct:]' | tr '[:upper:]' | tr ' ' '-' | sed "s/-\+/-/g;s/\(^-\|-\$\)//g"
 }
 
 # Gerätetyp-Erkennung basierend auf Device-Namen und System-Info
@@ -150,17 +149,21 @@ device="${device%% (*}"        # Alles vor " ("
 
 # Mountpunkt via Rofi wählen lassen
 getmount() {
-    mp="$(find /mnt /media /mount /home -maxdepth 1 -type d 2>/dev/null | rofi_menu -p "Mountpunkt wählen:")"
+    mp="$(find $HOME/Mounts $HOME /mnt /media /mount -maxdepth 1 -type d 2>/dev/null | rofi_menu -p "Mountpunkt wählen:")"
     test -n "$mp"
     if [ ! -d "$mp" ]; then
         mkdiryn=$(printf "Nein\\nJa" | rofi_menu -p "$mp existiert nicht. Erstellen?")
-        [ "$mkdiryn" = "Ja" ] && (mkdir -p "$mp" || sudo -A mkdir -p "$mp")
+        # DEV-Modus: sudo entfernt, läuft komplett als normaler User!
+        # [ "$mkdiryn" = "Ja" ] && (mkdir -p "$mp" || sudo -A mkdir -p "$mp")
+        [ "$mkdiryn" = "Ja" ] && mkdir -p "$mp"
     fi
 }
 
 # Versuche mount ohne spezifischen Mountpunkt (nutzt fstab wenn vorhanden)
 attemptmount() {
-    if sudo -A mount "$1" 2>/dev/null; then
+    # DEV-Modus: udisksctl statt sudo mount für fstab-Einträge
+    # if sudo -A mount "$1" 2>/dev/null; then
+    if udisksctl mount -b "$1" 2>/dev/null; then
         notify-send "✔ Laufwerk gemountet" "$1 gemountet."
         exit
     else
@@ -171,108 +174,145 @@ attemptmount() {
 # ========== HAUPTLOGIK - Marker-basierte Aktionen ==========
 case "$marker" in
     HDD|SSD|USB|NVME|DVD|DISK)
-        # Normale Laufwerke
+        # <<< DEV-Modus Start: udisksctl statt sudo mount >>>
+        # Vorteil: udisksctl nutzt den Udisks2-Daemon via Polkit. Keine sudo-Rechte nötig.
+        # Mountpoints werden automatisch unter /run/media/$USER/ erstellt.
+        # Berechtigungen (uid/gid) werden vom System automatisch korrekt gesetzt.
         if attemptmount "$device"; then
             exit
         else
-            getmount
-
-            # Dateisystem des Geräts erkennen (entscheidet über die Mount-Optionen!)
-            # Linux-native FS (ext4, btrfs, xfs, f2fs) unterstützen KEIN uid/gid als Mount-Option.
-            # FAT/NTFS/exFAT hingegen brauchen uid/gid, sonst gehört alles root.
-            devfs=$(lsblk -no fstype "$device" 2>/dev/null | head -n1)
-            [ -z "$devfs" ] && devfs=$(sudo -A blkid -s TYPE -o value "$device" 2>/dev/null)
-
-            case "$devfs" in
-                vfat|exfat|ntfs|ntfs3)
-                    # FAT/NTFS: uid/gid nötig, damit der User Zugriff hat
-                    case "$marker" in
-                        USB|HDD) opts="uid=$(id -u),gid=$(id -g),sync" ;;
-                        SSD|NVME) opts="uid=$(id -u),gid=$(id -g),noatime" ;;
-                        DVD) opts="ro,uid=$(id -u),gid=$(id -g)" ;;
-                        *) opts="uid=$(id -u),gid=$(id -g)" ;;
-                    esac
-                    sudo -A mount "$device" "$mp" -o "$opts" || {
-                        notify-send "✗ Fehler" "Mount fehlgeschlagen für $device ($devfs)"
-                        exit 1
-                    }
-                    ;;
-                *)
-                    # Linux-native FS (ext4, btrfs, xfs, f2fs ...) oder unbekannt:
-                    # Ohne uid/gid mounten, danach dem User Zugriff auf den Mountpunkt geben
-                    sudo -A mount "$device" "$mp" || {
-                        notify-send "✗ Fehler" "Mount fehlgeschlagen für $device ($devfs)"
-                        exit 1
-                    }
-                    sudo -A chown "$(id -u):$(id -g)" "$mp"
-                    ;;
-            esac
-
-            notify-send "✔ $marker gemountet" "$device ($devfs) zu $mp gemountet."
+            if udisksctl mount -b "$device"; then
+                notify-send "✔ $marker gemountet" "$device erfolgreich via udisksctl gemountet."
+                exit 0
+            else
+                notify-send "✗ Fehler" "udisksctl mount fehlgeschlagen für $device"
+                exit 1
+            fi
         fi
+
+        # --- Alter Sudo-Code auskommentiert ---
+        # # Normale Laufwerke
+        # if attemptmount "$device"; then
+        #     exit
+        # else
+        #     getmount
+        # 
+        #     # Dateisystem des Geräts erkennen (entscheidet über die Mount-Optionen!)
+        #     devfs=$(lsblk -no fstype "$device" 2>/dev/null | head -n1)
+        #     [ -z "$devfs" ] && devfs=$(sudo -A blkid -s TYPE -o value "$device" 2>/dev/null)
+        # 
+        #     case "$devfs" in
+        #         vfat|exfat|ntfs|ntfs3)
+        #             case "$marker" in
+        #                 USB|HDD) opts="uid=$(id -u),gid=$(id -g),sync" ;;
+        #                 SSD|NVME) opts="uid=$(id -u),gid=$(id -g),noatime" ;;
+        #                 DVD) opts="ro,uid=$(id -u),gid=$(id -g)" ;;
+        #                 *) opts="uid=$(id -u),gid=$(id -g)" ;;
+        #             esac
+        #             sudo -A mount "$device" "$mp" -o "$opts" || {
+        #                 notify-send "✗ Fehler" "Mount fehlgeschlagen für $device ($devfs)"
+        #                 exit 1
+        #             }
+        #             ;;
+        #         *)
+        #             sudo -A mount "$device" "$mp" || {
+        #                 notify-send "✗ Fehler" "Mount fehlgeschlagen für $device ($devfs)"
+        #                 exit 1
+        #             }
+        #             sudo -A chown "$(id -u):$(id -g)" "$mp"
+        #             ;;
+        #     esac
+        # 
+        #     notify-send "✔ $marker gemountet" "$device ($devfs) zu $mp gemountet."
+        # fi
+        # <<< DEV-Modus Ende >>>
         ;;
 
     LUKS)
-        # Verschlüsselte Laufwerke - automatisch nach /mnt/usb[num]
-
-        # Freie Nummer für mapper-Device finden
-        num=0
-        while [ -e "/dev/mapper/usb$num" ]; do
-            num=$((num + 1))
-        done
-
-        # LUKS-Passwort via Rofi abfragen (Rofi muss komplett beendet sein,
-        # bevor sudo -A aufgerufen wird, sonst kollidieren zwei Rofi-Instanzen)
+        # <<< DEV-Modus Start: udisksctl für LUKS >>>
+        # Vorteil: udisksctl verwaltet das Mapping automatisch. Entschlüsseltes Laufwerk
+        # kann danach mit einem weiteren udisksctl-Aufruf normal gemountet werden.
         lukspw=$(rofi -dmenu -password -p "LUKS Passwort für ${device##*/}: " \
             -theme-str 'window { width: 30%; padding: 2%; } mainbox { children: [prompt, entry]; } listview { enabled: false; }')
 
-        # Abbruch, wenn kein Passwort eingegeben wurde (z.B. Esc gedrückt)
         [ -z "$lukspw" ] && exit 0
 
-        # Passwort via printf (ohne Zeilenumbruch) an cryptsetup übergeben.
-        # sudo -A kann jetzt gefahrlos ASKPASS aufrufen, da Rofi geschlossen ist.
-        if ! error_msg=$(printf "%s" "$lukspw" | sudo -A cryptsetup open --key-file=- "$device" "usb$num" 2>&1); then
-            notify-send "✗ Entschlüsselung fehlgeschlagen" "${error_msg:-Unbekannter Fehler}"
+        # Entschlüsseln via udisksctl. --key-file=- liest von stdin (via printf)
+        if ! unlock_out=$(printf "%s" "$lukspw" | udisksctl unlock -b "$device" --key-file=- 2>&1); then
+            notify-send "✗ Entschlüsselung fehlgeschlagen" "${unlock_out:-Unbekannter Fehler}"
             lukspw=""
             exit 1
         fi
         lukspw=""
 
-        # Kurze Pause für den Kernel, um das gemappte Block-Gerät zu registrieren
-        sleep 0.5
+        # udisksctl gibt den Pfad des gemappten Devices aus: "Unlocked /dev/sdX1 as /dev/dm-0."
+        # Wir extrahieren das /dev/dm-X Device, um es direkt mounten zu können.
+        mapped_device=$(echo "$unlock_out" | grep -o '/dev/dm-[0-9]*' | head -n1)
 
-        if [ -b "/dev/mapper/usb$num" ]; then
-            # LUKS devices immer nach /mnt/usb[num] mounten
-            mp="/mnt/usb$num"
-            [ ! -d "$mp" ] && sudo -A mkdir -p "$mp"
-
-            # Dateisystem des entschlüsselten Containers erkennen
-            luks_fs=$(lsblk -no fstype "/dev/mapper/usb$num" 2>/dev/null | head -n1)
-
-            # Mount je nach Dateisystem (gleiche Logik wie bei normalen Laufwerken)
-            case "$luks_fs" in
-                vfat|exfat|ntfs|ntfs3)
-                    sudo -A mount -o "uid=$(id -u),gid=$(id -g)" "/dev/mapper/usb$num" "$mp" ;;
-                *)
-                    # Linux-native FS (ext4, btrfs, xfs ...): ohne uid/gid, danach chown
-                    sudo -A mount "/dev/mapper/usb$num" "$mp" ;;
-            esac || {
-                notify-send "✗ Fehler" "Mount fehlgeschlagen ($luks_fs)"
-                sudo -A cryptsetup close "usb$num"
+        if [ -n "$mapped_device" ]; then
+            if udisksctl mount -b "$mapped_device"; then
+                notify-send "✔ LUKS gemountet" "Erfolgreich via udisksctl entschlüsselt und gemountet."
+            else
+                notify-send "✗ Fehler" "Mount des entschlüsselten Laufwerks fehlgeschlagen."
+                udisksctl lock -b "$device" # Bei Fehler gleich wieder aufräumen
                 exit 1
-            }
-            # Bei Linux-native FS: Dem User Zugriff auf den Mountpunkt geben
-            case "$luks_fs" in ext4|btrfs|xfs|f2fs|"") sudo -A chown "$(id -u):$(id -g)" "$mp" ;; esac
-
-            notify-send "✔ LUKS gemountet" "$device ($luks_fs) zu $mp gemountet."
+            fi
         else
-            notify-send "✗ Fehler" "Konnte Block-Gerät /dev/mapper/usb$num nicht finden"
+            notify-send "✗ Fehler" "Konnte gemapptes LUKS-Device nicht ermitteln."
             exit 1
         fi
+
+        # --- Alter Sudo-Code auskommentiert ---
+        # # Verschlüsselte Laufwerke - automatisch nach /mnt/usb[num]
+        # num=0
+        # while [ -e "/dev/mapper/usb$num" ]; do
+        #     num=$((num + 1))
+        # done
+        # 
+        # lukspw=$(rofi -dmenu -password -p "LUKS Passwort für ${device##*/}: " \
+        #     -theme-str 'window { width: 30%; padding: 2%; } mainbox { children: [prompt, entry]; } listview { enabled: false; }')
+        # 
+        # [ -z "$lukspw" ] && exit 0
+        # 
+        # if ! error_msg=$(printf "%s" "$lukspw" | sudo -A cryptsetup open --key-file=- "$device" "usb$num" 2>&1); then
+        #     notify-send "✗ Entschlüsselung fehlgeschlagen" "${error_msg:-Unbekannter Fehler}"
+        #     lukspw=""
+        #     exit 1
+        # fi
+        # lukspw=""
+        # 
+        # sleep 0.5
+        # 
+        # if [ -b "/dev/mapper/usb$num" ]; then
+        #     mp="/mnt/usb$num"
+        #     [ ! -d "$mp" ] && sudo -A mkdir -p "$mp"
+        # 
+        #     luks_fs=$(lsblk -no fstype "/dev/mapper/usb$num" 2>/dev/null | head -n1)
+        # 
+        #     case "$luks_fs" in
+        #         vfat|exfat|ntfs|ntfs3)
+        #             sudo -A mount -o "uid=$(id -u),gid=$(id -g)" "/dev/mapper/usb$num" "$mp" ;;
+        #         *)
+        #             sudo -A mount "/dev/mapper/usb$num" "$mp" ;;
+        #     esac || {
+        #         notify-send "✗ Fehler" "Mount fehlgeschlagen ($luks_fs)"
+        #         sudo -A cryptsetup close "usb$num"
+        #         exit 1
+        #     }
+        #     case "$luks_fs" in ext4|btrfs|xfs|f2fs|"") sudo -A chown "$(id -u):$(id -g)" "$mp" ;; esac
+        # 
+        #     notify-send "✔ LUKS gemountet" "$device ($luks_fs) zu $mp gemountet."
+        # else
+        #     notify-send "✗ Fehler" "Konnte Block-Gerät /dev/mapper/usb$num nicht finden"
+        #     exit 1
+        # fi
+        # <<< DEV-Modus Ende >>>
         ;;
 
     HANDY)
-        # Android/MTP Geräte
+        # <<< DEV-Modus Start: Userspace MTP Mount >>>
+        # simple-mtpfs als normaler User ausführen. Dadurch entfällt "allow_other" und 
+        # die Berechtigungen stimmen automatisch für den User.
         notify-send "📱 Hinweis" "Erlaube Dateizugriff auf dem Handy"
         getmount
 
@@ -280,14 +320,31 @@ case "$marker" in
         number="${chosen#*] }"
         number="${number%%:*}"
 
-        # MTP mount mit simple-mtpfs
-        sudo -A simple-mtpfs -o allow_other \
+        # simple-mtpfs ohne sudo ausführen!
+        simple-mtpfs \
             -o fsname="simple-mtpfs-$(escape "$chosen")" \
             --device "$number" "$mp" || {
             notify-send "✗ Fehler" "Mount fehlgeschlagen"
             exit 1
         }
         notify-send "✔ Handy gemountet" "Android zu $mp gemountet"
+
+        # --- Alter Sudo-Code auskommentiert ---
+        # # Android/MTP Geräte
+        # notify-send "📱 Hinweis" "Erlaube Dateizugriff auf dem Handy"
+        # getmount
+        # 
+        # number="${chosen#*] }"
+        # number="${number%%:*}"
+        # 
+        # sudo -A simple-mtpfs -o allow_other \
+        #     -o fsname="simple-mtpfs-$(escape "$chosen")" \
+        #     --device "$number" "$mp" || {
+        #     notify-send "✗ Fehler" "Mount fehlgeschlagen"
+        #     exit 1
+        # }
+        # notify-send "✔ Handy gemountet" "Android zu $mp gemountet"
+        # <<< DEV-Modus Ende >>>
         ;;
 
     *)

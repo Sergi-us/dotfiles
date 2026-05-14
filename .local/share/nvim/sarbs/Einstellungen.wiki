@@ -5,7 +5,7 @@
 
 [[Laufwerke unter Linux]]
 
-- Compose Funktion für Umlaute Aktivieren
+- [[Compose Funktion]] für Umlaute Aktivieren
 	`setxkbmap -option compose:menu`
 
 [[GNU-Coreutils]]

@@ -1,5 +1,8 @@
  = Git auf dem System einrichten =
 
+Git bei der Installation einrichten (muss offline möglich sein)
+sprich nur die Basics und nur wenn gewünscht!
+
 ssh Verbindung mit GitHub testen
 {{{class="brush: bash"
 ssh -T git@github.com

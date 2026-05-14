@@ -1,4 +1,5 @@
 = Die Anleitung ist für die Direktverbindung 2 Rechner nur mit einem Netzwerkkabel =
+umschreiben, Networkmanager soll weg
 
 == Einrichtung auf T480 ==
 Als erstes den Netzwerkadapter identifizieren
@@ -48,7 +49,7 @@ ping 192.168.1.2
 == .ssh/config eintrag hinzufügen ==
 
 == Netzwerkprofil erstellen ==
-
+# obsolet, da Networkmanager basierend
 auf T480
 {{{
 nmcli connection add type ethernet con-name "Direktverbindung" \

@@ -1,4 +1,4 @@
-== Benutzeroberflächen ==
+== Benutzeroberflächen anpassungen ==
 
 [[Schriftart]]
 

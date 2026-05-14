@@ -1,4 +1,5 @@
 = Geräte mit Bluetooth Verbinden =
+Obsolet: TUI für Bluetooth wird geändert zu bluetui. Get the job done im SARBS style
 [[https://www.youtube.com/watch?v=y-jRFcNRr0M|YouTube: Geräte in Linux mit Bluetooth verbinden]]
 
 Notwendige Packete (in SARBS bereits instaliert)

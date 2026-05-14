@@ -37,7 +37,6 @@ LUKS-Container öffnen:
 {{{
 cryptsetup open /dev/sdX1 bezeichnung
 }}}
-_Tipp: Wähle einen aussagekräftigen Namen für "bezeichnung"_
 
 == Dateisystem erstellen ==
 === Option 1: BTRFS ===
@@ -49,6 +48,12 @@ mkfs.btrfs /dev/mapper/bezeichnung
 {{{
 mkfs.ext4 /dev/mapper/bezeichnung
 }}}
+
+== Monten in SARBS ==
+TODO Mounter und unmouter ohne SUDO abfrage implementieren
+`MOD+F9` - Device auswählen
+LUKS Passwort eingeben
+Sudo Passwort eingeben
 
 == Mounten und Rechte setzen ==
 

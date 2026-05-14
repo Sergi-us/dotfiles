@@ -23,27 +23,3 @@
 
 5. SMART aktivieren (kann vorkommen dass Smart deaktiviert ist, warum auch immer. hier der Promt um es zu aktivieren)
 	`sudo smartctl -s on /dev/sdX`
-
-
-Überprüfen der Festplattengesundheit mit SMART
-SMART-Werte auslesen:
-
-bash
-Code kopieren
-sudo smartctl -a /dev/sdX
-Kurzer SMART-Selbsttest:
-
-bash
-Code kopieren
-sudo smartctl -t short /dev/sdX
-Langer SMART-Selbsttest:
-
-bash
-Code kopieren
-sudo smartctl -t long /dev/sdX
-Testergebnisse anzeigen:
-
-bash
-Code kopieren
-sudo smartctl -a /dev/sdX
-Mit diesen Schritten kannst du den Gesundheitszustand deiner HDD überprüfen und sicherstellen, dass keine schwerwiegenden Probleme vorliegen. Wenn du weitere Analysen benötigst oder Fragen hast, lass es mich wissen!

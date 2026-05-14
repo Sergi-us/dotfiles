@@ -2,6 +2,7 @@
 ## 2026-01-27   SARBS
 # Dateidatum und Uhrzeit in lf bearbeiten
 # Ermöglicht manuelles Setzen des Erstelldatums mit Validierung
+# ist gebunden auf <ä>+<d>
 
 file="$1"
 
