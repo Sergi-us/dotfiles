@@ -1,4 +1,5 @@
 # 🚀 SARBS Dotfiles
+# OpenRC Version
 
 **Suckless Auto-Rice Bootstrapping Scripts - Konfigurationsdateien**
 

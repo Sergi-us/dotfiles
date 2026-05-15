@@ -22,6 +22,10 @@ fi
 # Dies ist wichtig für die Inter-Prozess-Kommunikation in vielen Desktop-Umgebungen
 dbus-update-activation-environment --all
 
+# Audio Dienste Starten (OpenRC)
+pipewire &
+pipewire-pulse &
+
 # Startet den SSH-Agenten und dann den Window Manager DWM
 # Der SSH-Agent wird in der dbus-Umgebung gestartet, was nützlich ist für
 # Programme, die SSH-Authentifizierung benötigen
