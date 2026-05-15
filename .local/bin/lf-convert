@@ -25,11 +25,15 @@ VIDEO_AUDIO_SAMPLERATE="48000"
 AUDIO_PCM_CODEC="pcm_s16le"
 AUDIO_PCM_SAMPLERATE="48000"
 
-# Video Qualität (CRF = Constant Rate Factor)
-# Niedriger = Bessere Qualität, Größere Datei (18-24 ist ein guter Bereich)
-CRF_YT_1080=24
-CRF_YT_720=23
-CRF_YT_SD=22
+# Video Qualität (CRF = Constant Rate Factor / QP = Quantization Parameter)
+# Niedriger = Bessere Qualität, Größere Datei. Höher = Kleinere Datei, Weniger Qualität.
+# DJI Drohnen-Aufnahmen haben oft enorme Bitraten. Um sie für YT stark zu verkleinern,
+# nutzen wir hier relativ hohe Werte. (28-32 ist gut für starke Komprimierung)
+CRF_YT_4K=32
+CRF_YT_1440=30
+CRF_YT_1080=28
+CRF_YT_720=26
+CRF_YT_SD=24
 CRF_VIDEO=18
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -90,7 +94,11 @@ convert_yt() {
     resolution=$(ffprobe -v error -select_streams v:0 -show_entries stream=height -of csv=s=x:p=0 "$input" 2>/dev/null || echo "1080")
 
     local crf
-    if [ "$resolution" -ge 1080 ]; then
+    if [ "$resolution" -ge 2160 ]; then
+        crf=$CRF_YT_4K
+    elif [ "$resolution" -ge 1440 ]; then
+        crf=$CRF_YT_1440
+    elif [ "$resolution" -ge 1080 ]; then
         crf=$CRF_YT_1080
     elif [ "$resolution" -ge 720 ]; then
         crf=$CRF_YT_720
