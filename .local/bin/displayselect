@@ -92,9 +92,15 @@ twoscreen() { # Parameter: $1=screens
         primary=$(echo "$prim_sel" | awk '{print $2}')
         local sec_sel=$(echo "$formatted" | grep -v "$primary")
         secondary=$(echo "$sec_sel" | awk '{print $2}')
-        direction=$(printf "links\\nrechts" | rofi_menu -p "Auf welcher Seite von $primary soll $secondary sein?")
-        [ "$direction" = "links" ] && dir_flag="left" || dir_flag="right"
-        xrandr --output "$primary" --auto --scale 1.0x1.0 --output "$secondary" --"$dir_flag"-of "$primary" --auto --scale 1.0x1.0
+        direction=$(printf "links\\nrechts\\noben\\nunten" | rofi_menu -p "Auf welcher Seite von $primary soll $secondary sein?")
+        [ -z "$direction" ] && return
+        case "$direction" in
+            "links") pos_arg="--left-of $primary" ;;
+            "rechts") pos_arg="--right-of $primary" ;;
+            "oben") pos_arg="--above $primary" ;;
+            "unten") pos_arg="--below $primary" ;;
+        esac
+        xrandr --output "$primary" --auto --scale 1.0x1.0 --output "$secondary" --auto --scale 1.0x1.0 $pos_arg
     fi
     }
 
@@ -166,16 +172,16 @@ morescreen() { # Parameter: $1=screens. Erlaubt theoretisch beliebig viele Monit
             [ -z "$direction" ] && break
 
             # Deutsche Auswahl auf xrandr-Parameter mappen
-            local dir_flag=""
+            local pos_arg=""
             case "$direction" in
-                "links") dir_flag="left" ;;
-                "rechts") dir_flag="right" ;;
-                "oben") dir_flag="above" ;;
-                "unten") dir_flag="below" ;;
+                "links") pos_arg="--left-of $last_arranged" ;;
+                "rechts") pos_arg="--right-of $last_arranged" ;;
+                "oben") pos_arg="--above $last_arranged" ;;
+                "unten") pos_arg="--below $last_arranged" ;;
             esac
 
             # Argumente anhängen
-            xrandr_args="$xrandr_args --output $next_screen --auto --$dir_flag-of $last_arranged"
+            xrandr_args="$xrandr_args --output $next_screen --auto $pos_arg"
 
             # Listen updaten
             remaining_screens=$(echo "$remaining_screens" | grep -v "^$next_screen$")

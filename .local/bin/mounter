@@ -63,8 +63,8 @@ done)"
 # Alle LUKS-Laufwerke finden (nutze -P für robustes Parsing bei leeren Spalten)
 allluks="$(lsblk -Ppo name,type,size,label,mountpoint,fstype,uuid 2>/dev/null | grep 'FSTYPE="crypto_LUKS"')"
 
-# Bereits entschlüsselte LUKS devices finden
-decrypted="$(find /dev/disk/by-id/dm-uuid-CRYPT-LUKS2-* 2>/dev/null | sed "s|.*LUKS2-||;s|-.*||")"
+# Bereits entschlüsselte LUKS devices finden (sowohl LUKS1 als auch LUKS2)
+decrypted="$(find /dev/disk/by-id/dm-uuid-CRYPT-LUKS{1,2}-* 2>/dev/null | sed "s|.*LUKS[12]-||;s|-.*||")"
 
 # Nur nicht-entschlüsselte LUKS anzeigen
 unopenedluks="$(echo "$allluks" | while read -r line; do
@@ -237,17 +237,21 @@ case "$marker" in
 
         [ -z "$lukspw" ] && exit 0
 
-        # Entschlüsseln via udisksctl. --key-file=- liest von stdin (via printf)
-        if ! unlock_out=$(printf "%s" "$lukspw" | udisksctl unlock -b "$device" --key-file=- 2>&1); then
+        # Entschlüsseln via udisksctl mit Process Substitution (keine tempfile)
+        if ! unlock_out=$(udisksctl unlock -b "$device" --key-file <(printf '%s' "$lukspw") 2>&1); then
             notify-send "✗ Entschlüsselung fehlgeschlagen" "${unlock_out:-Unbekannter Fehler}"
             lukspw=""
             exit 1
         fi
         lukspw=""
 
+        # Warte kurz bis das gemappte Device bereit ist
+        sleep 0.5
+
         # udisksctl gibt den Pfad des gemappten Devices aus: "Unlocked /dev/sdX1 as /dev/dm-0."
-        # Wir extrahieren das /dev/dm-X Device, um es direkt mounten zu können.
+        # Wir extrahieren das /dev/dm-X Device ODER /dev/mapper/luks-UUID
         mapped_device=$(echo "$unlock_out" | grep -o '/dev/dm-[0-9]*' | head -n1)
+        [ -z "$mapped_device" ] && mapped_device=$(echo "$unlock_out" | grep -o '/dev/mapper/luks-[^ ]*' | head -n1)
 
         if [ -n "$mapped_device" ]; then
             if udisksctl mount -b "$mapped_device"; then
