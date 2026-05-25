@@ -1,5 +1,5 @@
 #!/bin/bash
-## 2026-03-29 SARBS - Universelles Aufnahmeskript (Rofi)
+## 2026-03-29 SARBS core DEV - Universelles Aufnahmeskript (Rofi)
 # Abhängigkeiten: GNU Coreutils (cat, cut, date, head, mkdir, nice, rm, tail, wc), awk, ffmpeg, lspci, notify-send, pactl, pkill, rofi, sed, stream, xdpyinfo, xrandr
 ## Unterstützt: Intel (VAAPI), AMD (VAAPI), NVIDIA (NVENC), Software-Fallback (libx264)
 ## GPU-Erkennung automatisch oder per ROFIRECORD_GPU=intel|amd|nvidia|software
@@ -229,6 +229,54 @@ killrecording() {
     fi
 }
 
+# Aktive Monitore zählen
+count_active_monitors() {
+    xrandr --listmonitors 2>/dev/null | tail -n +2 | wc -l
+}
+
+# Monitor-Auswahl mit rofi (gibt Name, Auflösung und Offset zurück)
+# Rückgabeformat: "name resolution x_offset y_offset"
+select_monitor() {
+    local selected_monitor
+    selected_monitor="$(xrandr --listmonitors | tail -n +2 | awk '{print $4}' \
+        | rofi_menu -p "Monitor auswählen")"
+
+    if [ -z "$selected_monitor" ]; then
+        return 1
+    fi
+
+    # Auflösung und Offset ermitteln
+    local monitor_info
+    monitor_info=$(xrandr | grep -w "$selected_monitor" | grep " connected")
+
+    if [ -z "$monitor_info" ]; then
+        notify "Monitor $selected_monitor nicht gefunden oder nicht verbunden"
+        return 1
+    fi
+
+    local resolution x_offset y_offset
+    local full_geometry
+    full_geometry=$(echo "$monitor_info" | grep -oE '[0-9]+x[0-9]+\+[0-9]+\+[0-9]+' | head -n1)
+
+    if [ -n "$full_geometry" ]; then
+        resolution=$(echo "$full_geometry" | cut -d'+' -f1)
+        x_offset=$(echo "$full_geometry" | cut -d'+' -f2)
+        y_offset=$(echo "$full_geometry" | cut -d'+' -f3)
+    else
+        resolution=$(echo "$monitor_info" | grep -oE '[0-9]+x[0-9]+' | head -n1)
+        x_offset="0"
+        y_offset="0"
+        notify "Warnung: Offset nicht ermittelt, verwende 0+0"
+    fi
+
+    if [ -z "$resolution" ]; then
+        notify "Fehler: Auflösung für Monitor $selected_monitor nicht ermittelt"
+        return 1
+    fi
+
+    echo "${selected_monitor}|${resolution}|${x_offset}|${y_offset}"
+}
+
 # Hauptmonitor-Auflösung ermitteln (mit mehrstufigem Fallback)
 get_primary_monitor_resolution() {
     local resolution
@@ -362,11 +410,32 @@ screencast_system() {
     local sys_audio
     sys_audio=$(detect_system_audio) || return 1
 
-    local resolution
-    resolution=$(get_primary_monitor_resolution)
+    local resolution display_input out monitor_data
+
+    # DEV: Prüfung auf mehrere Monitore
+    local monitor_count
+    monitor_count=$(count_active_monitors)
+
+    if [ "$monitor_count" -gt 1 ]; then
+        # Mehrere Monitore: Auswahl anzeigen
+        monitor_data="$(select_monitor)" || return 1
+        resolution="$(echo "$monitor_data" | cut -d'|' -f2)"
+        local x_offset y_offset
+        x_offset="$(echo "$monitor_data" | cut -d'|' -f3)"
+        y_offset="$(echo "$monitor_data" | cut -d'|' -f4)"
+        display_input="${DISPLAY}+${x_offset}+${y_offset}"
+    else
+        # Einzelner Monitor: Gesamten Bildschirm aufnehmen
+        resolution=$(get_primary_monitor_resolution)
+        display_input="$DISPLAY"
+    fi
+
+    # ALT: Immer gesamten Bildschirm
+    # local resolution
+    # resolution=$(get_primary_monitor_resolution)
     local out="$VIDEO_DIR/screencast-$(date '+%y%m%d-%H%M-%S').$VIDEO_FORMAT"
 
-    _record_screen_single_audio "$sys_audio" "$out" "$resolution" "$DISPLAY"
+    _record_screen_single_audio "$sys_audio" "$out" "$resolution" "$display_input"
     notify "Screencast gestartet (System-Audio)"
     updateicon "$ICON_SCREENCAST"
 }
@@ -376,11 +445,32 @@ screencast_mic() {
     local mic
     mic=$(detect_microphone) || return 1
 
-    local resolution
-    resolution=$(get_primary_monitor_resolution)
+    local resolution display_input out monitor_data
+
+    # DEV: Prüfung auf mehrere Monitore
+    local monitor_count
+    monitor_count=$(count_active_monitors)
+
+    if [ "$monitor_count" -gt 1 ]; then
+        # Mehrere Monitore: Auswahl anzeigen
+        monitor_data="$(select_monitor)" || return 1
+        resolution="$(echo "$monitor_data" | cut -d'|' -f2)"
+        local x_offset y_offset
+        x_offset="$(echo "$monitor_data" | cut -d'|' -f3)"
+        y_offset="$(echo "$monitor_data" | cut -d'|' -f4)"
+        display_input="${DISPLAY}+${x_offset}+${y_offset}"
+    else
+        # Einzelner Monitor: Gesamten Bildschirm aufnehmen
+        resolution=$(get_primary_monitor_resolution)
+        display_input="$DISPLAY"
+    fi
+
+    # ALT: Immer gesamten Bildschirm
+    # local resolution
+    # resolution=$(get_primary_monitor_resolution)
     local out="$VIDEO_DIR/screencast-mic-$(date '+%y%m%d-%H%M-%S').$VIDEO_FORMAT"
 
-    _record_screen_single_audio "$mic" "$out" "$resolution" "$DISPLAY"
+    _record_screen_single_audio "$mic" "$out" "$resolution" "$display_input"
     notify "Screencast gestartet (Mikrofon)"
     updateicon "$ICON_SCREENCAST"
 }
