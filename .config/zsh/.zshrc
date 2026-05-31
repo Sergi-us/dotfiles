@@ -346,7 +346,7 @@ setopt interactive_comments         # Kommentare in interaktiven Shells
 HISTSIZE=10000000
 SAVEHIST=10000000
 HISTFILE="${XDG_STATE_HOME:-$HOME/.local/state}/zsh/history"
-HISTORY_IGNORE="(pass|pass *|man *|ls|ls *|cd|cd *|ytt|ytt *|yt|yt *|tomb|tomb *|pwd|exit|clear|history|history *)"
+HISTORY_IGNORE="(pass|pass *|man *|ls|ls *|cd|cd *|ytt|ytt *|yt|yt *|ffgpu|ffgpu *|tomb|tomb *|pwd|exit|clear|history|history *)"
 setopt HIST_IGNORE_ALL_DUPS     # Alle Duplikate ignorieren
 setopt HIST_SAVE_NO_DUPS        # Keine Duplikate speichern
 setopt HIST_IGNORE_SPACE        # Befehle mit führendem Leerzeichen ignorieren

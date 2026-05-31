@@ -66,6 +66,10 @@ alias \
 	ytt="yt --skip-download --write-thumbnail" \
 	ffmpeg="ffmpeg -hide_banner"
 
+ffgpu() {
+	ffmpeg -hide_banner -vaapi_device /dev/dri/renderD128 -i "$1" -vf 'format=nv12,hwupload' -c:v h264_vaapi -c:a copy "$2"
+}
+
 # List Befehle
     alias l="ls_extended -s"
     alias ll="ls_extended -A -s"

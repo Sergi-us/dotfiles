@@ -544,8 +544,29 @@ screencast_reaction() {
     mic=$(detect_microphone) || return 1
     sys_audio=$(detect_system_audio) || return 1
 
-    local resolution
-    resolution=$(get_primary_monitor_resolution)
+    local resolution display_input out monitor_data
+
+    # DEV: Prüfung auf mehrere Monitore
+    local monitor_count
+    monitor_count=$(count_active_monitors)
+
+    if [ "$monitor_count" -gt 1 ]; then
+        # Mehrere Monitore: Auswahl anzeigen
+        monitor_data="$(select_monitor)" || return 1
+        resolution="$(echo "$monitor_data" | cut -d'|' -f2)"
+        local x_offset y_offset
+        x_offset="$(echo "$monitor_data" | cut -d'|' -f3)"
+        y_offset="$(echo "$monitor_data" | cut -d'|' -f4)"
+        display_input="${DISPLAY}+${x_offset}+${y_offset}"
+    else
+        # Einzelner Monitor: Gesamten Bildschirm aufnehmen
+        resolution=$(get_primary_monitor_resolution)
+        display_input="$DISPLAY"
+    fi
+
+    # ALT: Immer gesamten Bildschirm
+    # local resolution
+    # resolution=$(get_primary_monitor_resolution)
     local out="$VIDEO_DIR/reaction-$(date '+%y%m%d-%H%M-%S').$VIDEO_FORMAT"
 
     # Sicherstellen, dass System-Audio nicht stumm ist
@@ -567,7 +588,7 @@ screencast_reaction() {
         $HW_ACCEL_INIT \
         -itsoffset -0.225 \
         -thread_queue_size "$THREAD_QUEUE" \
-        -f x11grab -framerate "$FRAMERATE" -video_size "$resolution" -i "$DISPLAY" \
+        -f x11grab -framerate "$FRAMERATE" -video_size "$resolution" -i "$display_input" \
         -thread_queue_size "$THREAD_QUEUE" \
         -f pulse -sample_rate "$AUDIO_SAMPLERATE" -channels 2 -i "$mic" \
         -thread_queue_size "$THREAD_QUEUE" \
