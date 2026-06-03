@@ -1,6 +1,6 @@
 #!/bin/bash
-## 2026-03-29 SARBS core DEV - Universelles Aufnahmeskript (Rofi)
-# Abhängigkeiten: GNU Coreutils (cat, cut, date, head, mkdir, nice, rm, tail, wc), awk, ffmpeg, lspci, notify-send, pactl, pkill, rofi, sed, stream, xdpyinfo, xrandr
+## 2026-03-29 SARBS core DEV - Universelles Aufnahmeskript (Rofi) + Pegelanzeige
+# Abhängigkeiten: GNU Coreutils (cat, cut, date, head, mkdir, nice, rm, tail, wc), awk, ffmpeg, lspci, notify-send, od, pactl, parec, pkill, rofi, sed, setsid, stream, timeout, xdpyinfo, xrandr
 ## Unterstützt: Intel (VAAPI), AMD (VAAPI), NVIDIA (NVENC), Software-Fallback (libx264)
 ## GPU-Erkennung automatisch oder per ROFIRECORD_GPU=intel|amd|nvidia|software
 
@@ -199,6 +199,290 @@ detect_microphone() {
     return 1
 }
 
+# Audio-Quelle wählen (Hybrid: Override oder automatisch)
+select_audio_source() {
+    # 1. Override per Umgebungsvariable
+    if [ -n "$ROFIRECORD_AUDIO_SOURCE" ]; then
+        echo "$ROFIRECORD_AUDIO_SOURCE"
+        return
+    fi
+
+    # 2. Verfügbare Quellen auflisten
+    local sources
+    sources=$(pactl list sources short 2>/dev/null | awk '{print $2}')
+
+    if [ -z "$sources" ]; then
+        notify "Keine Audio-Quellen gefunden"
+        return 1
+    fi
+
+    # 3. Wenn nur eine Quelle, automatisch wählen
+    local source_count
+    source_count=$(echo "$sources" | wc -l)
+
+    if [ "$source_count" -eq 1 ]; then
+        echo "$sources"
+        return
+    fi
+
+    # 4. Mehrere Quellen: Rofi-Menü anzeigen
+    local selected
+    selected=$(echo "$sources" | rofi_menu -p "Audio-Quelle auswählen")
+
+    if [ -n "$selected" ]; then
+        echo "$selected"
+    else
+        return 1
+    fi
+}
+
+# ══════════════════════════════════════════════════════════════════════════════
+# [4A] PEGELMONITOR (in menurecord integriert)
+# ══════════════════════════════════════════════════════════════════════════════
+#
+# Wird als Hintergrundprozess via "menurecord _reclevel_mon <source>" gestartet.
+# Nutzt pacmd peak detection statt parec – blockiert die Audio-Quelle nicht.
+
+_reclevel_mon() {
+    local source="$1"
+    local icon_file="/tmp/recording_icon"
+    local output_file="/tmp/recordingicon"
+
+    # Empfindlichkeit: RMS-Referenzwert für Vollauschlag (Level 8)
+    # Niedriger = empfindlicher (mehr Ausschlag bei leisen Signalen)
+    # Standard: 8000 (ca. 24% von 32767) – passt für Mikrofon-Sprache
+    # Optionen: 4000 (sehr empfindlich), 8000 (empfohlen), 16000 (konservativ), 32767 (linear)
+    local sensitivity="${RECLEVEL_SENSITIVITY:-8000}"
+
+    if [ -z "$source" ]; then
+        exit 1
+    fi
+
+    # Cleanup beim Beenden
+    cleanup() {
+        rm -f "$output_file" "/tmp/reclevel-mon.pid"
+        exit 0
+    }
+    trap cleanup INT TERM EXIT
+
+    echo $$ > "/tmp/reclevel-mon.pid"
+
+    # Kontinuierlich Pegel messen (5x pro Sekunde)
+    while true; do
+        local tmp_raw="/tmp/reclevel_raw"
+
+        parec -d "$source" \
+            --format=s16le --rate=22050 --channels=1 \
+            --latency-msec=50 2>/dev/null > "$tmp_raw" &
+        local pid=$!
+
+        sleep 0.2
+        kill $pid 2>/dev/null
+        wait $pid 2>/dev/null
+
+        local level
+        level=$(od -An -td2 "$tmp_raw" 2>/dev/null | \
+            awk -v sens="$sensitivity" '{
+                for (i = 1; i <= NF; i++) {
+                    val = $i + 0
+                    sum += val * val
+                    n++
+                }
+            }
+            END {
+                if (n > 0) {
+                    rms = sqrt(sum / n)
+                    level = int((rms / sens) * 8 + 0.5)
+                    if (level > 8) level = 8
+                    if (level < 0) level = 0
+                    print level
+                } else {
+                    print 0
+                }
+            }')
+
+        rm -f "$tmp_raw"
+
+        # Fallback wenn parec fehlschlägt
+        if [ -z "$level" ]; then
+            level=0
+        fi
+
+        # Icon auslesen und mit Pegel kombinieren
+        local icon=""
+        if [ -f "$icon_file" ]; then
+            icon=$(cat "$icon_file" 2>/dev/null)
+        fi
+
+        # Pegel-Balken generieren (wie sb-cpubars)
+        local bar
+        case "$level" in
+            0) bar="▁" ;;
+            1) bar="▂" ;;
+            2) bar="▃" ;;
+            3) bar="▄" ;;
+            4) bar="▅" ;;
+            5) bar="▆" ;;
+            6) bar="▇" ;;
+            7|8) bar="█" ;;
+        esac
+
+        # Ausgabe: einzelner Balken + Icon
+        printf "%s %s" "$bar" "$icon" > "$output_file"
+
+        pkill -RTMIN+10 "${STATUSBAR:-dwmblocks}" 2>/dev/null
+    done
+}
+
+# Dual-Pegelmonitor für Reaction (Mikrofon + System-Audio)
+_reclevel_mon_dual() {
+    local mic="$1"
+    local sys="$2"
+    local icon_file="/tmp/recording_icon"
+    local output_file="/tmp/recordingicon"
+    local tmp_mic="/tmp/reclevel_mic_raw"
+    local tmp_sys="/tmp/reclevel_sys_raw"
+
+    local sensitivity="${RECLEVEL_SENSITIVITY:-8000}"
+
+    if [ -z "$mic" ] || [ -z "$sys" ]; then
+        exit 1
+    fi
+
+    # Cleanup beim Beenden
+    cleanup() {
+        rm -f "$output_file" "$tmp_mic" "$tmp_sys" "/tmp/reclevel-mon.pid"
+        exit 0
+    }
+    trap cleanup INT TERM EXIT
+
+    echo $$ > "/tmp/reclevel-mon.pid"
+
+    # Kontinuierlich beide Pegel messen (5x pro Sekunde)
+    while true; do
+        # Parallel aufnehmen (beide Quellen gleichzeitig)
+        parec -d "$mic" \
+            --format=s16le --rate=22050 --channels=1 \
+            --latency-msec=50 2>/dev/null > "$tmp_mic" &
+        local pid_mic=$!
+
+        parec -d "$sys" \
+            --format=s16le --rate=22050 --channels=1 \
+            --latency-msec=50 2>/dev/null > "$tmp_sys" &
+        local pid_sys=$!
+
+        # 0.2s warten, dann Prozesse beenden
+        sleep 0.2
+        kill $pid_mic 2>/dev/null
+        kill $pid_sys 2>/dev/null
+        wait $pid_mic 2>/dev/null
+        wait $pid_sys 2>/dev/null
+
+        # Mikrofon-Pegel berechnen
+        local level_mic
+        level_mic=$(od -An -td2 "$tmp_mic" 2>/dev/null | \
+        awk -v sens="$sensitivity" '{
+            for (i = 1; i <= NF; i++) {
+                val = $i + 0
+                sum += val * val
+                n++
+            }
+        }
+        END {
+            if (n > 0) {
+                rms = sqrt(sum / n)
+                level = int((rms / sens) * 8 + 0.5)
+                if (level > 8) level = 8
+                if (level < 0) level = 0
+                print level
+            } else { print 0 }
+        }')
+
+        # System-Audio-Pegel berechnen
+        local level_sys
+        level_sys=$(od -An -td2 "$tmp_sys" 2>/dev/null | \
+        awk -v sens="$sensitivity" '{
+            for (i = 1; i <= NF; i++) {
+                val = $i + 0
+                sum += val * val
+                n++
+            }
+        }
+        END {
+            if (n > 0) {
+                rms = sqrt(sum / n)
+                level = int((rms / sens) * 8 + 0.5)
+                if (level > 8) level = 8
+                if (level < 0) level = 0
+                print level
+            } else { print 0 }
+        }')
+
+        # Fallbacks
+        [ -z "$level_mic" ] && level_mic=0
+        [ -z "$level_sys" ] && level_sys=0
+
+        # Icon auslesen
+        local icon=""
+        if [ -f "$icon_file" ]; then
+            icon=$(cat "$icon_file" 2>/dev/null)
+        fi
+
+        # Balken generieren
+        local bar_mic bar_sys
+        case "$level_mic" in
+            0) bar_mic="▁" ;; 1) bar_mic="▂" ;; 2) bar_mic="▃" ;; 3) bar_mic="▄" ;;
+            4) bar_mic="▅" ;; 5) bar_mic="▆" ;; 6) bar_mic="▇" ;; 7|8) bar_mic="█" ;;
+        esac
+        case "$level_sys" in
+            0) bar_sys="▁" ;; 1) bar_sys="▂" ;; 2) bar_sys="▃" ;; 3) bar_sys="▄" ;;
+            4) bar_sys="▅" ;; 5) bar_sys="▆" ;; 6) bar_sys="▇" ;; 7|8) bar_sys="█" ;;
+        esac
+
+        # Ausgabe: Mikro-Balken + System-Balken + Icon
+        printf "%s%s %s" "$bar_mic" "$bar_sys" "$icon" > "$output_file"
+
+        pkill -RTMIN+10 "${STATUSBAR:-dwmblocks}" 2>/dev/null
+    done
+}
+
+# Pegelmonitor starten
+# 1 Argument: Single-Modus (ein Pegel)
+# 2 Argumente: Dual-Modus (Mikro + System, zwei Balken)
+start_reclevel() {
+    local source1="$1"
+    local source2="$2"
+
+    # Alten Monitor beenden falls noch aktiv
+    if [ -f /tmp/reclevel-mon.pid ]; then
+        local old_pid
+        old_pid=$(cat /tmp/reclevel-mon.pid)
+        kill "$old_pid" 2>/dev/null
+        rm -f /tmp/reclevel-mon.pid
+    fi
+
+    # Neuen Monitor im Hintergrund starten
+    if [ -n "$source2" ]; then
+        # Dual-Modus: zwei Quellen
+        setsid -f "$0" _reclevel_mon_dual "$source1" "$source2" >/dev/null 2>&1
+    else
+        # Single-Modus: eine Quelle
+        setsid -f "$0" _reclevel_mon "$source1" >/dev/null 2>&1
+    fi
+}
+
+# Pegelmonitor stoppen
+stop_reclevel() {
+    if [ -f /tmp/reclevel-mon.pid ]; then
+        local pid
+        pid=$(cat /tmp/reclevel-mon.pid)
+        kill "$pid" 2>/dev/null
+        rm -f /tmp/reclevel-mon.pid /tmp/recording_icon /tmp/recordingicon
+        rm -f /tmp/reclevel_mic_raw /tmp/reclevel_sys_raw /tmp/reclevel_raw
+        pkill -RTMIN+10 "${STATUSBAR}" 2>/dev/null
+    fi
+}
+
 # ══════════════════════════════════════════════════════════════════════════════
 # [5] HILFSFUNKTIONEN
 # ══════════════════════════════════════════════════════════════════════════════
@@ -208,7 +492,7 @@ notify() {
 }
 
 updateicon() {
-    echo "$1" > /tmp/recordingicon
+    echo "$1" > /tmp/recording_icon
     pkill -RTMIN+9 "${STATUSBAR}"
 }
 
@@ -224,6 +508,7 @@ killrecording() {
         fi
         rm -f /tmp/recordingpid
         updateicon ""
+        stop_reclevel
     else
         notify "Keine Aufnahme aktiv"
     fi
@@ -235,7 +520,8 @@ count_active_monitors() {
 }
 
 # Monitor-Auswahl mit rofi (gibt Name, Auflösung und Offset zurück)
-# Rückgabeformat: "name resolution x_offset y_offset"
+# Rückgabeformat: "name|resolution|x_offset|y_offset"
+# Verwendet ausschließlich xrandr --listmonitors für konsistente Geometrie-Daten
 select_monitor() {
     local selected_monitor
     selected_monitor="$(xrandr --listmonitors | tail -n +2 | awk '{print $4}' \
@@ -245,29 +531,23 @@ select_monitor() {
         return 1
     fi
 
-    # Auflösung und Offset ermitteln
-    local monitor_info
-    monitor_info=$(xrandr | grep -w "$selected_monitor" | grep " connected")
+    # Geometrie direkt aus xrandr --listmonitors extrahieren (konsistenter)
+    # Format: 1920/286x1200/179+0+2160 → physikalische Maße entfernen → 1920x1200+0+2160
+    local geo_raw resolution x_offset y_offset
+    geo_raw=$(xrandr --listmonitors | tail -n +2 | awk -v mon="$selected_monitor" '$4 == mon {print $3}')
 
-    if [ -z "$monitor_info" ]; then
-        notify "Monitor $selected_monitor nicht gefunden oder nicht verbunden"
+    if [ -z "$geo_raw" ]; then
+        notify "Monitor $selected_monitor nicht in xrandr --listmonitors gefunden"
         return 1
     fi
 
-    local resolution x_offset y_offset
-    local full_geometry
-    full_geometry=$(echo "$monitor_info" | grep -oE '[0-9]+x[0-9]+\+[0-9]+\+[0-9]+' | head -n1)
+    # Physikalische Maße entfernen (z.B. /286 und /179)
+    local geo
+    geo=$(echo "$geo_raw" | sed 's|/[^x+]*||g')
 
-    if [ -n "$full_geometry" ]; then
-        resolution=$(echo "$full_geometry" | cut -d'+' -f1)
-        x_offset=$(echo "$full_geometry" | cut -d'+' -f2)
-        y_offset=$(echo "$full_geometry" | cut -d'+' -f3)
-    else
-        resolution=$(echo "$monitor_info" | grep -oE '[0-9]+x[0-9]+' | head -n1)
-        x_offset="0"
-        y_offset="0"
-        notify "Warnung: Offset nicht ermittelt, verwende 0+0"
-    fi
+    resolution=$(echo "$geo" | cut -d'+' -f1)
+    x_offset=$(echo "$geo" | cut -d'+' -f2)
+    y_offset=$(echo "$geo" | cut -d'+' -f3)
 
     if [ -z "$resolution" ]; then
         notify "Fehler: Auflösung für Monitor $selected_monitor nicht ermittelt"
@@ -438,6 +718,7 @@ screencast_system() {
     _record_screen_single_audio "$sys_audio" "$out" "$resolution" "$display_input"
     notify "Screencast gestartet (System-Audio)"
     updateicon "$ICON_SCREENCAST"
+    start_reclevel "$sys_audio"
 }
 
 # --- Vollbild-Screencast mit Mikrofon ---
@@ -473,48 +754,21 @@ screencast_mic() {
     _record_screen_single_audio "$mic" "$out" "$resolution" "$display_input"
     notify "Screencast gestartet (Mikrofon)"
     updateicon "$ICON_SCREENCAST"
+    start_reclevel "$mic"
 }
 
 # --- Einzelner Monitor aufnehmen (nur Video, ohne Ton) ---
 screencast_monitor() {
-    # Monitor auswählen
-    local selected_monitor
-    selected_monitor="$(xrandr --listmonitors | tail -n +2 | awk '{print $4}' \
-        | rofi_menu -p "Monitor auswählen")"
+    # Monitor auswählen (verwendet select_monitor für konsistente Geometrie)
+    local monitor_data
+    monitor_data="$(select_monitor)" || return 1
 
-    if [ -z "$selected_monitor" ]; then
-        notify "Keine Monitorauswahl getroffen, Aufnahme abgebrochen."
-        return 1
-    fi
-
-    # Auflösung und Offset ermitteln
-    local monitor_info
-    monitor_info=$(xrandr | grep -w "$selected_monitor" | grep " connected")
-
-    if [ -z "$monitor_info" ]; then
-        notify "Monitor $selected_monitor nicht gefunden oder nicht verbunden"
-        return 1
-    fi
-
-    local resolution offset=""
-    local full_geometry
-    full_geometry=$(echo "$monitor_info" | grep -oE '[0-9]+x[0-9]+\+[0-9]+\+[0-9]+' | head -n1)
-
-    if [ -n "$full_geometry" ]; then
-        resolution=$(echo "$full_geometry" | cut -d'+' -f1)
-        local x_offset y_offset
-        x_offset=$(echo "$full_geometry" | cut -d'+' -f2)
-        y_offset=$(echo "$full_geometry" | cut -d'+' -f3)
-        offset="+${x_offset}+${y_offset}"
-    else
-        resolution=$(echo "$monitor_info" | grep -oE '[0-9]+x[0-9]+' | head -n1)
-        notify "Warnung: Offset nicht ermittelt, verwende Vollbild-Modus"
-    fi
-
-    if [ -z "$resolution" ]; then
-        notify "Fehler: Auflösung für Monitor $selected_monitor nicht ermittelt"
-        return 1
-    fi
+    local selected_monitor resolution x_offset y_offset offset=""
+    selected_monitor="$(echo "$monitor_data" | cut -d'|' -f1)"
+    resolution="$(echo "$monitor_data" | cut -d'|' -f2)"
+    x_offset="$(echo "$monitor_data" | cut -d'|' -f3)"
+    y_offset="$(echo "$monitor_data" | cut -d'|' -f4)"
+    offset="+${x_offset}+${y_offset}"
 
     local out="$VIDEO_DIR/monitor-${selected_monitor}-$(date '+%y%m%d-%H%M-%S').$VIDEO_FORMAT"
 
@@ -602,6 +856,7 @@ screencast_reaction() {
     echo $! > /tmp/recordingpid
     notify "Reaction gestartet (Mikrofon + System-Audio)"
     updateicon "$ICON_REACTION"
+    start_reclevel "$mic" "$sys_audio"
 }
 
 # --- Stream + Aufnahme (YouTube/Twitch) ---
@@ -681,6 +936,7 @@ stream_screencast() {
     echo $! > /tmp/recordingpid
     notify "Stream gestartet (YT/Twitch + Aufnahme)"
     updateicon "$ICON_SCREENCAST"
+    start_reclevel "$mic"
 }
 
 # --- Reine Audioaufnahme (Mikrofon) ---
@@ -693,6 +949,7 @@ audio() {
     echo $! > /tmp/recordingpid
     notify "Audioaufnahme gestartet (Mikrofon)"
     updateicon "$ICON_AUDIO"
+    start_reclevel "$mic"
 }
 
 # --- Webcamaufnahme (Mikrofon) ---
@@ -757,6 +1014,7 @@ webcam() {
     echo $! > /tmp/recordingpid
     notify "Webcamaufnahme gestartet (Mikrofon)"
     updateicon "$ICON_WEBCAM"
+    start_reclevel "$mic"
 }
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -815,6 +1073,8 @@ load_gpu_profile "$GPU_TYPE"
 
 # Hauptlogik
 case "$1" in
+    _reclevel_mon)      _reclevel_mon "$2" ;;
+    _reclevel_mon_dual) _reclevel_mon_dual "$2" "$3" ;;
     system)   screencast_system ;;
     mic)      screencast_mic ;;
     monitor)  screencast_monitor ;;

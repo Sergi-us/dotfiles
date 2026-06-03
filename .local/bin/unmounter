@@ -156,7 +156,7 @@ poweroff_hdd() {
 # (lsblk bleibt hier als Laufwerkserkennung, da es robust für alle möglichen Devices wie Crypto und MTP agiert)
 mounteddroids="$(grep simple-mtpfs /etc/mtab 2>/dev/null | awk '{print "📱" $2}' || true)"
 lsblkoutput="$(lsblk -nrpo "name,type,size,mountpoint" 2>/dev/null || true)"
-mounteddrives="$(echo "$lsblkoutput" | awk '($2=="part"||$2=="crypt")&&$4!~/\/boot|\/home$|SWAP/&&length($4)>1{printf "💾%s (%s)\n",$4,$3}')"
+mounteddrives="$(echo "$lsblkoutput" | awk '($2=="part"||$2=="crypt"||$2=="disk")&&$4!~/\/boot|\/home$|SWAP/&&length($4)>1{printf "💾%s (%s)\n",$4,$3}')"
 
 allunmountable="$(echo "$mounteddroids
 $mounteddrives" | sed "/^$/d;s/ *$//")"

@@ -4,7 +4,7 @@
 
 printf "Beginne mit Upgrade.\\n"
 
-yay -Syu
+yay -Syu --sudoloop
 
 # Aktualisiere Statusbar-Module nach dem Update
 pkill -RTMIN+5 "${STATUSBAR:-dwmblocks}"   # sb-pacpackages (Update-Symbol entfernen)
