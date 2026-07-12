@@ -1,11 +1,12 @@
 #!/bin/sh
 ## 2026-07-11   SARBS extra
 # Abhängigkeiten: rsync, dunst
-# Backup-Skript für SARBS
-# Der Datenträger muss vorher gemountet werden
+# Backup-Skript für SARBS auf verschlüsselten USB-Stick
+# Backup der Wichtigsten Dateien laut auswahlliste
+# Der Stick muss vorher gemountet werden
 
 # Label des USB-Sticks (bestimmt den Mountpoint-Namen)
-LABEL="BAC-FULL"
+LABEL="BAC-STICK"
 MOUNTPOINT="/run/media/${USER}/${LABEL}"
 
 # Prüfe ob Stick gemountet ist
@@ -16,7 +17,7 @@ if [ ! -d "${MOUNTPOINT}" ]; then
 fi
 
 # Backup-Verzeichnis (fest, wird wiederverwendet)
-BACKUP_DIR="${MOUNTPOINT}/sarbs-vollbackup"
+BACKUP_DIR="${MOUNTPOINT}/sarbs-backup"
 mkdir -p "${BACKUP_DIR}"
 
 notify-send "Backup nach: ${BACKUP_DIR}"
@@ -35,18 +36,19 @@ notify-send "Backup nach: ${BACKUP_DIR}"
 #   -H          Hardlinks erhalten
 #   -s          sichere Übertragung (Sonderzeichen in Dateinamen)
 sudo rsync \
-    -r -t -p -o -g -v --progress --delete -l -H -s \
-    --exclude=/proc \
-    --exclude=/sys/* \
-    --exclude=/dev/* \
-    --exclude=/run/* \
-    --exclude=/tmp/* \
-    --exclude=/var/tmp \
-    --exclude=/media/* \
-    --exclude=/mnt \
-    --exclude=/lost+found \
-    --exclude=/var/cache \
-    --exclude=/boot \
+    -a -v -r --progress --delete -H -s \
+    --include="/home/" \
+    --include="/home/${USER}/" \
+    --include="/home/${USER}/.ssh/***" \
+    --include="/home/${USER}/.local/" \
+    --include="/home/${USER}/.local/share/" \
+    --include="/home/${USER}/.local/share/mail/***" \
+    --include="/home/${USER}/.local/share/pass/***" \
+    --include="/home/${USER}/.local/share/gnupg/***" \
+    --include="/home/${USER}/.local/src/***" \
+    --include="/home/${USER}/Bilder/" \
+    --include="/home/${USER}/Bilder/***" \
+    --exclude="*" \
     / "${BACKUP_DIR}"
 
 # Sicherstellen, dass alle Daten auf die Festplatte geschrieben wurden

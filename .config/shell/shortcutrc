@@ -27,6 +27,7 @@ cf-profile="$EDITOR /home/sergi/.config/shell/profile" \
 cf-inputrc="$EDITOR /home/sergi/.config/shell/inputrc" \
 cf-fastfetch="$EDITOR /home/sergi/.config/fastfetch/config.jsonc" \
 cf-nvim="$EDITOR /home/sergi/.config/nvim/init.lua" \
+cf-kitty="$EDITOR /home/sergi/.config/kitty/kitty.conf" \
 cf-lf="$EDITOR /home/sergi/.config/lf/lfrc" \
 cf-lf-scope="$EDITOR /home/sergi/.config/lf/scope" \
 cf-nsxiv="$EDITOR /home/sergi/.config/nsxiv/exec/key-handler" \

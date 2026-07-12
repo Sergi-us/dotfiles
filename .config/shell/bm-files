@@ -20,6 +20,7 @@ cf-fastfetch    ${XDG_CONFIG_HOME:-$HOME/.config}/fastfetch/config.jsonc
 
 # Editor
 cf-nvim			${XDG_CONFIG_HOME:-$HOME/.config}/nvim/init.lua				# neovim config
+cf-kitty		${XDG_CONFIG_HOME:-$HOME/.config}/kitty/kitty.conf			# Kitty configuration
 
 # Dateimanager & Viewer
 cf-lf			${XDG_CONFIG_HOME:-$HOME/.config}/lf/lfrc					# lf (file browser) config

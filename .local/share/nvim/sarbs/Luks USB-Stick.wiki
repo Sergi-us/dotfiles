@@ -1,21 +1,18 @@
  = USB-Stick für SARBS mit LUKS verschlüsseln =
 
 == Vorbereitungen ==
-In den Superuser-Modus wechseln:
-{{{
-sudo su
-}}}
-
 Laufwerke identifizieren:
 {{{
 lsblk
 }}}
+_Ausgabe: `NAME` zeigt Geräte wie `sda`, `sdb` (USB Devices) oder `nvme`. `TYPE` zeigt `disk` (ganzes Gerät) oder `part` (Partition). `SIZE` zeigt die Größe. `MOUNTPOINT` zeigt wo etwas bereits gemountet ist._
+
 _Hinweis: Stelle sicher, dass du das richtige Laufwerk (/dev/sdX) identifiziert hast!_
 
 == Partitionierung ==
 Partitionstabelle erstellen:
 {{{
-fdisk /dev/sdX
+sudo fdisk /dev/sdX
 }}}
 Folgende Befehle in fdisk ausführen:
   * `d` - Alle bestehenden Partitionen löschen
@@ -29,74 +26,122 @@ Folgende Befehle in fdisk ausführen:
 == Verschlüsselung einrichten ==
 LUKS-Container erstellen:
 {{{
-cryptsetup luksFormat /dev/sdX1
+sudo cryptsetup luksFormat /dev/sdX1
 }}}
 _Wichtig: Mit `YES` bestätigen und sicheres Passwort zweimal eingeben_
 
-LUKS-Container öffnen:
-{{{
-cryptsetup open /dev/sdX1 bezeichnung
-}}}
+_Hintergrund: LUKS (Linux Unified Key Setup) erstellt einen verschlüsselten Container auf der Partition. Alle Daten werden transparent mit AES verschlüsselt. Der Container kann später mit dem Passwort "geöffnet" werden, wodurch ein virtuelles Device unter `/dev/mapper/` entsteht._
+
+_LUKS-Label ist optional und wird vom Mounter-Skript nicht benötigt. Das Dateisystem-Label (siehe unten) bestimmt den Mountpoint-Namen._
 
 == Dateisystem erstellen ==
+LUKS-Container öffnen:
+{{{
+sudo cryptsetup open /dev/sdX1 usbstick
+}}}
+_Dies erstellt ein virtuelles Device unter `/dev/mapper/usbstick`. Der Name "usbstick" ist frei wählbar, wird aber später für mount/close benötigt._
+
 === Option 1: BTRFS ===
 {{{
-mkfs.btrfs /dev/mapper/bezeichnung
+sudo mkfs.btrfs -L "usbstick" /dev/mapper/usbstick
 }}}
 
 === Option 2: EXT4 ===
 {{{
-mkfs.ext4 /dev/mapper/bezeichnung
+sudo mkfs.ext4 -L "usbstick" /dev/mapper/usbstick
 }}}
+_Mit `-L` wird das Dateisystem-Label gesetzt. Dies bestimmt später den Mountpoint-Namen unter `/run/media/$USER/`. Das Label kann auch nachträglich mit `e2label` (ext4) oder `btrfs filesystem label` (btrfs) geändert werden._
 
-== Monten in SARBS ==
-TODO Mounter und unmouter ohne SUDO abfrage implementieren
-`MOD+F9` - Device auswählen
-LUKS Passwort eingeben
-Sudo Passwort eingeben
-
-== Mounten und Rechte setzen ==
-
-Mountpoint erstellen (falls nicht vorhanden):
+LUKS-Container wieder schließen:
 {{{
-mkdir -p /mnt/usb
+sudo cryptsetup close usbstick
 }}}
+_Das virtuelle Device wird entfernt. Die Daten bleiben verschlüsselt auf der Partition._
 
-Partition mounten:
+== Mounten ==
+
+=== Mit Mounter-Skript ===
+  * `MOD+F9` - Gerät auswählen
+  * LUKS-Passwort eingeben (im Rofi-Dialog)
+  * Der Stick wird automatisch unter `/run/media/$USER/` gemountet
+
+=== Manuell mit udisksctl (kein sudo nötig) ===
+LUKS-Container entschlüsseln:
 {{{
-mount /dev/mapper/bezeichnung /mnt/usb
+udisksctl unlock -b /dev/sdX1
 }}}
+_LUKS-Passwort eingeben wenn gefragt. Das gemappte Device wird in der Ausgabe angezeigt (z.B. `/dev/dm-0`)._
 
-Besitzerrechte setzen:
-$USER setzt 'root' zum Besitzer. Ersetze $USER mit deinen Nutzernamen um es später im Nutzerprofil nutzen zu können!
+_Hintergrund: `udisksctl` kommuniziert mit dem UDisks2-Daemon, der über Polkit Berechtigungen verwaltet. Dadurch können normale User ohne sudo Geräte mounten. Der Mountpoint wird automatisch unter `/run/media/$USER/` erstellt._
+
+Dateisystem mounten:
 {{{
-chown $USER:wheel /mnt/usb
+udisksctl mount -b /dev/dm-0
+}}}
+_Der Mountpoint wird automatisch erstellt unter `/run/media/$USER/<label>`. Das Label kommt vom Dateisystem (siehe `-L` oben)._
+
+=== Manuell klassisch (mit sudo) ===
+LUKS-Container öffnen:
+{{{
+sudo cryptsetup open /dev/sdX1 usbstick
 }}}
 
+Mountpoint erstellen und mounten:
+{{{
+sudo mkdir -p /mnt/usb
+sudo mount /dev/mapper/usbstick /mnt/usb
+}}}
+
+== Berechtigungen setzen (einmalig) ==
+Nach dem ersten Mounten müssen die Besitzrechte gesetzt werden:
+{{{
+sudo chown -R benutzername:wheel /run/media/benutzername/usbstick
+}}}
+_oder bei klassischem Mount:_
+{{{
+sudo chown -R benutzername:wheel /mnt/usb
+}}}
+
+_Hintergrund: Bei nativen Linux-Dateisystemen (ext4, btrfs) werden Besitzrechte (uid/gid) im Dateisystem selbst gespeichert. Da mit `sudo mkfs` formatiert wurde, gehören die Dateien root. `chown` setzt dies auf den Benutzer. Die Gruppe `wheel` ermöglicht Zugriff für alle Admin-User._
+
+_Dies muss nur einmalig nach der Erstellung erfolgen. Die Rechte bleiben nach unmount/remount erhalten, da sie im Dateisystem gespeichert sind._
+
+_Bei FAT/NTFS/exFAT setzt `udisksctl` die Rechte automatisch über Mount-Optionen (uid/gid). Dort ist kein `chown` nötig._
 
 == Unmounten und Container schließen ==
 
-Partition aushängen:
+=== Mit Unmounter-Skript ===
+  * `MOD+F10` - Gemountetes Gerät auswählen
+
+=== Manuell mit udisksctl ===
+Unmounten:
 {{{
-umount /mnt/usb
+udisksctl unmount -b /dev/disk/by-label/usbstick
+}}}
+_Das Dateisystem wird ausgehängt. Der LUKS-Container bleibt offen (entschlüsselt)._
+
+_Hinweis: `/dev/disk/by-label/usbstick` ist ein Symlink auf das tatsächliche Device. Alternativ kann `/dev/dm-X` oder `/dev/mapper/luks-UUID` verwendet werden._
+
+LUKS-Container sperren:
+{{{
+udisksctl lock -b /dev/sdX1
+}}}
+_Der verschlüsselte Container wird geschlossen. Ab jetzt sind die Daten nur noch mit dem Passwort zugänglich._
+
+=== Manuell klassisch ===
+Unmounten:
+{{{
+sudo umount /mnt/usb
 }}}
 
 LUKS-Container schließen:
 {{{
-cryptsetup close bezeichnung
-}}}
-
-== Abschließend ==
-
-Superuser-Modus verlassen
-{{{
-exit
+sudo cryptsetup close usbstick
 }}}
 
 == Schnellzugriff ==
-Später können Sie den USB-Stick schnell ein- und aushängen:
-  * Einhängen: `mod`+`F9`
-  * Aushängen: `mod`+`F10`
+  * Einhängen: `MOD+F9`
+  * Aushängen: `MOD+F10`
 
 == Wichtige Hinweise ==
   * Sichern Sie das LUKS-Passwort an einem sicheren Ort

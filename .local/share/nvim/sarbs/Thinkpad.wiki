@@ -3,6 +3,8 @@
 Diese Seite dokumentiert die Einrichtung und Funktion der wichtigsten Powermanagement-Tools
 auf meinem T480. Ziel: leisere Kühlung, bessere Akkupflege und Schutz vor künstlicher CPU-Drossel.
 
+[[Ruhezustand]]
+
 TODO intel-undervolt einrichten und testen
 
 == Tools zum Testen ==

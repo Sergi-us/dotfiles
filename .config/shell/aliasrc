@@ -114,7 +114,7 @@ alias   aquarium="asciiquarium" \
 alias   bonsai="cbonsai"
 
 # Standby
-alias   standby="systemd-inhibit --what=handle-lid-switch --why='Musik hören' sleep infinity"
+alias   standby='(while true; do for var in / - \\ \|; do printf "\r$var"; sleep .05; done; done) & systemd-inhibit --what=handle-lid-switch --why="Musik hören" sleep infinity; kill %1 2>/dev/null'
 
 # Timer
 alias   timer="termdown"

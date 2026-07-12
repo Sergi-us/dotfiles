@@ -9,6 +9,7 @@
 [[lf]]
 
 [[Mutt das Mailprogramm]]
+[[bogofilter]]
 
 [[surf der Suckless Browser]]
 
