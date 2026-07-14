@@ -1,5 +1,5 @@
 #!/bin/sh
-## 2026-03-28 SARBS core
+## 2026-07-13 SARBS core
 # Abhängigkeiten: GNU Coreutils (cut, head, id, paste, sort, tail, wc), arandr, awk, bc, dunst, dunstctl, killall, notify-send, rofi, sed, setbg, set-dpi, xrandr
 ## Abhängigkeiten: xrandr, rofi, awk, sed, grep, bc (für Skalierung)
 # Eine Benutzeroberfläche zum Erkennen, Auswählen und plazieren von Bildschirmen.
@@ -7,6 +7,7 @@
 # durch "manuelle Auswahl", wird arandr geöffnet.
 
 # Hilfsfunktion: Formatierte Monitorliste für Rofi (Name + Aktuelle Auflösung)
+# TODO Die Monitorauflösung wird nicht zuverlässig kannt!
 get_formatted_screens() {
     # Erstellt aus "eDP DisplayPort-3" eine Liste wie:
     # 1: eDP (1920x1080)
@@ -34,12 +35,8 @@ get_resolutions() {
 }
 
 ## OPTIMIERUNG (onescreen):
-## - DRY-Prinzip (Don't Repeat Yourself): Der Befehl zum Abschalten nicht aktiver Monitore
-##   `$(echo "$allposs" | grep -v "\b$1" | awk '{print "--output", $1, "--off"}' | paste -sd ' ' -)`
-##   steht zweimal (im `if` und im `else`). Besser vor der if-Bedingung in eine Variable
-##   z.B. `turn_off_cmd` speichern und in der if-Bedingung nur noch `$turn_off_cmd` einfügen.
-## - Die Funktion greift auf die globale Variable `$allposs` zu, ohne sie als Argument zu erhalten.
-## TODO erstmal vernachlässigbar...
+# TODO Onescreen abbruch im Rofi menu triggert eine Neue Scalierung bei abbruch
+# mit der "esc" taste. Das ist unerwünscht
 onescreen() { # Parameter: $1=screen_name, $2=allposs
     # Hole verfügbare Auflösungen für den ausgewählten Bildschirm
     resolutions=$(get_resolutions "$1")
@@ -104,14 +101,6 @@ twoscreen() { # Parameter: $1=screens
     fi
     }
 
-## OPTIMIERUNG (morescreen):
-## - Hardcoded für exakt 3 Monitore (`primary`, `secondary`, `tertiary`).
-##   Eine While/For-Schleife, die solange fragt, bis keine Monitore mehr in der Liste übrig sind.
-## TODO Mir gefällt die Idee mit der Schleife, alle erkannten monitore abfragen bis sie arrangiert sind ober sagen "genug arangiert" und die übrigen monitore werden abgeschlten.
-## Antwort: Ich habe die Funktion nun mit einer dynamischen Schleife überschrieben. Sie fragt nach dem
-##   Hauptbildschirm, und dann solange in einem Menü "nächsten Bildschirm", bis alle Monitore
-##   verteilt sind, oder du in Rofi auf "[Setup hier beenden]" drückst. Alle übrigen Monitore
-##   werden danach mit `--off` an xrandr übergeben!
 morescreen() { # Parameter: $1=screens. Erlaubt theoretisch beliebig viele Monitore.
     local remaining_screens="$1"
     local formatted=$(get_formatted_screens "$1")
@@ -208,12 +197,7 @@ multimon() { # Parameter: $1=screens
 		*) morescreen "$1" ;;
 	esac ;}
 
-## OPTIMIERUNG (postrun):
-## - Performance: `{ killall dunst ; setsid -f dunst ;}` ist völlig in Ordnung,
-##   kann aber ein kurzes Hängen des Skripts verursachen, falls dunst noch Nachrichten anzeigt.
-##   `killall -q dunst; dunst &` oder `dunstctl close-all` (wenn neuere Dunst-Version)
-##   wären eventuell noch flüssiger.
-## TODO anwenden!
+# TODO Pastrun darf micht bei abbruch der Auswahl in Rofi getriggert werden
 postrun() { # Aufräumen nach Display-Wechsel
 	setbg		# Hintergrund anpassen bei Größen-/Anordnungsänderung
 
@@ -230,11 +214,6 @@ postrun() { # Aufräumen nach Display-Wechsel
 		killall -q dunst
 	fi
 	dunst & >/dev/null 2>&1
-
-	## TODO IDEE: Nach erfolgreicher Positionierung der Monitore könnte man hier
-	## kurz (z.B. für 3 Sekunden) ein visuelles Feedback auf jedem Monitor einblenden
-	## (z.B. über Rofi mit `-m ID` oder ein anderes leichtes Tool), das den Namen
-	## des jeweiligen Monitors oder seine Position anzeigt.
 	}
 
 # Alle verfügbaren Ausgänge erfassen
