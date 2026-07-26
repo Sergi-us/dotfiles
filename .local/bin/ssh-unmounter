@@ -40,11 +40,14 @@ target=$(echo "$target_short" | sed "s|^~|${HOME}|")
 notify-send "Trennen..." "Hänge $target aus..."
 
 # fusermount3 für FUSE-Mounts bevorzugt (verursacht weniger Rechteprobleme als umount)
+# -z (lazy): Trennt sofort, räumt auf wenn Prozesse losgelassen haben
 if fusermount3 -u "$target" 2>/dev/null || umount "$target" 2>/dev/null; then
     notify-send "✔ Server ausgehängt" "$target wurde erfolgreich getrennt."
-    # Wenn Verzeichnis nun leer ist, räumen wir es auf (verhindert Datenmüll)
-    rmdir "$target" 2>/dev/null || true
+elif fusermount3 -uz "$target" 2>/dev/null; then
+    notify-send "✔ Server ausgehängt" "$target wurde getrennt (lazy). Offene Zugriffe werden automatisch abgeschlossen."
 else
     notify-send -u critical "✗ Fehler" "Konnte $target nicht aushängen. Möglicherweise noch von lf oder Terminal belegt."
     exit 1
 fi
+# Wenn Verzeichnis nun leer ist, räumen wir es auf (verhindert Datenmüll)
+rmdir "$target" 2>/dev/null || true

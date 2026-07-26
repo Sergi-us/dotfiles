@@ -27,11 +27,15 @@ echo "━━━━━━━━━━━━━━━━━━━━━━━━�
 echo ""
 
 # Funktion zur Datumsvalidierung
+# Gibt das gültige (ggf. erweiterte) Datum auf stdout aus
 validate_date() {
 	input="$1"
 
-	# Prüfe Format: YYYY-MM-DD
-	if ! echo "$input" | grep -qE '^[0-9]{4}-[0-9]{2}-[0-9]{2}$'; then
+	# Prüfe Format: YYYY-MM-DD oder nur YYYY (vierstellige Zahl)
+	if echo "$input" | grep -qE '^[0-9]{4}$'; then
+		# Nur Jahr angegeben → 1. Januar
+		input="${input}-01-01"
+	elif ! echo "$input" | grep -qE '^[0-9]{4}-[0-9]{2}-[0-9]{2}$'; then
 		return 1
 	fi
 
@@ -52,6 +56,7 @@ validate_date() {
 
 	# Prüfe ob Datum gültig ist (mit date-Befehl)
 	if date -d "$input" >/dev/null 2>&1; then
+		echo "$input"
 		return 0
 	else
 		return 1
@@ -59,8 +64,15 @@ validate_date() {
 }
 
 # Funktion zur Zeitvalidierung
+# Gibt die gültige (ggf. erweiterte) Zeit auf stdout aus
 validate_time() {
 	input="$1"
+
+	# Sonderfall: "0" → 00:00:00
+	if [ "$input" = "0" ]; then
+		echo "00:00:00"
+		return 0
+	fi
 
 	# Prüfe Format: HH:MM oder HH:MM:SS
 	if ! echo "$input" | grep -qE '^[0-9]{2}:[0-9]{2}(:[0-9]{2})?$'; then
@@ -81,44 +93,47 @@ validate_time() {
 	[ "$hour" -lt 0 ] || [ "$hour" -gt 23 ] && return 1
 	[ "$minute" -lt 0 ] || [ "$minute" -gt 59 ] && return 1
 
+	# Ergänze Sekunden falls nicht angegeben
+	if echo "$input" | grep -qE '^[0-9]{2}:[0-9]{2}$'; then
+		input="${input}:00"
+	fi
+
+	echo "$input"
 	return 0
 }
 
 # Datum eingeben
 while true; do
-	printf "Neues Datum (YYYY-MM-DD) [Enter=behalten]: "
+	printf "Neues Datum (YYYY-MM-DD oder YYYY) [Enter=behalten]: "
 	read -r new_date
 
 	# Wenn leer, behalte aktuelles Datum
 	[ -z "$new_date" ] && { new_date="$current_date"; break; }
 
-	# Validiere Datum
-	if validate_date "$new_date"; then
+	# Validiere Datum (erweitert ggf. YYYY zu YYYY-01-01)
+	if validated_date=$(validate_date "$new_date"); then
+		new_date="$validated_date"
 		break
 	else
-		echo "❌ Ungültiges Datum! Format: YYYY-MM-DD (z.B. 2024-03-15)"
+		echo "❌ Ungültiges Datum! Format: YYYY-MM-DD oder YYYY (z.B. 2024-03-15 oder 2024)"
 		echo ""
 	fi
 done
 
 # Zeit eingeben
 while true; do
-	printf "Neue Zeit (HH:MM:SS) [Enter=behalten]: "
+	printf "Neue Zeit (HH:MM:SS, HH:MM oder 0) [Enter=behalten]: "
 	read -r new_time
 
 	# Wenn leer, behalte aktuelle Zeit
 	[ -z "$new_time" ] && { new_time="$current_time"; break; }
 
-	# Ergänze Sekunden falls nicht angegeben
-	if echo "$new_time" | grep -qE '^[0-9]{2}:[0-9]{2}$'; then
-		new_time="${new_time}:00"
-	fi
-
-	# Validiere Zeit
-	if validate_time "$new_time"; then
+	# Validiere Zeit (erweitert ggf. 0 zu 00:00:00)
+	if validated_time=$(validate_time "$new_time"); then
+		new_time="$validated_time"
 		break
 	else
-		echo "❌ Ungültige Zeit! Format: HH:MM:SS oder HH:MM (z.B. 14:30:00)"
+		echo "❌ Ungültige Zeit! Format: HH:MM:SS, HH:MM oder 0 (z.B. 14:30:00)"
 		echo ""
 	fi
 done
@@ -138,8 +153,7 @@ if [ "$confirm" = "j" ] || [ "$confirm" = "J" ]; then
 		echo ""
 		echo "✅ Datum erfolgreich geändert!"
 	else
-        # TODO Kritische Warnung
-		notify-send "❌ Fehler" "Datum konnte nicht geändert werden"
+		notify-send -u critical "❌ Fehler" "Datum konnte nicht geändert werden"
 		echo ""
 		echo "❌ Fehler beim Ändern des Datums!"
 		read -r dummy

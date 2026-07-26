@@ -792,7 +792,7 @@ screencast_monitor() {
     updateicon "$ICON_MONITOR"
 }
 
-# --- Reaction: Bildschirm + Mikrofon + System-Audio (gemischt auf eine Spur) ---
+# --- Reaction: Bildschirm + Mikrofon + System-Audio (separate Spuren) ---
 screencast_reaction() {
     local mic sys_audio
     mic=$(detect_microphone) || return 1
@@ -828,14 +828,14 @@ screencast_reaction() {
 
     check_hw_encoder
 
-    # Filter-Complex: Audio mixen + optionaler HW-Upload
-    local filter_complex map_params
+    # Zwei separate Audiospuren: Spur 1 = Mikrofon, Spur 2 = System-Audio
+    local vf_flag map_params
     if [ -n "$VF_UPLOAD" ]; then
-        filter_complex="-filter_complex [1:a][2:a]amix=inputs=2:duration=longest[aout];[0:v]${VF_UPLOAD}[vout]"
-        map_params="-map [vout] -map [aout]"
+        vf_flag="-vf ${VF_UPLOAD}"
+        map_params="-map 0:v -map 1:a -map 2:a"
     else
-        filter_complex="-filter_complex [1:a][2:a]amix=inputs=2:duration=longest[aout]"
-        map_params="-map 0:v -map [aout]"
+        vf_flag=""
+        map_params="-map 0:v -map 1:a -map 2:a"
     fi
 
     nice -n -10 ffmpeg -y \
@@ -847,14 +847,15 @@ screencast_reaction() {
         -f pulse -sample_rate "$AUDIO_SAMPLERATE" -channels 2 -i "$mic" \
         -thread_queue_size "$THREAD_QUEUE" \
         -f pulse -sample_rate "$AUDIO_SAMPLERATE" -channels 2 -i "$sys_audio" \
-        $filter_complex \
+        $vf_flag \
         $map_params \
         -c:v "$VIDEO_CODEC" $ENCODE_PARAMS \
-        -c:a "$AUDIO_CODEC" -ar "$AUDIO_SAMPLERATE" \
+        -c:a:0 "$AUDIO_CODEC" -ar "$AUDIO_SAMPLERATE" \
+        -c:a:1 "$AUDIO_CODEC" -ar "$AUDIO_SAMPLERATE" \
         "$out" &
 
     echo $! > /tmp/recordingpid
-    notify "Reaction gestartet (Mikrofon + System-Audio)"
+    notify "Reaction gestartet (Mikrofon + System-Audio getrennt)"
     updateicon "$ICON_REACTION"
     start_reclevel "$mic" "$sys_audio"
 }

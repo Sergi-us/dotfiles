@@ -536,6 +536,47 @@ cmd Handy-Downloads ${{
 	done
 }}
 
+# Filme auf den Archiv-Server übertragen (via rsync über SSH)
+cmd Film-ins-Archiv ${{
+	clear; tput cup $(($(tput lines)/3)); tput bold
+	set -f
+
+	# Konfiguration
+	SSH_HOST="archivar-sergi"
+	DEST_DIR="/mnt/Filme/consume/"
+
+	# Prüfen ob SSH-Host erreichbar ist
+	if ! ssh -o ConnectTimeout=5 -o BatchMode=yes "$SSH_HOST" true 2>/dev/null; then
+		notify-send "❌ Verbindungsfehler" "SSH-Host '$SSH_HOST' nicht erreichbar."
+		read -p "Enter drücken zum Fortfahren..."
+		exit 1
+	fi
+
+	# Prüfen ob Zielverzeichnis existiert
+	if ! ssh "$SSH_HOST" "[ -d '$DEST_DIR' ]" 2>/dev/null; then
+		notify-send "❌ Fehler" "Zielverzeichnis '$DEST_DIR' existiert nicht auf '$SSH_HOST'."
+		read -p "Enter drücken zum Fortfahren..."
+		exit 1
+	fi
+
+	# Dateien übertragen
+	for x in $fx; do
+		notify-send "🎬 Film wird archiviert..." "Übertrage: $(basename "$x")"
+
+		# rsync rekursiv mit Erhalt aller Attribute und Komprimierung
+		if rsync -ar --progress "$x" "${SSH_HOST}:${DEST_DIR}" 2>&1; then
+			notify-send "✅ Erfolgreich" "$(basename "$x") wurde archiviert."
+			# Quelldatei nach erfolgreicher Übertragung löschen
+			rm -rf "$x"
+			notify-send "🗑️ Aufgeräumt" "Quelldatei $(basename "$x") wurde gelöscht."
+		else
+			notify-send "❌ Fehler" "Übertragung von $(basename "$x") fehlgeschlagen."
+		fi
+	done
+
+	lf -remote "send $id reload"
+}}
+
 # Führe on-cd beim Start aus
 on-cd
 
@@ -558,6 +599,8 @@ map sc clear
 # === A Menu für Kopieraktionen mit ADB-Push auf ein Android Handy (Entwickleroptionen und ADB) ===
 map Ad Handy-Downloads
 map Am Handy-Musik
+map Af Film-ins-Archiv
+map As Serie-ins-Archiv
 
 # === P Menu für Bildbearbeitung ===
 map P8 bild-80-komprimieren

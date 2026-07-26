@@ -40,3 +40,35 @@ find . -mindepth 2 -type f -name '*.mkv' -exec mv {} . \;
 find . -mindepth 2 -type f -name '*.nfo' -exec rm {} \;
 find . -mindepth 1 -type d -empty -delete
 }}}
+
+= Datei-Erstellungsdatum aus Präfix setzen und umbenennen =
+
+Dateien mit dem Format "JJJJ Dateiname.endung" werden verarbeitet: Das
+Änderungsdatum wird auf den 1. Januar des Präfix-Jahres gesetzt, anschließend
+wird das Jahrespräfix aus dem Dateinamen entfernt.
+
+Als ZSH-Einzeiler (direkt im Zielverzeichnis ausführbar):
+{{{
+for f (*); do [[ $f =~ '^([0-9]{4}) (.*)$' ]] && touch -t ${match[1]}01010000 "$f" && mv "$f" "${match[2]}"; done
+}}}
+
+Oder mit ZSH-Glob auf bestimmte Endungen filtern:
+{{{
+for f (*.(mkv|mp4|avi)); do [[ $f =~ '^([0-9]{4}) (.*)$' ]] && touch -t ${match[1]}01010000 "$f" && mv "$f" "${match[2]}"; done
+}}}
+
+for f (*): ZSH-Glob, iteriert über alle Dateien im aktuellen Verzeichnis.
+$match: ZSH-Äquivalent zu BASH_REMATCH, enthält die Regex-Treffer.
+&&(||): Verknüpft Befehle, nächster wird nur bei Erfolg ausgeführt.
+*.(mkv|mp4|avi): ZSH-Erweiterungsglob, filtert nach Dateiendungen.
+
+touch -t: Setzt den Zeitstempel im Format [[CC]YY]MMDDhhmm[.ss]. Hier wird YYYY01010000
+verwendet, also 1. Januar des extrahierten Jahres um 00:00 Uhr.
+basename: Extrahiert den Dateinamen ohne Verzeichnispfad.
+[[ =~ ]]: Bash Regex-Match, um Jahr und Rest des Namens zu trennen.
+mv: Benennt die Datei um, nachdem der Zeitstempel gesetzt wurde.
+
+Hinweis: touch setzt den mtime (modification time), nicht das birth time (btime).
+Für echtes Erstellungsdatum sind root-Rechte und spezielle Tools wie debugfs nötig.
+
+TODO btime auf das mtime ändern??

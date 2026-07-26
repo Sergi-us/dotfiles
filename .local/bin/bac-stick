@@ -48,6 +48,12 @@ sudo rsync \
     --include="/home/${USER}/.local/src/***" \
     --include="/home/${USER}/Bilder/" \
     --include="/home/${USER}/Bilder/***" \
+    --include="/home/${USER}/Dokumente/" \
+    --include="/home/${USER}/Dokumente/***" \
+    --include="/home/${USER}/www/" \
+    --include="/home/${USER}/www/***" \
+    --include="/home/${USER}/Musik/" \
+    --include="/home/${USER}/Musik/***" \
     --exclude="*" \
     / "${BACKUP_DIR}"
 
