@@ -536,6 +536,14 @@ cmd Handy-Downloads ${{
 	done
 }}
 
+# Dokumente zu Paperless Archivieren (mit Pfad-Umbenennung)
+cmd Dokumente-zu-Paperless ${{
+	clear; tput cup $(($(tput lines)/3)); tput bold
+	set -f
+	lf-Dokumente-zu-paperless $fx
+	lf -remote "send $id reload"
+}}
+
 # Filme auf den Archiv-Server übertragen (via rsync über SSH)
 cmd Film-ins-Archiv ${{
 	clear; tput cup $(($(tput lines)/3)); tput bold
@@ -601,6 +609,7 @@ map Ad Handy-Downloads
 map Am Handy-Musik
 map Af Film-ins-Archiv
 map As Serie-ins-Archiv
+map Ap Dokumente-zu-Paperless
 
 # === P Menu für Bildbearbeitung ===
 map P8 bild-80-komprimieren

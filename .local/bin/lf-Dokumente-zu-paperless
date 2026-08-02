@@ -1,0 +1,112 @@
+#!/bin/sh
+## 2026-08-02   SARBS
+# Dokumente zu Paperless archivieren mit Pfad-Umbenennung
+# Wandelt Verzeichnisstruktur in Dateinamen um:
+#   ebene1/ebene2/Dokument.pdf → ebene1-ebene2-Dokument.pdf
+# Überträgt flach via rsync über SSH, löscht nur erfolgreiche Dateien
+
+SSH_HOST="archivar-sergi"
+DEST_DIR="/opt/paperless/consume/"
+CLEANUP_EMPTY_DIRS="${CLEANUP_EMPTY_DIRS:-1}"
+
+notify() {
+	notify-send "$1" "$2"
+}
+
+check_connection() {
+	if ! ssh -o ConnectTimeout=5 -o BatchMode=yes "$SSH_HOST" true 2>/dev/null; then
+		notify "❌ Verbindungsfehler" "SSH-Host '$SSH_HOST' nicht erreichbar."
+		exit 1
+	fi
+	if ! ssh "$SSH_HOST" "[ -d '$DEST_DIR' ]" 2>/dev/null; then
+		notify "❌ Fehler" "Zielverzeichnis '$DEST_DIR' existiert nicht."
+		exit 1
+	fi
+}
+
+generate_flat_name() {
+	relpath="$1"
+	flat_name=$(printf '%s' "$relpath" | tr '/' '-')
+	printf '%s' "$flat_name"
+}
+
+process_file() {
+	file="$1"
+	base_dir="$2"
+
+	[ -f "$file" ] || return 1
+
+	relpath="${file#"$base_dir"/}"
+	flat_name=$(generate_flat_name "$relpath")
+
+	notify "󱪚 Dokument wird archiviert..." "Übertrage: $flat_name"
+
+	if rsync -a --progress "$file" "${SSH_HOST}:${DEST_DIR}${flat_name}" 2>&1; then
+		notify "✅ Erfolgreich" "$flat_name wurde archiviert."
+		rm -f "$file"
+		return 0
+	else
+		notify "❌ Fehler" "Übertragung von $flat_name fehlgeschlagen."
+		return 1
+	fi
+}
+
+process_directory() {
+	dir="$1"
+	base_dir="$2"
+
+	find "$dir" -type f | while IFS= read -r file; do
+		process_file "$file" "$base_dir"
+	done
+
+	if [ "$CLEANUP_EMPTY_DIRS" = "1" ]; then
+		find "$dir" -depth -type d -empty -delete 2>/dev/null
+	fi
+}
+
+main() {
+	[ $# -eq 0 ] && { notify "❌ Fehler" "Keine Dateien ausgewählt."; exit 1; }
+
+	check_connection
+
+	success_count=0
+	fail_count=0
+
+	for item in "$@"; do
+		if [ -f "$item" ]; then
+			base_dir=$(dirname "$item")
+			if process_file "$item" "$base_dir"; then
+				success_count=$((success_count + 1))
+			else
+				fail_count=$((fail_count + 1))
+			fi
+		elif [ -d "$item" ]; then
+			base_dir=$(dirname "$item")
+			file_count=$(find "$item" -type f | wc -l)
+			processed=0
+
+			find "$item" -type f | while IFS= read -r file; do
+				if process_file "$file" "$base_dir"; then
+					processed=$((processed + 1))
+				fi
+			done
+
+			if [ "$CLEANUP_EMPTY_DIRS" = "1" ]; then
+				find "$item" -depth -type d -empty -delete 2>/dev/null
+			fi
+
+			success_count=$((success_count + file_count))
+		else
+			notify "⚠️ Übersprungen" "$item ist weder Datei noch Verzeichnis."
+			fail_count=$((fail_count + 1))
+		fi
+	done
+
+	if [ "$fail_count" -eq 0 ]; then
+		notify "✅ Archivierung abgeschlossen" "$success_count Dokument(e) erfolgreich übertragen."
+	else
+		notify "⚠️ Teilweise erfolgreich" "$success_count übertragen, $fail_count fehlgeschlagen."
+	fi
+}
+
+main "$@"
