@@ -92,11 +92,6 @@ setbg &                         # Setzt den Hintergrund mit dem `setbg` Skript
 xbanish &                       # Mauszeiger beim Tippen ausblenden
 # xinput set-prop 10 "libinput Natural Scrolling Enabled" 1     # Aktiviert Natural Scrolling (Mac-like)
 
-## Lädt Xresources Farben/Einstellungen beim Start
-## TODO Trennen von Skalierung und Farben
-## wenn xrdb aktiviert, dann "~/.config/x11/xresources" beachten
-## xrdb ${XDG_CONFIG_HOME:-$HOME/.config}/x11/xresources & xrdbpid=$!
-
 # === pamgnupg ===
 export GPG_TTY=$(tty)
 export SSH_AUTH_SOCK=$(gpgconf --list-dirs agent-ssh-socket)
@@ -134,8 +129,9 @@ for svc in $always_start; do
 	pidof -sx "$svc" >/dev/null 2>&1 || "$svc" >/dev/null 2>&1 &
 done
 
+# X-Core-Fonts für picom v13 verfügbar machen (On-Screen-Warnungen nutzen
+# "fixed"/"-*-fixed-bold-*"; liegt nicht im Default-Font-Path des X-Servers)
+xset fp+ /usr/share/fonts/misc 2>/dev/null
+
 # picom als Hintergrunddienst starten (-b daemonize)
 pidof -sx picom >/dev/null 2>&1 || picom -b
-
-# Stellt sicher, dass xrdb fertig ist, bevor DWM gestartet wird
-[ -n "$xrdbpid" ] && wait "$xrdbpid"

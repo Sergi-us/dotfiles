@@ -2,11 +2,17 @@
 /* Xft.dpi: 120 */
 /* janus.fractionalDpi: 1.38 */
 
+/*
 !! Transparenz-Einstellung (Wert zwischen 0-1):
 *.alpha: 0.8
+*/
 
+/*
 !! Standard-Schriftart und -größe:
 *.font: JetBrainsMono Nerd Font Mono:style=Thin:pixelsize=16:antialias=true:autohint=true
+
+st.font: AdwaitaMono Nerd Font Mono:style=Regular:size=9:antialias=true:autohint=false:hintstyle=hintfull
+*/
 
 /* Farbindex-Erklärung für das 16-Farben-Schema:
    Name     Dunkel  Hell
@@ -22,6 +28,8 @@
 
 /* Gruvbox Dunkel-Theme
    Ein beliebtes, kontrastreiches Farbschema mit warmen Erdtönen */
+
+/*
 *.color0: #1d2021
 *.color1: #cc241d
 *.color2: #98971a
@@ -40,6 +48,7 @@
 *.color15: #ebdbb2
 *.color256: #1d2021
 *.color257: #ebdbb2
+*/
 
 /* Gruvbox Hell-Theme
    Die helle Variante des Gruvbox-Schemas */

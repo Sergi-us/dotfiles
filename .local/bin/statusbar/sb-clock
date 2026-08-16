@@ -30,8 +30,9 @@ case $BLOCK_BUTTON in
 	6) setsid -f "$TERMINAL" -e "$EDITOR" "$0" ;;
 esac
 
-date "+%H:%M"
+# date "+%H:%M"
 # date "+$icon%H:%M "
+date "+%d.%h-%H:%M"
 # $icon Zeigt die Miniuhr an
 # %a    Wochentag kurz
 # %A    Wochentag lang

@@ -1,0 +1,10 @@
+[Unit]
+Description=Tägliche Repository-Synchronisierung
+
+[Timer]
+OnCalendar=daily
+Persistent=true
+RandomizedDelaySec=15min
+
+[Install]
+WantedBy=timers.target

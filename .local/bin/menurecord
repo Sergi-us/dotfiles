@@ -1,5 +1,5 @@
 #!/bin/bash
-## 2026-03-29 SARBS core DEV - Universelles Aufnahmeskript (Rofi) + Pegelanzeige
+## 2026-08-13 SARBS core DEV - Universelles Aufnahmeskript (Rofi) + Pegelanzeige
 # Abhängigkeiten: GNU Coreutils (cat, cut, date, head, mkdir, nice, rm, tail, wc), awk, ffmpeg, lspci, notify-send, od, pactl, parec, pkill, rofi, sed, setsid, stream, timeout, xdpyinfo, xrandr
 ## Unterstützt: Intel (VAAPI), AMD (VAAPI), NVIDIA (NVENC), Software-Fallback (libx264)
 ## GPU-Erkennung automatisch oder per ROFIRECORD_GPU=intel|amd|nvidia|software
@@ -18,6 +18,7 @@ AUDIO_BITRATE="256k"            # Nur für Nicht-FLAC-Codecs relevant
 FRAMERATE="30"
 THREAD_QUEUE="4096"             # Input-Puffer für x11grab/pulse
 STATUSBAR="dwmblocks"           # Spielt noch keine Rolle im Skript
+STREAM_LOCAL_REC="0"            # 1 = beim Streamen zusätzlich lokal aufnehmen (MKV)
 
 # Statusleisten-Icons (Nerd Font Symbole)
 ICON_SCREENCAST=" "
@@ -650,6 +651,7 @@ _fallback_to_software() {
 #   screencast_mic      - Bildschirm + Mikrofon
 #   screencast_monitor  - Einzelner Monitor + Auswahl System/Mikro
 #   screencast_reaction - Bildschirm + Mikrofon + System-Audio gemischt
+#   stream_screencast   - Stream YT/2x Twitch, Monitor-Auswahl, optional lokale Aufnahme
 #   audio               - Nur Mikrofon
 #   webcam              - Webcam + Mikrofon
 
@@ -860,15 +862,31 @@ screencast_reaction() {
     start_reclevel "$mic" "$sys_audio"
 }
 
-# --- Stream + Aufnahme (YouTube/Twitch) ---
+# --- Stream (YouTube / 2x Twitch), optional mit lokaler Aufnahme ---
 stream_screencast() {
     local mic sys_audio
     mic=$(detect_microphone) || return 1
     sys_audio=$(detect_system_audio) || return 1
 
-    local resolution
-    resolution=$(get_primary_monitor_resolution)
-    local out="$VIDEO_DIR/stream-$(date '+%y%m%d-%H%M-%S').$VIDEO_FORMAT"
+    local resolution display_input monitor_data
+
+    # DEV: Prüfung auf mehrere Monitore
+    local monitor_count
+    monitor_count=$(count_active_monitors)
+
+    if [ "$monitor_count" -gt 1 ]; then
+        # Mehrere Monitore: Auswahl anzeigen
+        monitor_data="$(select_monitor)" || return 1
+        resolution="$(echo "$monitor_data" | cut -d'|' -f2)"
+        local x_offset y_offset
+        x_offset="$(echo "$monitor_data" | cut -d'|' -f3)"
+        y_offset="$(echo "$monitor_data" | cut -d'|' -f4)"
+        display_input="${DISPLAY}+${x_offset}+${y_offset}"
+    else
+        # Einzelner Monitor: Gesamten Bildschirm aufnehmen
+        resolution=$(get_primary_monitor_resolution)
+        display_input="$DISPLAY"
+    fi
 
     # Sicherstellen, dass System-Audio nicht stumm ist
     pactl set-source-mute "$sys_audio" 0 2>/dev/null
@@ -881,46 +899,62 @@ stream_screencast() {
     fi
     local stream_audio_codec="aac"
 
+    # Besseres Keyhandling überlegen.
     # Stream Keys
-    local yt_key tw_key
+    local yt_key tw_key tw2_key
     yt_key="$(cat ~/.local/share/yt/stream-key 2>/dev/null)"
     tw_key="$(cat ~/.local/share/twitch/stream-key 2>/dev/null)"
+    # tw2_key="$(cat ~/.local/share/twitch/stream-key-2 2>/dev/null)"
 
-    if [ -z "$yt_key" ] && [ -z "$tw_key" ]; then
+    if [ -z "$yt_key" ] && [ -z "$tw_key" ] && [ -z "$tw2_key" ]; then
         notify "Keine Stream-Keys gefunden (YT/Twitch)!"
         return 1
     fi
 
-    local tee_outputs=""
     local rtmp_opts="select='v\:0\,a\:0':f=flv:onfail=ignore"
-
-    # matroska (mkv) als format für lokale Aufnahme
-    local rec_opts="select='v\:0\,a\:1\,a\:2':f=matroska"
+    local tee_outputs=""
 
     if [ -n "$yt_key" ]; then
         tee_outputs="${tee_outputs}[${rtmp_opts}]rtmp://x.rtmp.youtube.com/live2/${yt_key}|"
     fi
     if [ -n "$tw_key" ]; then
-        tee_outputs="${tee_outputs}[${rtmp_opts}]rtmp://live.twitch.tv/live/${tw_key}|"
+        tee_outputs="${tee_outputs}[${rtmp_opts}]rtmp://live.twitch.tv/app/${tw_key}|"
+    fi
+    if [ -n "$tw2_key" ]; then
+        tee_outputs="${tee_outputs}[${rtmp_opts}]rtmp://live.twitch.tv/app/${tw2_key}|"
     fi
 
-    tee_outputs="${tee_outputs}[${rec_opts}]${out}"
+    # Optionale lokale Aufnahme: matroska mit separaten Mikro/System-Spuren (Spur 2 & 3)
+    local extra_maps=""
+    if [ "$STREAM_LOCAL_REC" = "1" ]; then
+        local out="$VIDEO_DIR/stream-$(date '+%y%m%d-%H%M-%S').$VIDEO_FORMAT"
+        local rec_opts="select='v\:0\,a\:1\,a\:2':f=matroska"
+        tee_outputs="${tee_outputs}[${rec_opts}]${out}"
+        extra_maps="-map 1:a -map 2:a"
+    else
+        tee_outputs="${tee_outputs%|}"
+    fi
 
-    # Filter-Complex: Audio mixen (Spur 1) + separate Mikro/System-Spuren (Spur 2 & 3)
+    # Filter-Complex: Audio mixen (Spur 1)
     local filter_complex map_params
     if [ -n "$VF_UPLOAD" ]; then
         filter_complex="-filter_complex [1:a]volume=1.0[mic];[2:a]volume=0.8[sys];[mic][sys]amix=inputs=2:duration=longest[aout];[0:v]${VF_UPLOAD}[vout]"
-        map_params="-map [vout] -map [aout] -map 1:a -map 2:a"
+        map_params="-map [vout] -map [aout] $extra_maps"
     else
         filter_complex="-filter_complex [1:a]volume=1.0[mic];[2:a]volume=0.8[sys];[mic][sys]amix=inputs=2:duration=longest[aout]"
-        map_params="-map 0:v -map [aout] -map 1:a -map 2:a"
+        map_params="-map 0:v -map [aout] $extra_maps"
+    fi
+
+    local audio_codecs="-c:a:0 $stream_audio_codec -ar $AUDIO_SAMPLERATE -b:a:0 160k"
+    if [ "$STREAM_LOCAL_REC" = "1" ]; then
+        audio_codecs="${audio_codecs} -c:a:1 $stream_audio_codec -ar $AUDIO_SAMPLERATE -b:a:1 256k -c:a:2 $stream_audio_codec -ar $AUDIO_SAMPLERATE -b:a:2 256k"
     fi
 
     nice -n -10 ffmpeg -y \
         $HW_ACCEL_INIT \
         -itsoffset -0.225 \
         -thread_queue_size "$THREAD_QUEUE" \
-        -f x11grab -framerate "$FRAMERATE" -video_size "$resolution" -i "$DISPLAY" \
+        -f x11grab -framerate "$FRAMERATE" -video_size "$resolution" -i "$display_input" \
         -thread_queue_size "$THREAD_QUEUE" \
         -f pulse -sample_rate "$AUDIO_SAMPLERATE" -channels 2 -i "$mic" \
         -thread_queue_size "$THREAD_QUEUE" \
@@ -929,15 +963,18 @@ stream_screencast() {
         $map_params \
         -c:v "$VIDEO_CODEC" $ENCODE_PARAMS \
         -flags +global_header \
-        -c:a:0 "$stream_audio_codec" -ar "$AUDIO_SAMPLERATE" -b:a:0 128k \
-        -c:a:1 "$stream_audio_codec" -ar "$AUDIO_SAMPLERATE" -b:a:1 256k \
-        -c:a:2 "$stream_audio_codec" -ar "$AUDIO_SAMPLERATE" -b:a:2 256k \
+        $audio_codecs \
         -f tee "$tee_outputs" &
 
     echo $! > /tmp/recordingpid
-    notify "Stream gestartet (YT/Twitch + Aufnahme)"
+
+    local targets=""
+    [ -n "$yt_key" ]  && targets="${targets}YT "
+    [ -n "$tw_key" ]  && targets="${targets}Twitch "
+    [ -n "$tw2_key" ] && targets="${targets}Twitch2 "
+    notify "Stream gestartet (${targets% })"
     updateicon "$ICON_SCREENCAST"
-    start_reclevel "$mic"
+    start_reclevel "$mic" "$sys_audio"
 }
 
 # --- Reine Audioaufnahme (Mikrofon) ---
@@ -1029,14 +1066,14 @@ rofi_menu() {
 
 askrecording() {
     local choice
-    choice="$(printf "Bildschirm + Systemton\nBildschirm + Mikrofon\nMonitor wählen (ohne Ton)\nReaktion (Mikro + Systemton)\nStream + Aufnahme (YT/Twitch)\nAudioaufnahme\nWebcam" \
+    choice="$(printf "Bildschirm + Systemton\nBildschirm + Mikrofon\nMonitor wählen (ohne Ton)\nReaktion (Mikro + Systemton)\nStream (YT/Twitch)\nAudioaufnahme\nWebcam" \
         | rofi_menu -p "Aufnahme starten")"
     case "$choice" in
         "Bildschirm + Systemton")        screencast_system ;;
         "Bildschirm + Mikrofon")         screencast_mic ;;
         "Monitor wählen (ohne Ton)")     screencast_monitor ;;
         "Reaktion (Mikro + Systemton)")  screencast_reaction ;;
-        "Stream + Aufnahme (YT/Twitch)") stream_screencast ;;
+        "Stream (YT/Twitch)")            stream_screencast ;;
         Audioaufnahme)                   audio ;;
         Webcam)                          webcam ;;
         *) notify "Keine Auswahl getroffen" ;;

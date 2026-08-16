@@ -14,11 +14,21 @@ abgeleitet und koennen ueber einen einzigen Prozent-Regler nachjustiert werden.
 
 ### Dateien
 
-| Datei        | Zweck                                         |
-|--------------|-----------------------------------------------|
-| `xinitrc`    | Startpunkt fuer X11-Sessions via `startx`     |
-| `xprofile`   | DPI-Erkennung, Skalierung, Umgebungsvariablen |
-| `xresources` | Farbschema, Schriftart, Transparenz           |
+| Datei        | Zweck                                         | Status    |
+|--------------|-----------------------------------------------|-----------|
+| `xinitrc`    | Startpunkt fuer X11-Sessions via `startx`     | Aktiv     |
+| `xprofile`   | DPI-Erkennung, Skalierung, Umgebungsvariablen | Aktiv     |
+| `xresources` | _Obsolet_ – Farbschema, Schriftart, Transparenz | **Ausser Betrieb** |
+
+> **Hinweis zu `xresources`**: Die Datei wird weder via `xrdb -load` noch `xrdb -merge`
+> geladen. Sämtliche Einträge sind auskommentiert. Das System funktioniert einwandfrei
+> ohne sie – sie war historisch ein Fallback der in der Praxis mehr Konflikte verursacht
+> als geloest hat (Doppelskalierung mit GTK/Qt, inkompatible Farbdefinitionen).
+> Die Aufgaben wurden wie folgt abgelöst:
+> - **DPI/Skalierung** → `set-dpi` + State-Dateien + `xrandr --dpi`
+> - **Farben** → `hellwal`/`pywal` schreibt nach `~/.cache/wal/colors-Xresources`
+> - **Schriftarten** → `fontconfig/fonts.conf` (via sed aktualisiert)
+> - **Cursor-Groesse** → `xrdb -merge` für `Xcursor.size` (einzelne Property, nicht die ganze Datei)
 
 ### Abhaengigkeiten
 
@@ -158,6 +168,65 @@ Zusaetzlich via Neovim-Autocmd (bei Speichern von xprofile):
 | `gtk-3.0/settings.ini` | `gtk-xft-dpi` | MASTER_DPI * 1024 |
 | `rofi/config.rasi`     | `dpi:`        | MASTER_DPI        |
 
+## Zentrale Skripte und ihre Zusammenhaenge
+
+Drei Skripte unter `~/.local/bin/` steuern gemeinsam die visuelle Darstellung:
+
+```
+xprofile (Session-Start)
+    |
+    +-- . set-dpi -s          → Berechnet DPI, setzt State-Files, Umgebungsvars
+    |                               |
+    |                               +-- xrandr --dpi
+    |                               +-- xrdb -merge "Xcursor.size: ..."
+    |                               +-- sed auf gtk-3.0/settings.ini, gtk-2.0/gtkrc-2.0
+    |                               +-- sed auf fontconfig/fonts.conf
+    |                               +-- sed auf rofi/config.rasi
+    |
+    +-- setbg &                 → Wallpaper + hellwal/pywal Farbschema
+    |                               |
+    |                               +-- hellwal -i <bild> → ~/.cache/wal/
+    |                               +-- xwallpaper --zoom
+    |                               +-- kill -USR1 dwm (Signal fuer Theme-Reload)
+    |
+    +-- xbanish, unclutter, picom, ...
+
+sysact (Systemmenü via rofi)
+    |
+    +-- "DWM erneuern" → set-dpi -a  → DPI neu berechnen + anwenden
+    |                       +-- kill -HUP dwm (Reload)
+    |
+    +-- "Bildschirm aus" → xset dpms force off
+    +-- Sperren, Schlafen, Herunterfahren, ...
+```
+
+### set-dpi – Der zentrale DPI-Hub
+
+| Modus | Aufruf | Zweck |
+|-------|--------|-------|
+| Silent | `set-dpi -s` | Wird von `xprofile` gesourced – setzt alles ohne Ausgabe |
+| Apply | `set-dpi -a` | Sofort anwenden, Bestaetigung ausgeben (fuer Skripte) |
+| Dry-Run | `set-dpi -d` | Nur berechnete Werte anzeigen, nichts aendern |
+| Interactive | `set-dpi` | Vergleich alt/neu, Rueckfrage vor Anwendung |
+| Justify | `set-dpi -j N` | DISPLAY_ADJUST auf N% setzen und anwenden |
+
+**Wichtig**: `set-dpi` verwendet **kein** `xrdb -load` für die `xresources`-Datei.
+Der einzige `xrdb`-Aufruf ist `xrdb -merge` für die einzelne Property
+`Xcursor.size` – das überschreibt nicht die gesamte XRDB-Datenbank.
+
+### setbg – Wallpaper und Farbschema
+
+- Setzt Hintergrundbild via `xwallpaper`
+- Generiert Farbschema mit `hellwal` (oder Fallback `pywal`) nach `~/.cache/wal/`
+- Sendet `USR1` an dwm zum Theme-Reload
+- **Kein Bezug zu `xresources`** – Farben werden von `hellwal`/`pywal` verwaltet
+
+### sysact – Systemaktionen
+
+- Rufen bei "DWM erneuern" `set-dpi -a` auf → DPI-Kette wird neu durchlaufen
+- Verwendet `xset dpms force off` fuer "Bildschirm aus"
+- **Kein Bezug zu `xresources`**
+
 ## Wrapper-Skripte
 
 Unter `~/.local/bin/wrapper/` liegen App-spezifische Wrapper die den
@@ -266,6 +335,16 @@ Beispiel 14" Display mit 2560x1440 (309mm breit):
 | Telegram       | Qt           | QT_FONT_DPI   | Hardcoded 1 + interner Regler         | qt5ct.conf           |
 | qt5ct/qt6ct    | Qt           | QT_FONT_DPI   | QT_SCALE_FACTOR                       | qt5ct/qt6ct.conf     |
 | GIMP           | GTK          | xrandr + GDK  | GDK_DPI_SCALE                         | settings.ini         |
+
+## Bekannte Konfigurationsfallen
+
+| Problem | Ursache | Loesung |
+|---------|---------|---------|
+| `xresources` wird ignoriert | Wird nicht geladen (weder `xrdb -load` noch `xrdb -merge`) | **Beabsichtigt** – System arbeitet ohne. Datei kann geloescht werden. |
+| Doppelskalierung bei alten X11-Apps | `Xft.dpi` ist nicht gesetzt (TODO in xprofile:28) | Bei Bedarf: `echo "Xft.dpi: $MASTER_DPI" \| xrdb -merge` in xprofile einfuegen |
+| Farben im Terminal falsch | `xresources`-Farben auskommentiert, kein `xrdb -load` | Terminal (st) nutzt eigene config.h oder hellwal/pywal colors |
+| GTK/Qt Skalierung multipliziert sich | `GDK_SCALE` + `GDK_DPI_SCALE` gleichzeitig gesetzt | `GDK_SCALE` bewusst nicht setzen (nur `GDK_DPI_SCALE`) |
+| Cursor-Groesse stimmt nicht nach DPI-Wechsel | GTK settings.ini nicht aktualisiert | `set-dpi` updated automatisch – bei manuellem DPI-Wechsel `set-dpi -a` aufrufen |
 
 ## Troubleshooting
 

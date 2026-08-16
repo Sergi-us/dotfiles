@@ -96,4 +96,4 @@ user - Benutzername
 pass - Passwort
 
 === TOTP in Rofi-pass einrichten ===
-das muss ich noch genauer verstehen
+TOTP's laufen über das plugin rofi-pass

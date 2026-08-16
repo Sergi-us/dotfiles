@@ -1,6 +1,6 @@
 #!/bin/sh
-## 2026-02-16   SARBS
-# Abhängigkeiten: GNU Coreutils (cat, cut, head, mkdir, tail), awk, bc, info, pidof, pstree, sed, tree, xrandr, xrdb
+## 2026-08-07   SARBS
+# Abhängigkeiten: GNU Coreutils (cat, cut, head, mkdir, tail), awk, bc, gsettings, info, pidof, pstree, sed, tree, xrandr, xrdb
 # Zentrale DPI/Skalierungs-Konfiguration für X11-Sitzungen.
 # Berechnet Hardware-DPI, wendet DISPLAY_ADJUST an, setzt State-Dateien
 # und konfiguriert xrandr + Umgebungsvariablen.
@@ -15,6 +15,12 @@
 # Stellschrauben (Umgebungsvariablen ueberschreiben alles):
 #   FORCE_DPI=192      Ueberspringt Auto-Erkennung + Adjust komplett
 #   FORCE_SCALE=1.25   Ueberspringt Scale-Ableitung
+#
+# Cursor-Anpassung (apply_dpi):
+#   gsettings          Sofort wirksam fuer GTK3/GTK4-Apps
+#   xrdb -merge + xsetroot  X11-Root-Cursor (wirkt bei neuen Apps)
+#   gtk-*.ini          Persistente Config fuer neu gestartete Apps
+#   HINWEIS: Qt-Apps benoetigen einen Neustart um die Groesse zu uebernehmen
 
 # === Default für DISPLAY_ADJUST ===
 # Greift nur wenn State-Datei noch nicht existiert (frisches System).
@@ -181,6 +187,9 @@ apply_dpi() {
 	gtk2_settings="${XDG_CONFIG_HOME:-$HOME/.config}/gtk-2.0/gtkrc-2.0"
 	[ -f "$gtk3_settings" ] && sed -i "s/^gtk-cursor-theme-size=.*/gtk-cursor-theme-size=$XCURSOR_SIZE/" "$gtk3_settings"
 	[ -f "$gtk2_settings" ] && sed -i "s/^gtk-cursor-theme-size=.*/gtk-cursor-theme-size=$XCURSOR_SIZE/" "$gtk2_settings"
+
+	# gsettings für sofortige GTK-Cursor-Anpassung (laufende GTK3/GTK4-Apps)
+	[ -x "$(command -v gsettings)" ] && gsettings set org.gnome.desktop.interface cursor-size "$XCURSOR_SIZE" 2>/dev/null
 
 	# fontconfig DPI synchronisieren
 	fontconf="${XDG_CONFIG_HOME:-$HOME/.config}/fontconfig/fonts.conf"

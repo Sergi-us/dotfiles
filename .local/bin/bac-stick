@@ -39,12 +39,12 @@ sudo rsync \
     -a -v -r --progress --delete -H -s \
     --include="/home/" \
     --include="/home/${USER}/" \
+    --include="/home/${USER}/.gnupg/***" \
+    --include="/home/${USER}/.abook/***" \
     --include="/home/${USER}/.ssh/***" \
     --include="/home/${USER}/.local/" \
-    --include="/home/${USER}/.local/share/" \
-    --include="/home/${USER}/.local/share/mail/***" \
-    --include="/home/${USER}/.local/share/pass/***" \
-    --include="/home/${USER}/.local/share/gnupg/***" \
+    --include="/home/${USER}/.local/aur/***" \
+    --include="/home/${USER}/.local/share/***" \
     --include="/home/${USER}/.local/src/***" \
     --include="/home/${USER}/Bilder/" \
     --include="/home/${USER}/Bilder/***" \

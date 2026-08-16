@@ -1,0 +1,138 @@
+#!/bin/sh
+# mail-filter-sync - Synchronisiert Mails und filtert Spam mit bogofilter
+## 2026-08-10 SARBS core DEV
+#
+# Dieses Skript:
+# 1. Prüft ob mbsync und bogofilter installiert sind
+# 2. Iteriert durch alle Accounts in ~/.local/share/bogofilter/
+# 3. Synchronisiert Mails mit mbsync
+# 4. Klassifiziert neue Mails mit bogofilter
+# 5. Verschiebt Spam in den Spam-Ordner
+# 6. Führt notmuch new aus (falls installiert)
+
+# DEV: set -e entfernt da bogofilter Exit-Codes 0/1/2 explizit ausgewertet werden
+# set -e
+
+DB_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/bogofilter"
+MAIL_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/mail"
+MBSYNCRC="${MBSYNCRC:-$HOME/.mbsyncrc}"
+
+# Prüfe ob mbsync läuft
+if pgrep mbsync >/dev/null 2>&1; then
+	echo "mbsync läuft bereits, überspringe Filter-Sync."
+	exit 0
+fi
+
+# Prüfe ob bogofilter installiert ist
+if ! command -v bogofilter >/dev/null 2>&1; then
+	echo "Fehler: bogofilter nicht installiert."
+	exit 1
+fi
+
+# Prüfe ob DB_DIR existiert
+if [ ! -d "$DB_DIR" ]; then
+	echo "Keine bogofilter-Datenbanken gefunden in $DB_DIR"
+	exit 0
+fi
+
+# Hole alle Accounts aus dem DB_DIR (ignoriere .bac-Verzeichnisse)
+accounts=""
+for db in "$DB_DIR"/*/; do
+	[ -d "$db" ] || continue
+	account="$(basename "$db")"
+	case "$account" in *.bac*) continue ;; esac
+	accounts="$accounts $account"
+done
+
+if [ -z "$accounts" ]; then
+	echo "Keine bogofilter-Datenbanken gefunden."
+	exit 0
+fi
+
+# Prüfe ob mbsync installiert ist
+if ! command -v mbsync >/dev/null 2>&1; then
+	echo "Fehler: mbsync nicht installiert."
+	exit 1
+fi
+
+# Für nicht-interaktive Shell (z.B. Cron-Job): Prüfe ob GPG-Schlüssel entsperrt sind
+if ! tty -s; then
+	export DISPLAY="${DISPLAY:-:0}"
+	export GPG_TTY="$(tty || echo /dev/tty)"
+	gpg-connect-agent /bye >/dev/null 2>&1
+	if ! echo "dummy" | gpg --sign --batch -o /dev/null > /dev/null 2>&1; then
+		if ! echo "dummy" | gpg --sign -o /dev/null > /dev/null 2>&1; then
+			notify-send --app-name="Mail-Filter" "GPG-Schlüssel gesperrt" "Filter-Sync übersprungen. Bitte Schlüssel manuell entsperren." 2>/dev/null || true
+			exit 1
+		fi
+	fi
+fi
+
+# Synchronisiere und filtere für jeden Account
+for account in $accounts; do
+	echo "=== Verarbeite: $account ==="
+
+	spam_count=0
+	ham_count=0
+
+	# 1. Filtere neue Mails in INBOX/new
+	inbox_new="$MAIL_DIR/$account/INBOX/new"
+	if [ -d "$inbox_new" ]; then
+		for mail in "$inbox_new"/*; do
+			[ -f "$mail" ] || continue
+
+			bogofilter -d "$DB_DIR/$account" -p < "$mail" >/dev/null 2>&1
+			result=$?
+
+			if [ "$result" -eq 0 ]; then
+				filename="$(basename "$mail")"
+				clean_name="$(echo "$filename" | sed 's/,U=[0-9]*//')"
+				mv "$mail" "$MAIL_DIR/$account/Spam/new/$clean_name" 2>/dev/null && {
+					echo "-> Spam gefiltert: $clean_name"
+					spam_count=$((spam_count + 1))
+				}
+			elif [ "$result" -eq 1 ]; then
+				ham_count=$((ham_count + 1))
+			fi
+		done
+	fi
+
+	# 2. Filtere bereits gesehene Mails in INBOX/cur
+	inbox_cur="$MAIL_DIR/$account/INBOX/cur"
+	if [ -d "$inbox_cur" ]; then
+		for mail in "$inbox_cur"/*; do
+			[ -f "$mail" ] || continue
+
+			bogofilter -d "$DB_DIR/$account" -p < "$mail" >/dev/null 2>&1
+			result=$?
+
+			if [ "$result" -eq 0 ]; then
+				filename="$(basename "$mail")"
+				clean_name="$(echo "$filename" | sed 's/,U=[0-9]*[:].*//')"
+				mv "$mail" "$MAIL_DIR/$account/Spam/new/$clean_name" 2>/dev/null && {
+					echo "-> Spam gefiltert (cur): $clean_name"
+					spam_count=$((spam_count + 1))
+				}
+			elif [ "$result" -eq 1 ]; then
+				ham_count=$((ham_count + 1))
+			fi
+		done
+	fi
+
+	echo "Gefiltert: $spam_count Spam, $ham_count Ham"
+
+	# 3. Synchronisiere Änderungen mit Server
+	if [ "$spam_count" -gt 0 ] || [ "$ham_count" -gt 0 ]; then
+		echo "Synchronisiere mit Server..."
+		mbsync -c "$MBSYNCRC" "$account" || {
+			echo "Fehler bei mbsync für $account"
+		}
+	fi
+done
+
+# Führe notmuch new aus falls installiert
+if command -v notmuch >/dev/null 2>&1; then
+	notmuch new --quiet 2>/dev/null || true
+fi
+
+echo "=== Filter-Sync abgeschlossen ==="

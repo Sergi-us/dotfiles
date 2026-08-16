@@ -5,12 +5,38 @@
 #   ebene1/ebene2/Dokument.pdf → ebene1-ebene2-Dokument.pdf
 # Überträgt flach via rsync über SSH, löscht nur erfolgreiche Dateien
 
+# === Konfiguration ===
 SSH_HOST="archivar-sergi"
-DEST_DIR="/opt/paperless/consume/"
+DEST_DIR="/var/paperless/consume/"
 CLEANUP_EMPTY_DIRS="${CLEANUP_EMPTY_DIRS:-1}"
+NOTIFICATION_ID=31337
+
+# Positivliste: Nur diese Dateiendungen werden archiviert (Groß-/Kleinschreibung egal)
+ALLOWED_EXTENSIONS="pdf"
 
 notify() {
 	notify-send "$1" "$2"
+}
+
+notify_replace() {
+	percentage="$1"
+	message="$2"
+	dunstify -h "int:value:$percentage" --replace="$NOTIFICATION_ID" "󱪚 Archivierung läuft" "$message"
+}
+
+notify_critical() {
+	notify-send -u critical "$1" "$2"
+}
+
+is_allowed_extension() {
+	file="$1"
+	ext="${file##*.}"
+	ext_lower=$(printf '%s' "$ext" | tr '[:upper:]' '[:lower:]')
+
+	for allowed in $ALLOWED_EXTENSIONS; do
+		[ "$ext_lower" = "$allowed" ] && return 0
+	done
+	return 1
 }
 
 check_connection() {
@@ -30,23 +56,55 @@ generate_flat_name() {
 	printf '%s' "$flat_name"
 }
 
+count_allowed_files() {
+	count=0
+	for item in "$@"; do
+		if [ -f "$item" ]; then
+			is_allowed_extension "$item" && count=$((count + 1))
+		elif [ -d "$item" ]; then
+			dir_count=$(find "$item" -type f | while IFS= read -r f; do
+				is_allowed_extension "$f" && echo "$f"
+			done | wc -l)
+			count=$((count + dir_count))
+		fi
+	done
+	echo "$count"
+}
+
+calculate_percentage() {
+	current="$1"
+	total="$2"
+	if [ "$total" -eq 0 ]; then
+		echo "0"
+	else
+		echo $((current * 100 / total))
+	fi
+}
+
 process_file() {
 	file="$1"
 	base_dir="$2"
+	current="$3"
+	total="$4"
 
 	[ -f "$file" ] || return 1
+
+	if ! is_allowed_extension "$file"; then
+		return 1
+	fi
 
 	relpath="${file#"$base_dir"/}"
 	flat_name=$(generate_flat_name "$relpath")
 
-	notify "󱪚 Dokument wird archiviert..." "Übertrage: $flat_name"
+	ext="${file##*.}"
+	ext_upper=$(printf '%s' "$ext" | tr '[:lower:]' '[:upper:]')
+	percentage=$(calculate_percentage "$current" "$total")
+	notify_replace "$percentage" "$(printf '%d/%d %s → Paperless' "$current" "$total" "$ext_upper")"
 
 	if rsync -a --progress "$file" "${SSH_HOST}:${DEST_DIR}${flat_name}" 2>&1; then
-		notify "✅ Erfolgreich" "$flat_name wurde archiviert."
 		rm -f "$file"
 		return 0
 	else
-		notify "❌ Fehler" "Übertragung von $flat_name fehlgeschlagen."
 		return 1
 	fi
 }
@@ -54,9 +112,27 @@ process_file() {
 process_directory() {
 	dir="$1"
 	base_dir="$2"
+	counter_file="$3"
+	total="$4"
+	success_file="$5"
+	fail_file="$6"
+	failed_file="$7"
 
 	find "$dir" -type f | while IFS= read -r file; do
-		process_file "$file" "$base_dir"
+		if is_allowed_extension "$file"; then
+			current=$(cat "$counter_file")
+			current=$((current + 1))
+			echo "$current" > "$counter_file"
+
+			if process_file "$file" "$base_dir" "$current" "$total"; then
+				success=$(cat "$success_file")
+				echo "$((success + 1))" > "$success_file"
+			else
+				fail=$(cat "$fail_file")
+				echo "$((fail + 1))" > "$fail_file"
+				echo "  • $(basename "$file")" >> "$failed_file"
+			fi
+		fi
 	done
 
 	if [ "$CLEANUP_EMPTY_DIRS" = "1" ]; then
@@ -69,43 +145,58 @@ main() {
 
 	check_connection
 
-	success_count=0
-	fail_count=0
+	total=$(count_allowed_files "$@")
+	[ "$total" -eq 0 ] && { notify "⚠️ Nichts zu tun" "Keine Dateien mit erlaubten Endungen gefunden."; exit 0; }
+
+	notify_replace "0" "$(printf '0/%d → Paperless' "$total")"
+
+	tmpdir=$(mktemp -d)
+	counter_file="$tmpdir/counter"
+	success_file="$tmpdir/success"
+	fail_file="$tmpdir/fail"
+	failed_file="$tmpdir/failed"
+	echo "0" > "$counter_file"
+	echo "0" > "$success_file"
+	echo "0" > "$fail_file"
+	: > "$failed_file"
 
 	for item in "$@"; do
 		if [ -f "$item" ]; then
-			base_dir=$(dirname "$item")
-			if process_file "$item" "$base_dir"; then
-				success_count=$((success_count + 1))
-			else
-				fail_count=$((fail_count + 1))
+			if is_allowed_extension "$item"; then
+				current=$(cat "$counter_file")
+				current=$((current + 1))
+				echo "$current" > "$counter_file"
+				base_dir=$(dirname "$item")
+				if process_file "$item" "$base_dir" "$current" "$total"; then
+					success=$(cat "$success_file")
+					echo "$((success + 1))" > "$success_file"
+				else
+					fail=$(cat "$fail_file")
+					echo "$((fail + 1))" > "$fail_file"
+					echo "  • $(basename "$item")" >> "$failed_file"
+				fi
 			fi
 		elif [ -d "$item" ]; then
 			base_dir=$(dirname "$item")
-			file_count=$(find "$item" -type f | wc -l)
-			processed=0
-
-			find "$item" -type f | while IFS= read -r file; do
-				if process_file "$file" "$base_dir"; then
-					processed=$((processed + 1))
-				fi
-			done
-
-			if [ "$CLEANUP_EMPTY_DIRS" = "1" ]; then
-				find "$item" -depth -type d -empty -delete 2>/dev/null
-			fi
-
-			success_count=$((success_count + file_count))
-		else
-			notify "⚠️ Übersprungen" "$item ist weder Datei noch Verzeichnis."
-			fail_count=$((fail_count + 1))
+			process_directory "$item" "$base_dir" "$counter_file" "$total" "$success_file" "$fail_file" "$failed_file"
 		fi
 	done
 
+	success_count=$(cat "$success_file")
+	fail_count=$(cat "$fail_file")
+	failed_files=$(cat "$failed_file")
+	rm -rf "$tmpdir"
+
+	if [ "$CLEANUP_EMPTY_DIRS" = "1" ]; then
+		for item in "$@"; do
+			[ -d "$item" ] && find "$item" -depth -type d -empty -delete 2>/dev/null
+		done
+	fi
+
 	if [ "$fail_count" -eq 0 ]; then
-		notify "✅ Archivierung abgeschlossen" "$success_count Dokument(e) erfolgreich übertragen."
+		notify_critical "✅ Archivierung erfolgreich" "$success_count von $total Dokument(en) übertragen"
 	else
-		notify "⚠️ Teilweise erfolgreich" "$success_count übertragen, $fail_count fehlgeschlagen."
+		notify_critical "⚠️ Archivierung teilweise fehlgeschlagen" "$(printf '%s von %s übertragen, %s Fehler:\n%s' "$success_count" "$total" "$fail_count" "$failed_files")"
 	fi
 }
 

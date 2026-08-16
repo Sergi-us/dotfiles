@@ -121,4 +121,7 @@ alias   timer="termdown"
 
 alias talk='env \
   MOZ_WEBRTC_AUTO_GAIN_CONTROL=0 \
-  firefox --new-window --kiosk "https://meet.jit.si/Tiling/WindowManager" 2>/dev/null'
+  firefox --new-window --kiosk "https://meet.linux-talk.org/join/?room=linux-talk12" 2>/dev/null'
+alias chat='env \
+  MOZ_WEBRTC_AUTO_GAIN_CONTROL=0 \
+  firefox --new-window --kiosk "https://chat.linux-talk.org/" 2>/dev/null'

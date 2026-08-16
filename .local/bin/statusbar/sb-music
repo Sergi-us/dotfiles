@@ -1,5 +1,5 @@
 #!/bin/sh
-## 2025-02-10 SARBS
+## 2025-02-10 SARBS core
 # Abhängigkeiten: GNU Coreutils (cp, dirname, paste), ffmpeg, mpc, notify-send, pidof, sb-mpdup, sed, setsid
 
 filter() {

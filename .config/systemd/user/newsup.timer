@@ -1,0 +1,10 @@
+[Unit]
+Description=RSS-Feed-Update Timer (alle 30 Minuten)
+
+[Timer]
+OnCalendar=*-*-* *:00,30:00
+Persistent=true
+RandomizedDelaySec=2min
+
+[Install]
+WantedBy=timers.target

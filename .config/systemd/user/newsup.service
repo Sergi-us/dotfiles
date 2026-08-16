@@ -1,0 +1,12 @@
+[Unit]
+Description=RSS-Feed-Aktualisierung für Newsraft
+After=network.target
+
+[Service]
+Type=oneshot
+ExecStart=%h/.local/bin/cron/newsup
+Environment=DISPLAY=:0
+Environment=DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/%U/bus
+
+[Install]
+WantedBy=default.target

@@ -1,0 +1,20 @@
+#!/bin/sh
+## 2026-08-07 SARBS
+# Prüft ob Mailsync ausgeführt werden kann (Accounts konfiguriert)
+# Rückgabe: 0 = ja, 1 = nein
+
+# MBSYNCRC-Pfade prüfen
+mbsyncrc="${MBSYNCRC:-$HOME/.mbsyncrc}"
+mpoprc="${MPOPRC:-$HOME/.config/mpop/config}"
+
+# Prüfe ob Konfigurationsdateien existieren
+if [ ! -f "$mbsyncrc" ] && [ ! -f "$mpoprc" ]; then
+	exit 1
+fi
+
+# Prüfe ob Accounts definiert sind
+if ! grep -q "^\(Channel\|account\)" "$mbsyncrc" "$mpoprc" 2>/dev/null; then
+	exit 1
+fi
+
+exit 0

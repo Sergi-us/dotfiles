@@ -1,21 +1,36 @@
 #!/bin/sh
-## 2026-07-13 SARBS core
-# Abhängigkeiten: GNU Coreutils (cut, head, id, paste, sort, tail, wc), arandr, awk, bc, dunst, dunstctl, killall, notify-send, rofi, sed, setbg, set-dpi, xrandr
-## Abhängigkeiten: xrandr, rofi, awk, sed, grep, bc (für Skalierung)
+## 2026-08-16 SARBS core DEV
+# Abhängigkeiten: GNU Coreutils (cut, head, id, paste, sort, tail, wc), arandr, awk, bc, dunst, dunstctl, killall, notify-send, rofi, sed, setbg, set-dpi, xdotool, xrandr
+## Abhängigkeiten: xrandr, rofi, awk, sed, grep, bc (für Skalierung), xdotool (Bildschirm-Erkennung via Mausposition)
 # Eine Benutzeroberfläche zum Erkennen, Auswählen und plazieren von Bildschirmen.
 # Prüft mit xrandr verbundene Bildschirme und lässt den Benutzer einen zur Verwendung auswählen.
 # durch "manuelle Auswahl", wird arandr geöffnet.
+# DEV (neu): Die Auflösung eines einzelnen Bildschirms kann geändert werden; der
+#            Zielbildschirm wird automatisch per Mausposition erkannt (in DWM
+#            erscheint Rofi auf dem fokussierten Monitor).
+
+# Hilfsfunktion: Aktuelle Auflösung eines Bildschirms (leer, wenn inaktiv)
+get_current_res() { # Parameter: $1=screen_name
+    # Sucht das WxH+X+Y-Muster in der Ausgabezeile des Bildschirms.
+    # Funktioniert feldpositionsunabhängig mit und ohne "primary"-Keyword.
+    echo "$XRANDR_OUT" | awk -v scr="$1" '$1 == scr' | \
+        grep -oE '[0-9]+x[0-9]+\+[0-9]+\+[0-9]+' | head -n1 | cut -d+ -f1
+}
 
 # Hilfsfunktion: Formatierte Monitorliste für Rofi (Name + Aktuelle Auflösung)
-# TODO Die Monitorauflösung wird nicht zuverlässig kannt!
 get_formatted_screens() {
     # Erstellt aus "eDP DisplayPort-3" eine Liste wie:
     # 1: eDP (1920x1080)
     # 2: DisplayPort-3 (3840x2160)
     local idx=1
     for screen in $1; do
-        local res=$(echo "$XRANDR_OUT" | awk -v scr="^$screen" '$0 ~ scr {print $3}' | grep -oE "[0-9]+x[0-9]+" | head -n1)
-        [ -z "$res" ] && res="unbekannt"
+        local res=$(get_current_res "$screen")
+        # DEV: Alter Ansatz - auskommentiert erhalten.
+        # Problem: $3 enthält nur die Auflösung, wenn der Monitor NICHT primary ist,
+        #          da bei primary-Monitoren das Wort "primary" in diesem Feld steht.
+        # local res=$(echo "$XRANDR_OUT" | awk -v scr="^$screen" '$0 ~ scr {print $3}' | grep -oE "[0-9]+x[0-9]+" | head -n1)
+        # Kein aktiver Modus -> Bildschirm ist verbunden, aber abgeschaltet
+        [ -z "$res" ] && res="inaktiv"
         printf "%d: %s (%s)\n" "$idx" "$screen" "$res"
         idx=$((idx + 1))
     done
@@ -31,18 +46,69 @@ XRANDR_OUT=$(xrandr --query)
 
 # Funktion zum Abrufen aller verfügbaren Auflösungen für einen Bildschirm
 get_resolutions() {
-    echo "$XRANDR_OUT" | grep -A 20 "^$1 connected" | grep -E "^   [0-9]" | cut -d' ' -f4 | sort -nr
+    # DEV: Neuer Ansatz - durchläuft den Abschnitt des Outputs bis zur nächsten
+    # Output-Zeile. Fangt dadurch alle Modi ab (auch mehr als 20, z.B. bei 4K)
+    # und sortiert korrekt nach Breite, dann Höhe. Doppelte werden gefiltert.
+    echo "$XRANDR_OUT" | awk -v scr="$1" '
+        $1 == scr && $2 == "connected" { f = 1; next }
+        /^[^ \t]/ { f = 0 }
+        f && /^[ \t]+[0-9]/ { print $1 }' |
+        sort -t x -k1,1nr -k2,2nr | awk '!seen[$0]++'
+    # DEV: Alter Ansatz - auskommentiert erhalten.
+    # Problem 1: grep -A 20 schneidet die Liste bei Monitoren mit >20 Modi ab.
+    # Problem 2: sort -nr vergleicht nur bis zur ersten Nicht-Ziffer (Breite),
+    #            Auflösungen mit gleicher Breite landen in willkürlicher Reihenfolge.
+    # echo "$XRANDR_OUT" | grep -A 20 "^$1 connected" | grep -E "^   [0-9]" | cut -d' ' -f4 | sort -nr
+}
+
+# DEV (neu): Erkennt den Bildschirm, auf dem sich der Mauszeiger gerade befindet.
+# In DWM öffnet sich Rofi auf dem fokussierten Monitor (= Mausposition), damit
+# lässt sich der zu bearbeitende Bildschirm ohne Zwischenabfrage bestimmen.
+# Ansatz: Maus-X/Y wird mit den Geometrien (WxH+X+Y) der verbundenen Outputs verglichen.
+get_mouse_screen() {
+    [ -x "$(command -v xdotool)" ] || return 1
+    local pos=$(xdotool getmouselocation 2>/dev/null)
+    local mx=$(echo "$pos" | grep -oE 'x:-?[0-9]+' | head -n1 | cut -d: -f2)
+    local my=$(echo "$pos" | grep -oE 'y:-?[0-9]+' | head -n1 | cut -d: -f2)
+    [ -n "$mx" ] && [ -n "$my" ] || return 1
+    echo "$XRANDR_OUT" | awk -v mx="$mx" -v my="$my" '
+        $2 == "connected" {
+            for (i = 3; i <= NF; i++) {
+                if ($i ~ /^[0-9]+x[0-9]+\+[0-9]+\+[0-9]+$/) {
+                    split($i, g, /[x+]/)
+                    if (mx+0 >= g[3]+0 && mx+0 < g[3]+g[1] && my+0 >= g[4]+0 && my+0 < g[4]+g[2]) {
+                        print $1
+                        exit
+                    }
+                }
+            }
+        }'
+}
+
+# DEV (neu): Auflösung eines einzelnen Bildschirms ändern.
+# Im Gegensatz zu onescreen bleiben alle anderen Bildschirme unverändert.
+change_resolution() { # Parameter: $1=screen_name
+    local cur=$(get_current_res "$1")
+    local resolutions=$(get_resolutions "$1")
+    [ -z "$resolutions" ] && { notify-send "displayselect" "Keine Modi für $1 verfügbar."; return 1; }
+
+    local chosen_res=$(echo "$resolutions" | rofi_menu -p "Neue Auflösung für $1 (aktuell: ${cur:-inaktiv}):")
+    # Bei ESC-Abbruch nichts ändern
+    [ -z "$chosen_res" ] && return 1
+
+    xrandr --output "$1" --mode "$chosen_res" --scale 1.0x1.0
 }
 
 ## OPTIMIERUNG (onescreen):
-# TODO Onescreen abbruch im Rofi menu triggert eine Neue Scalierung bei abbruch
-# mit der "esc" taste. Das ist unerwünscht
 onescreen() { # Parameter: $1=screen_name, $2=allposs
     # Hole verfügbare Auflösungen für den ausgewählten Bildschirm
     resolutions=$(get_resolutions "$1")
 
     # Lasse den Benutzer eine Auflösung auswählen
     chosen_res=$(echo "$resolutions" | rofi_menu -p "Wählen Sie die Auflösung für $1:")
+
+    # Bei ESC-Abbruch nichts ändern
+    [ -z "$chosen_res" ] && return 1
 
     # Befehl zum Abschalten nicht aktiver Monitore generieren (DRY-Prinzip)
     turn_off_cmd=$(echo "$2" | grep -v "\b$1" | awk '{print "--output", $1, "--off"}' | paste -sd ' ' -)
@@ -56,50 +122,58 @@ onescreen() { # Parameter: $1=screen_name, $2=allposs
     fi
 }
 
-twoscreen() { # Parameter: $1=screens
-    # Erstelle formatierte Rofi-Liste
-    local formatted=$(get_formatted_screens "$1")
-
-    mirror=$(printf "nein\\nja" | rofi_menu -p "Bildschirme Spiegeln?")
-
-    # Spiegeln nutzt native Auflösung extern und skaliert intern
-    if [ "$mirror" = "ja" ]; then
-        local ext_sel=$(echo "$formatted" | rofi_menu -p "Optimiere Auflösung für:")
-        external=$(echo "$ext_sel" | awk '{print $2}')
-        internal=$(echo "$1" | grep -v "$external")
-
-        res_external=$(echo "$XRANDR_OUT" | sed -n "/^$external/,/\+/p" | \
-            tail -n 1 | awk '{print $1}')
-        res_internal=$(echo "$XRANDR_OUT" | sed -n "/^$internal/,/\+/p" | \
-            tail -n 1 | awk '{print $1}')
-
-        res_ext_x=$(echo "$res_external" | sed 's/x.*//')
-        res_ext_y=$(echo "$res_external" | sed 's/.*x//')
-        res_int_x=$(echo "$res_internal" | sed 's/x.*//')
-        res_int_y=$(echo "$res_internal" | sed 's/.*x//')
-
-        scale_x=$(echo "$res_ext_x / $res_int_x" | bc -l)
-        scale_y=$(echo "$res_ext_y / $res_int_y" | bc -l)
-
-        xrandr --output "$external" --auto --scale 1.0x1.0 \
-            --output "$internal" --auto --same-as "$external" \
-            --scale "$scale_x"x"$scale_y"
-    else
-        local prim_sel=$(echo "$formatted" | rofi_menu -p "Wähle Hauptbildschirm:")
-        primary=$(echo "$prim_sel" | awk '{print $2}')
-        local sec_sel=$(echo "$formatted" | grep -v "$primary")
-        secondary=$(echo "$sec_sel" | awk '{print $2}')
-        direction=$(printf "links\\nrechts\\noben\\nunten" | rofi_menu -p "Auf welcher Seite von $primary soll $secondary sein?")
-        [ -z "$direction" ] && return
-        case "$direction" in
-            "links") pos_arg="--left-of $primary" ;;
-            "rechts") pos_arg="--right-of $primary" ;;
-            "oben") pos_arg="--above $primary" ;;
-            "unten") pos_arg="--below $primary" ;;
-        esac
-        xrandr --output "$primary" --auto --scale 1.0x1.0 --output "$secondary" --auto --scale 1.0x1.0 $pos_arg
-    fi
-    }
+# DEV: twoscreen wurde in morescreen zusammengeführt - auskommentiert erhalten.
+# morescreen deckt den 2-Bildschirm-Fall vollständig ab: Mirror-Abfrage,
+# Primary-Wahl und die Platzierungs-Schleife läuft für den zweiten Schirm
+# genau einmal durch. Nach Bewährung des neuen Ablaufs kann dieser Block
+# (zusammen mit multimon) entfernt werden.
+# twoscreen() { # Parameter: $1=screens
+#     # Erstelle formatierte Rofi-Liste
+#     local formatted=$(get_formatted_screens "$1")
+#
+#     mirror=$(printf "nein\\nja" | rofi_menu -p "Bildschirme Spiegeln?")
+#     [ -z "$mirror" ] && return 1
+#
+#     # Spiegeln nutzt native Auflösung extern und skaliert intern
+#     if [ "$mirror" = "ja" ]; then
+#         local ext_sel=$(echo "$formatted" | rofi_menu -p "Optimiere Auflösung für:")
+#         [ -z "$ext_sel" ] && return 1
+#         external=$(echo "$ext_sel" | awk '{print $2}')
+#         internal=$(echo "$1" | grep -v "$external")
+#
+#         res_external=$(echo "$XRANDR_OUT" | sed -n "/^$external/,/\+/p" | \
+#             tail -n 1 | awk '{print $1}')
+#         res_internal=$(echo "$XRANDR_OUT" | sed -n "/^$internal/,/\+/p" | \
+#             tail -n 1 | awk '{print $1}')
+#
+#         res_ext_x=$(echo "$res_external" | sed 's/x.*//')
+#         res_ext_y=$(echo "$res_external" | sed 's/.*x//')
+#         res_int_x=$(echo "$res_internal" | sed 's/x.*//')
+#         res_int_y=$(echo "$res_internal" | sed 's/.*x//')
+#
+#         scale_x=$(echo "$res_ext_x / $res_int_x" | bc -l)
+#         scale_y=$(echo "$res_ext_y / $res_int_y" | bc -l)
+#
+#         xrandr --output "$external" --auto --scale 1.0x1.0 \
+#             --output "$internal" --auto --same-as "$external" \
+#             --scale "$scale_x"x"$scale_y"
+#     else
+#         local prim_sel=$(echo "$formatted" | rofi_menu -p "Wähle Hauptbildschirm:")
+#         [ -z "$prim_sel" ] && return 1
+#         primary=$(echo "$prim_sel" | awk '{print $2}')
+#         local sec_sel=$(echo "$formatted" | grep -v "$primary")
+#         secondary=$(echo "$sec_sel" | awk '{print $2}')
+#         direction=$(printf "links\\nrechts\\noben\\nunten" | rofi_menu -p "Auf welcher Seite von $primary soll $secondary sein?")
+#         [ -z "$direction" ] && return 1
+#         case "$direction" in
+#             "links") pos_arg="--left-of $primary" ;;
+#             "rechts") pos_arg="--right-of $primary" ;;
+#             "oben") pos_arg="--above $primary" ;;
+#             "unten") pos_arg="--below $primary" ;;
+#         esac
+#         xrandr --output "$primary" --auto --primary --scale 1.0x1.0 --output "$secondary" --auto --scale 1.0x1.0 $pos_arg
+#     fi
+#     }
 
 morescreen() { # Parameter: $1=screens. Erlaubt theoretisch beliebig viele Monitore.
     local remaining_screens="$1"
@@ -110,11 +184,11 @@ morescreen() { # Parameter: $1=screens. Erlaubt theoretisch beliebig viele Monit
 
     # Mirroring abfragen
     local mirror=$(printf "nein\\nja" | rofi_menu -p "Alle Bildschirme spiegeln?")
-    [ -z "$mirror" ] && return
+    [ -z "$mirror" ] && return 1
 
     if [ "$mirror" = "ja" ]; then
         local prim_sel=$(echo "$formatted" | rofi_menu -p "Optimiere Auflösung für (Hauptbildschirm):")
-        [ -z "$prim_sel" ] && return
+        [ -z "$prim_sel" ] && return 1
         primary=$(echo "$prim_sel" | awk '{print $2}')
         local other_screens=$(echo "$1" | grep -v "^$primary$")
 
@@ -122,7 +196,7 @@ morescreen() { # Parameter: $1=screens. Erlaubt theoretisch beliebig viele Monit
         local res_prim_x=$(echo "$res_primary" | sed 's/x.*//')
         local res_prim_y=$(echo "$res_primary" | sed 's/.*x//')
 
-        xrandr_args="--output $primary --auto --scale 1.0x1.0"
+        xrandr_args="--output $primary --auto --primary --scale 1.0x1.0"
 
         for sec in $other_screens; do
             local res_sec=$(echo "$XRANDR_OUT" | sed -n "/^$sec/,/\+/p" | tail -n 1 | awk '{print $1}')
@@ -139,7 +213,7 @@ morescreen() { # Parameter: $1=screens. Erlaubt theoretisch beliebig viele Monit
     else
         # 1. Hauptbildschirm abfragen
         local prim_sel=$(echo "$formatted" | rofi_menu -p "Wähle Hauptbildschirm:")
-        [ -z "$prim_sel" ] && return
+        [ -z "$prim_sel" ] && return 1
         primary=$(echo "$prim_sel" | awk '{print $2}')
 
         xrandr_args="--output $primary --auto --primary"
@@ -152,13 +226,15 @@ morescreen() { # Parameter: $1=screens. Erlaubt theoretisch beliebig viele Monit
             # Menü um Bildschirm auszuwählen ODER Setup abzuschließen
             local next_sel=$(printf "%s\\n[Setup hier beenden]" "$formatted" | rofi_menu -p "Wähle nächsten Bildschirm:")
 
-            # Abbruch oder Ende
-            [ -z "$next_sel" ] || [ "$next_sel" = "[Setup hier beenden]" ] && break
+            # ESC-Abbruch
+            [ -z "$next_sel" ] && return 1
+            # Gewolltes Beenden mit bisheriger Konfiguration
+            [ "$next_sel" = "[Setup hier beenden]" ] && break
             local next_screen=$(echo "$next_sel" | awk '{print $2}')
 
             # Position bestimmen
             local direction=$(printf "links\\nrechts\\noben\\nunten" | rofi_menu -p "Wo soll $next_screen platziert werden (relativ zu $last_arranged)?")
-            [ -z "$direction" ] && break
+            [ -z "$direction" ] && return 1
 
             # Deutsche Auswahl auf xrandr-Parameter mappen
             local pos_arg=""
@@ -170,7 +246,7 @@ morescreen() { # Parameter: $1=screens. Erlaubt theoretisch beliebig viele Monit
             esac
 
             # Argumente anhängen
-            xrandr_args="$xrandr_args --output $next_screen --auto $pos_arg"
+            xrandr_args="$xrandr_args --output $next_screen --auto --scale 1.0x1.0 $pos_arg"
 
             # Listen updaten
             remaining_screens=$(echo "$remaining_screens" | grep -v "^$next_screen$")
@@ -191,21 +267,25 @@ morescreen() { # Parameter: $1=screens. Erlaubt theoretisch beliebig viele Monit
     fi
 }
 
-multimon() { # Parameter: $1=screens
-	case "$(echo "$1" | wc -l)" in
-		2) twoscreen "$1" ;;
-		*) morescreen "$1" ;;
-	esac ;}
+# DEV: multimon wird nicht mehr benötigt, da morescreen direkt aufgerufen
+# wird - auskommentiert erhalten.
+# multimon() { # Parameter: $1=screens
+# 	case "$(echo "$1" | wc -l)" in
+# 		2) twoscreen "$1" ;;
+# 		*) morescreen "$1" ;;
+# 	esac ;}
 
-# TODO Pastrun darf micht bei abbruch der Auswahl in Rofi getriggert werden
 postrun() { # Aufräumen nach Display-Wechsel
-	setbg		# Hintergrund anpassen bei Größen-/Anordnungsänderung
+	# Warten bis xrandr EDID-Daten gelesen hat (physikalische Größe verfügbar)
+	sleep 2
 
 	# DPI und Skalierung neu berechnen für das neue Display-Setup
 	if [ -x "$(command -v set-dpi)" ]; then
 		dpi_result=$(set-dpi -a)
-		notify-send "Display-Einstellungen aktualisiert" "$dpi_result"
 	fi
+
+	# Hintergrund neu setzen (nach DPI, nutzt neue Skalierung)
+	setbg -s >/dev/null 2>&1
 
 	# Dunst neustarten für korrekte Bildschirmposition (nicht-blockierend)
 	if [ -x "$(command -v dunstctl)" ]; then
@@ -214,6 +294,9 @@ postrun() { # Aufräumen nach Display-Wechsel
 		killall -q dunst
 	fi
 	dunst & >/dev/null 2>&1
+
+	# Benachrichtigung NACH allem senden
+	[ -n "$dpi_result" ] && notify-send "Display-Einstellungen aktualisiert" "$dpi_result"
 	}
 
 # Alle verfügbaren Ausgänge erfassen
@@ -227,20 +310,41 @@ screens=$(echo "$allposs" | awk '/ connected/ {print $1}')
 
 # Wenn es nur einen Bildschirm gibt
 [ "$(echo "$screens" | wc -l)" -lt 2 ] &&
-	{ onescreen "$screens" "$allposs"; postrun; notify-send "󰍹  Nur ein Bildschirm erkannt." "Nutze ihn in optimalen Einstellungen...";  exit ;}
+	{ onescreen "$screens" "$allposs" && { postrun; notify-send "󰍹  Nur ein Bildschirm erkannt." "Nutze ihn in optimalen Einstellungen..."; }; exit ;}
+
+# DEV (neu): Bildschirm unter der Maus einmalig beim Start ermitteln.
+# In DWM erscheint Rofi auf dem fokussierten Monitor (= Mausposition), damit
+# entfällt bei der Auflösungsänderung die Zwischenfrage "Welcher Bildschirm?".
+mouse_screen=$(get_mouse_screen)
+if [ -n "$mouse_screen" ]; then
+	res_menu_entry="Auflösung von $mouse_screen ändern"
+else
+	# Fallback falls xdotool fehlt oder die Erkennung fehlschlägt
+	res_menu_entry="Auflösung ändern (manuelle Auswahl)"
+fi
 
 # Menü-Einträge für einzelne Bildschirme mit Suffix vorbereiten
 single_screens_menu=$(echo "$screens" | awk '{print $1 " (nur dieser Bildschirm)"}')
 
 # Benutzerauswahl inkl. Multi-Monitor und manueller Auswahl:
-chosen_menu=$(printf "Mehrere Bildschirme einrichten\\n%s\\nManuelle Auswahl (ARANDR)" "$single_screens_menu" | rofi_menu -p "Wähle Anzeigemodus:") &&
+chosen_menu=$(printf "Mehrere Bildschirme einrichten\n%s\n%s\nManuelle Auswahl (ARANDR)" "$single_screens_menu" "$res_menu_entry" | rofi_menu -p "Wähle Anzeigemodus:") &&
 case "$chosen_menu" in
-    "Manuelle Auswahl (ARANDR)") arandr ; exit ;;
-	"Mehrere Bildschirme einrichten") multimon "$screens" ;;
+	"Manuelle Auswahl (ARANDR)") arandr && postrun ;;
+	# DEV: lief früher über multimon, das zu twoscreen/morescreen verzweigte.
+	# morescreen behandelt nun 2+ Bildschirme einheitlich.
+	"Mehrere Bildschirme einrichten") morescreen "$screens" && postrun ;;
+	"$res_menu_entry")
+		target="$mouse_screen"
+		# Fallback: manuelle Bildschirmwahl, wenn Automatik fehlgeschlagen ist
+		if [ -z "$target" ]; then
+			sel=$(get_formatted_screens "$screens" | rofi_menu -p "Auflösung von welchem Bildschirm ändern?")
+			[ -n "$sel" ] || exit
+			target=$(echo "$sel" | awk '{print $2}')
+		fi
+		change_resolution "$target" && postrun
+		;;
 	*)
 		chosen=$(echo "$chosen_menu" | awk '{print $1}')
-		onescreen "$chosen" "$allposs"
+		onescreen "$chosen" "$allposs" && postrun
 		;;
 esac
-
-postrun

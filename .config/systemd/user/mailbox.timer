@@ -1,0 +1,10 @@
+[Unit]
+Description=E-Mail-Sync Timer (alle 15 Minuten)
+
+[Timer]
+OnCalendar=*-*-* *:00/15:00
+Persistent=true
+RandomizedDelaySec=3min
+
+[Install]
+WantedBy=timers.target

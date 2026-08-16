@@ -1,0 +1,16 @@
+[Unit]
+Description=E-Mail-Synchronisierung (mailsync)
+After=network.target
+ConditionPathExists=|%h/.mbsyncrc
+ConditionPathExists=|%h/.config/mbsync/config
+
+[Service]
+Type=oneshot
+ExecStartPre=%h/.local/bin/timers/mail-sync-check
+ExecStart=/usr/local/bin/mailsync
+Environment=MBSYNCRC=%h/.config/mbsync/config
+Environment=DISPLAY=:0
+Environment=DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/%U/bus
+
+[Install]
+WantedBy=default.target
