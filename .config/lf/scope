@@ -147,11 +147,14 @@ case "$(file --dereference --brief --mime-type -- "$1")" in
                 ;;
         esac
         ;;
-    application/*zip)
+    application/*zip|application/x-tar|application/gzip|application/x-gzip|application/x-bzip2|application/x-xz|application/x-7z-compressed|application/x-rar|application/x-cpio|application/zstd|application/x-zstd)
         atool --list -- "$1"
         ;;
     *opendocument*)
         odt2txt "$1"
+        ;;
+    application/vnd.openxmlformats-officedocument.wordprocessingml.document)
+        docx2txt "$1" -
         ;;
     application/pgp-encrypted)
         gpg -d -- "$1"

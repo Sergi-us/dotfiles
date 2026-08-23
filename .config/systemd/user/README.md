@@ -1,6 +1,6 @@
 # Systemd Timer Anleitung
 
-## 2026-08-07 SARBS
+## 2026-08-21 SARBS
 
 Systemd Timer ersetzen Cronjobs und bieten bessere Logging, Abhängigkeitsmanagement
 und Flexibilität. Sie bestehen immer aus zwei Dateien:

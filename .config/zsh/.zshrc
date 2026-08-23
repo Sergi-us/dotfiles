@@ -141,6 +141,19 @@ lfcd() {
     fi
 }
 
+# yazi mit Verzeichniswechsel
+yazicd() {
+    tmp="$(mktemp -uq)"
+    trap 'rm -f $tmp >/dev/null 2>&1 && trap - HUP INT QUIT TERM PWR EXIT' HUP INT QUIT TERM PWR EXIT
+
+    yazi --cwd-file="$tmp" "$@"
+
+    if [ -f "$tmp" ]; then
+        dir="$(cat "$tmp")"
+        [ -d "$dir" ] && [ "$dir" != "$(pwd)" ] && cd "$dir"
+    fi
+}
+
 # ============================================================================
 # Universal Prompt Settings (für alle Plugins)
 # ============================================================================
@@ -317,6 +330,8 @@ bindkey '^g' fzf-cd-widget        # Strg+G für Verzeichniswechsel (Alt+C in DWM
 # Schnellzugriffe
 bindkey -s '^o' '^ulfcd\n'        # Strg+O öffnet lf mit cd-Funktion
 bindkey -s '^a' '^ubc -lq\n'      # Strg+A öffnet bc Calculator
+# TODO besseres Binding finden
+bindkey -s '^b' '^uyazicd\n'      # Strg+Q öffnet yazi
 
 # ============================================================================
 # FZF Integration (Key-Bindings & Completion)

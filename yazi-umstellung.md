@@ -4,21 +4,25 @@ Tabellarischer Vergleich aller Funktionen zwischen LF und Yazi.
 
 ## Navigation
 
-| Funktion             | LF-Binding | Yazi-Binding |
-|----------------------|------------|--------------|
-| Vorherige Datei      | `k`        | `k`          |
-| Nächste Datei        | `j`        | `j`          |
-| Ins Unterverzeichnis | `l`        | `l`          |
-| Zurück (Parent)      | `h`        | `h`          |
-| Zum Anfang           | `g`        | `g g`        |
-| Zum Ende             | `-`        | `G`          |
-| Verlauf zurück       | –          | `H`          |
-| Verlauf vorwärts     | –          | `L`          |
-| Home-Verzeichnis     | `H`        | `g h`        |
-| Nach Unten (Seite)   | `<C-f>`    | `<C-f>`      |
-| Nach Oben (Seite)    | `<C-b>`    | `<C-b>`      |
-| Vorschau scrollen ↑  | –          | `K`          |
-| Vorschau scrollen ↓  | –          | `J`          |
+| Funktion                | LF-Binding | Yazi-Binding |
+|-------------------------|------------|--------------|
+| Vorherige Datei         | `k`        | `k`         |
+| Nächste Datei           | `j`        | `j`         |
+| Ins Unterverzeichnis    | `l`        | `l`         |
+| Zurück (Parent)         | `h`        | `h`         |
+| Zum Anfang              | `g g`      | `g g`       |
+| Zum Ende                | `G`        | `G`         |
+| Verlauf zurück          | –          | `H`         |
+| Verlauf vorwärts        | –          | `L`         |
+| Home-Verzeichnis        | `g h`      | `g h`       |
+| folge Symbolischen Link | `g l`      |             |
+| Nach Unten (Seite)      | `<C-f>`    | `<C-f>`     |
+| Nach Oben (Seite)       | `<C-b>`    | `<C-b>`     |
+| Vorschau scrollen ↑     | –          | `K`         |
+| Vorschau scrollen ↓     | –          | `J`         |
+
+# TODO
+# - für Suche
 
 ## Datei-Operationen
 
@@ -56,6 +60,7 @@ Tabellarischer Vergleich aller Funktionen zwischen LF und Yazi.
 | Find (rückwärts)       | –                 | `?`          |
 | Nächstes Ergebnis      | –                 | `n` / `N`    |
 | Zoxide (Verzeichnisse) | –                 | `Z`          |
+| Selektriere Global     | `s g` (TODO)      |              |
 
 ## Sortierung
 
@@ -75,7 +80,8 @@ Tabellarischer Vergleich aller Funktionen zwischen LF und Yazi.
 |---------------------------|--------------|--------------|
 | Vorschau                  | Scope-Skript | Eingebaut    |
 | Linemode: Keine           | –            | `m n`        |
-| Linemode: Größe           | –            | `m s`        |
+| zeige Größe               | `z g`        | `m s`        |
+| zeige Vorschau            | `z v`        |              |
 | Linemode: Berechtigungen  | –            | `m p`        |
 | Linemode: Erstellungszeit | –            | `m b`        |
 | Linemode: Änderungszeit   | –            | `m m`        |

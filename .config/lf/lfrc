@@ -589,18 +589,84 @@ cmd Film-ins-Archiv ${{
 on-cd
 
 # === Grundlegende Einstellungen ===
-	set shellopts '-eu'     # Shell-Optionen: e=exit on error, u=error on undefined variables
-	set ifs "\n"            # Internal Field Separator auf Newline setzen
-	set scrolloff 10        # 10 Zeilen Abstand beim Scrollen zum Rand beibehalten
-	set icons               # Aktiviert die Anzeige von Icons
-	set period 1            # Aktualisierungsintervall in Sekunden
-	set hiddenfiles ".*:*.aux:*.log:*.bbl:*.bcf:*.blg:*.run.xml"
+	set shellopts '-eu'		# Shell-Optionen: e=exit on error, u=error on undefined variables
+	set ifs "\n"			# Internal Field Separator auf Newline setzen
+	set scrolloff 7			# 10 Zeilen Abstand beim Scrollen zum Rand beibehalten
+	set icons				# Aktiviert die Anzeige von Icons
+	set period 1			# Aktualisierungsintervall in Sekunden
+	set hiddenfiles ".*:*.aux:*.log:*.bbl:*.bcf:*.blg:*.run.xml:AGENTS.md:*.~*~:*.bac"
 	set cleaner '~/.config/lf/cleaner'
 	set previewer '~/.config/lf/scope'
 	set autoquit true       # Beendet lf automatisch beim Öffnen einer Datei
+#   set drawbox             # Zeichnet Rahmen
+
+# === Dynamisch eingestellte Anzahl von Spalten ===
+cmd on-init :{{
+    cmd on-redraw %{{
+        if [ "$lf_width" -le 90 ]; then
+            lf -remote "send $id set ratios 1:2"
+        elif [ "$lf_width" -le 160 ]; then
+            lf -remote "send $id set ratios 1:2:3"
+        else
+            lf -remote "send $id set ratios 1:1:3:5"
+        fi
+    }}
+    on-redraw
+}}
+
+# === Toggling der Vorschau ===
+cmd Zeige-Vorschau %{{
+    if [ "$lf_preview" = true ]; then
+        lf -remote "send $id :set preview false; set ratios 1:5"
+    else
+        lf -remote "send $id :set preview true; set ratios 1:2:3"
+    fi
+}}
+map zv Zeige-Vorschau
+
+# === Symbollinks folgen ===
+cmd folge-Link %{{
+  lf -remote "send $id select \"$(readlink -- "$f" | sed 's/\\/\\\\/g;s/"/\\"/g')\""
+}}
+map gl folge-Link
+
+# === Wählen Sie alle Dateien oder Verzeichnisse im aktuellen Verzeichnis ===
+cmd select-type &{{
+    set -f
+    [ "$#" -eq 0 ] && exit
+    files="$(
+        find "$PWD" -mindepth 1 -maxdepth 1 -type "$1" $([ "$lf_hidden" = false ] && printf '%s\n' -not -name '.*') -print0 |
+        sed -z 's/\\/\\\\/g;s/"/\\"/g;s/\n/\\n/g;s/^/"/;s/$/"/' |
+        tr '\0' ' ')"
+
+    lf -remote "send $id :unselect; toggle $files"
+}}
+
+# === Wählen Sie Dateien passend zu rekursiven Kugel ===
+# TODO Binding mit interaktiver eingabe erstellen um das zu selktierende Muster einzutippen
+cmd select-glob &{{
+    select-glob() {
+        files="$(printf '%s\0' "$@" | sed 's/ /\\ /g;s/\x00/ /g')"
+        lf -remote "send $id :unselect; toggle $files"
+    }
+
+    [ "$#" -eq 1 ] || exit
+
+    # recursive glob and failglob are not supported in POSIX sh
+    select-glob $1
+}}
+
+cmd select-dirs select-type d
+cmd select-files select-type f
+# Markiere alle Ordner mit 'sd' (select directories)
+map sd select-dirs
+# Markiere alle Dateien mit 'sf' (select files)
+map sf select-files
 
 # ===TASTENBELEGUNGEN ===
 # === s menu (Selektion) ===
+map <c-l> unselect			# <Strg+l> Hebt die Auswahl aller ausgewählten Dateien auf
+map su unselect				# su: Hebt die Auswahl aller ausgewählten Dateien auf
 map sc clear
 # und weitere Sortierfunktionen
 
@@ -628,43 +694,50 @@ map J $lf -remote "send $id cd $(sed -e 's/\s*#.*//' -e '/^$/d' -e 's/^\S*\s*//'
 
 # <H> Wechselt zum Home-Verzeichniss
 map H cd ~
-map g top
+map gg top
 map - search
 
 # === Dateioperationen ===
-map D delete                # <D> Löschen                (delete)
-map E extract               # <E> Archiv extrahieren     (extract)
-map C copyto                # <C> Kopieren nach...       (copy)
-map M moveto                # <M> Verschieben nach...    (move)
+map D delete				# <D> Löschen                (delete)
+map E extract				# <E> Archiv extrahieren     (extract)
+map C copyto				# <C> Kopieren nach...       (copy)
+map M moveto				# <M> Verschieben nach...    (move)
 map <c-n> push :mkdir<space>""<left>	# <Strg+n> = Neues Verzeichniss erstellen
-map <c-r> reload            # <Strg+r> = Reload (Ansicht neu laden)
+# map <c-r> reload			# <Strg+r> = Reload (Ansicht neu laden)
 map <tab> reload
-map <c-s> set hidden!       # <Strg+s> = Versteckte Dateien An/Aus-blenden
-map B bulkrename            # <B> = Startet die Massenumbenennung für mehrere ausgewählte Dateien.
-map b $setbg $f             # <b> = Setzt die ausgewähltes Bild als Hintergrund.
+# map <c-s> set hidden!		# <Strg+s> = Versteckte Dateien An/Aus-blenden
+map . set hidden!			# . = Versteckte Dateien An/Aus-blenden
+map B bulkrename			# <B> = Startet die Massenumbenennung für mehrere ausgewählte Dateien.
+map b $setbg $f				# <b> = Setzt die ausgewähltes Bild als Hintergrund.
+
+# Anzeige & Vorschau
+cmd zeige_Versteckte set hidden!
+cmd zeige_Größe set info size
+map zg zeige_Größe
+map zh zeige_Versteckte
 
 # === ä Menu für Datei-Änderungen (Metadaten, Rechte) ===
-map äd Datum-bearbeiten            # äd = Dateidatum bearbeiten (Erstelldatum/Änderungsdatum)
-map äx Ausführungsrechte-setzen       # äx = Ausführungsrechte setzen (chmod +x)
-map äX Ausführungsrechte-enziehen    # äX = Ausführungsrechte entziehen (chmod -x)
+map äd Datum-bearbeiten		# äd = Dateidatum bearbeiten (Erstelldatum/Änderungsdatum)
+map äx Ausführungsrechte-setzen		# äx = Ausführungsrechte setzen (chmod +x)
+map äX Ausführungsrechte-enziehen	# äX = Ausführungsrechte entziehen (chmod -x)
 
 # === Dateibearbeitung ===
-map <enter> shell           # <Enter> Shell im aktuellen Verzeichniss öffnen
-map x $$f                   # <x> Führt Datei als Befehl aus.
-map X !$f                   # <X> Führt Datei als Befehl aus und wartet auf Beendigung.
-map T $nsxiv -t "$(pwd)"    # <T> öffnet den Thumbnailmodus für Bilder
-map o &mimeopen "$f"        # <o> Öffnet die Datei mit dem Standard-Programm.
-map O $mimeopen --ask "$f"  # <O> Fragt, mit welchem Programm die Datei geöffnet werden soll.
-map V push :!nvim<space>    # <V> Öffnet vim im aktuellen Verzeichnis
+map <enter> shell			# <Enter> Shell im aktuellen Verzeichniss öffnen
+map x $$f					# <x> Führt Datei als Befehl aus.
+map X !$f					# <X> Führt Datei als Befehl aus und wartet auf Beendigung.
+map T $nsxiv -t "$(pwd)"	# <T> öffnet den Thumbnailmodus für Bilder
+map o &mimeopen "$f"		# <o> Öffnet die Datei mit dem Standard-Programm.
+map O $mimeopen --ask "$f"	# <O> Fragt, mit welchem Programm die Datei geöffnet werden soll.
+map V push :!nvim<space>	# <V> Öffnet vim im aktuellen Verzeichnis
 map W $setsid -f $TERMINAL >/dev/null 2>&1	# W = Öffnet ein neues Terminal-Fenster im aktuellen Verzeichnis
-map <c-y> Ausführungsrechte-enziehen # <Strg+y> Ausführungsrechte für ausgewählte Dateien entziehen
-map <c-x> Ausführungsrechte-setzen    # <Strg+x> Ausführungsrechte für ausgewählte Dateien geben
+# map <c-y> Ausführungsrechte-enziehen # <Strg+y> Ausführungsrechte für ausgewählte Dateien entziehen
+# map <c-x> Ausführungsrechte-setzen    # <Strg+x> Ausführungsrechte für ausgewählte Dateien geben
 
 # === Umbenennen ===
-map c push A<c-u>           # c = Startet eine neue Umbenennung, löscht den vorhandenen Namen.
-map i :rename; cmd-home     # I = Startet die Umbenennung am Anfang des Dateinamens.
-map I :rename               # i = Startet die Umbenennung vor der Dateierweiterung.
-map a :rename; cmd-right    # a = Startet die Umbenennung nach der Dateierweiterung.
+map c push A<c-u>			# c = Startet eine neue Umbenennung, löscht den vorhandenen Namen.
+map i :rename; cmd-home		# I = Startet die Umbenennung am Anfang des Dateinamens.
+map I :rename				# i = Startet die Umbenennung vor der Dateierweiterung.
+map a :rename; cmd-right	# a = Startet die Umbenennung nach der Dateierweiterung.
 
 # === Zwischenablage ===
 map U $printf "%s" "$fx" | xclip -selection clipboard	# U: Vollständiger Pfad in Zwischenablage
@@ -681,25 +754,24 @@ cmd clip-file-cut $printf "%s" "$fx" | clipctl file-cut
 cmd clip-file-paste $clipctl file-paste "$PWD"
 cmd clip-paste $clipctl clip-paste "$PWD"
 
-map Yy clip-file-copy          # Yy: Dateien zum Kopieren vormerken (systemweit)
-map Yx clip-file-cut           # Yx: Dateien zum Verschieben vormerken (systemweit)
-map Yp clip-file-paste         # Yp: Vorgemerkte Dateien hier einfügen
-map Yi clip-paste              # Yi: Zwischenablage-Inhalt als Datei speichern (Bilder, Text)
+map Yy clip-file-copy		# Yy: Dateien zum Kopieren vormerken (systemweit)
+map Yx clip-file-cut		# Yx: Dateien zum Verschieben vormerken (systemweit)
+map Yp clip-file-paste		# Yp: Vorgemerkte Dateien hier einfügen
+map Yi clip-paste			# Yi: Zwischenablage-Inhalt als Datei speichern (Bilder, Text)
 
-map <c-l> unselect          # <Strg+l> Hebt die Auswahl aller ausgewählten Dateien auf
 
 # === Git Befehle (g Menü) ===
-map ös git-status           # ös = Git Status (ausführlich)
-map öl git-log              # öl = Git Log mit Graph
-map öd git-diff             # öd = Git Diff für aktuelle Datei
-map öa git-add              # öa = Git Add aktuelle Datei
-map öA git-add-all          # öA = Git Add alle Änderungen
-map ör git-reset            # ör = Git Reset aktuelle Datei
-map öc git-commit           # öc = Git Commit
-map öp git-push             # öp = Git Push
-map öP git-pull             # öP = Git Pull
-map öm git-magit            # öm = Magit öffnen
-map öi git-add-interactive  # öi = Interaktives Git Add mit fzf
+map ös git-status			# ös = Git Status (ausführlich)
+map öl git-log				# öl = Git Log mit Graph
+map öd git-diff				# öd = Git Diff für aktuelle Datei
+map öa git-add				# öa = Git Add aktuelle Datei
+map öA git-add-all			# öA = Git Add alle Änderungen
+map ör git-reset			# ör = Git Reset aktuelle Datei
+map öc git-commit			# öc = Git Commit
+map öp git-push				# öp = Git Push
+map öP git-pull				# öP = Git Pull
+map öm git-magit			# öm = Magit öffnen
+map öi git-add-interactive	# öi = Interaktives Git Add mit fzf
 
 # Lesezeichen einbinden
 source "~/.config/lf/shortcutrc"

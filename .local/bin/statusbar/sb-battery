@@ -12,11 +12,11 @@
 # Zeitangaben in HH:MM Format
 BRIGHTNESS_SUNRISE="06:00"       # Beginn der Aufhellphase
 BRIGHTNESS_DAY_START="08:00"     # Volle Tageshelligkeit
-BRIGHTNESS_SUNSET="19:00"        # Beginn der Abdunkelphase
+BRIGHTNESS_SUNSET="16:00"        # Beginn der Abdunkelphase
 BRIGHTNESS_NIGHT_START="21:00"   # Volle Nachthelligkeit
 
 # Helligkeitswerte in Prozent
-BRIGHTNESS_NIGHT=40             # Nachthelligkeit
+BRIGHTNESS_NIGHT=20             # Nachthelligkeit
 BRIGHTNESS_DAY=100              # Tageshelligkeit
 BRIGHTNESS_DEFAULT=80           # Standard beim Reset
 
