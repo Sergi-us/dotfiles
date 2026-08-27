@@ -601,6 +601,7 @@ on-cd
 #   set drawbox             # Zeichnet Rahmen
 
 # === Dynamisch eingestellte Anzahl von Spalten ===
+# TODO Hellwal reload hinzufügen
 cmd on-init :{{
     cmd on-redraw %{{
         if [ "$lf_width" -le 90 ]; then

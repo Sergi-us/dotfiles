@@ -1,0 +1,111 @@
+#!/bin/sh
+## 2026-08-25 SARBS extra
+# Abhängigkeiten: ffmpeg, whisper-cli
+# whisper-transcribe - Video-Transkription mit whisper.cpp
+# Erstellt <videodatei>-transkript.txt und -transkript.json (mit Zeitstempeln)
+
+# ===== KONFIGURATION =====
+# Verfügbare Modelle: tiny, base, small, medium, large-v3
+# (ohne .en = multilingual, mit .en = nur englisch)
+MODEL="medium"
+SPRACHE="de"
+# =========================
+
+set -e
+
+usage() {
+    printf "Verwendung: %s <video-datei> [video-datei ...]\n" "$(basename "${0}")"
+    exit 1
+}
+
+[ -z "$1" ] && usage
+
+# Abhängigkeiten prüfen
+[ -x "$(command -v whisper-cli)" ] || { echo "Fehler: whisper-cli nicht gefunden."; exit 1; }
+[ -x "$(command -v ffmpeg)" ] || { echo "Fehler: ffmpeg nicht gefunden."; exit 1; }
+
+# Modell-Pfad ermitteln (sucht übliche Orte)
+find_model() {
+    model_name="ggml-${MODEL}.bin"
+    # 1. models/ im aktuellen Verzeichnis
+    [ -f "./models/${model_name}" ] && { echo "./models/${model_name}"; return; }
+    # 2. XDG_CONFIG_HOME
+    [ -f "${XDG_CONFIG_HOME:-$HOME/.config}/whisper.cpp/models/${model_name}" ] && \
+        { echo "${XDG_CONFIG_HOME:-$HOME/.config}/whisper.cpp/models/${model_name}"; return; }
+    # 3. Systemweit
+    [ -f "/usr/share/whisper.cpp/models/${model_name}" ] && \
+        { echo "/usr/share/whisper.cpp/models/${model_name}"; return; }
+    # 4. Home-Verzeichnis
+    [ -f "$HOME/whisper.cpp/models/${model_name}" ] && \
+        { echo "$HOME/whisper.cpp/models/${model_name}"; return; }
+    # 5. Lokale Quellen (~/.local/src)
+    [ -f "$HOME/.local/src/whisper.cpp/models/${model_name}" ] && \
+        { echo "$HOME/.local/src/whisper.cpp/models/${model_name}"; return; }
+    # Nicht gefunden – herunterladen
+    # (alle Meldungen auf stderr, damit stdout nur den Modell-Pfad liefert)
+    echo "Modell '${MODEL}' nicht gefunden. Lade herunter..." >&2
+    if [ -d "./whisper.cpp" ]; then
+        (cd ./whisper.cpp && sh ./models/download-ggml-model.sh "${MODEL}" >/dev/null) && \
+            [ -f "./whisper.cpp/models/${model_name}" ] && \
+            { echo "./whisper.cpp/models/${model_name}"; return; }
+    elif [ -d "$HOME/whisper.cpp" ]; then
+        (cd "$HOME/whisper.cpp" && sh ./models/download-ggml-model.sh "${MODEL}" >/dev/null) && \
+            [ -f "$HOME/whisper.cpp/models/${model_name}" ] && \
+            { echo "$HOME/whisper.cpp/models/${model_name}"; return; }
+    elif [ -d "$HOME/.local/src/whisper.cpp" ]; then
+        (cd "$HOME/.local/src/whisper.cpp" && sh ./models/download-ggml-model.sh "${MODEL}" >/dev/null) && \
+            [ -f "$HOME/.local/src/whisper.cpp/models/${model_name}" ] && \
+            { echo "$HOME/.local/src/whisper.cpp/models/${model_name}"; return; }
+    # Letzter Versuch: download-ggml-model.sh im PATH
+    elif command -v download-ggml-model.sh >/dev/null 2>&1; then
+        download-ggml-model.sh "${MODEL}" >/dev/null && \
+            [ -f "./models/${model_name}" ] && \
+            { echo "./models/${model_name}"; return; }
+    fi
+    echo "Fehler: Modell '${MODEL}' nicht gefunden und kann nicht automatisch heruntergeladen werden." >&2
+    echo "Bitte lade es manuell herunter oder klone whisper.cpp:" >&2
+    echo "  git clone https://github.com/ggml-org/whisper.cpp.git" >&2
+    echo "  cd whisper.cpp && sh ./models/download-ggml-model.sh ${MODEL}" >&2
+    exit 1
+}
+
+MODEL_PATH=$(find_model)
+echo "Verwende Modell: ${MODEL_PATH}"
+echo ""
+
+# Jede Videodatei verarbeiten
+for video in "$@"; do
+    [ -f "${video}" ] || { echo "Datei nicht gefunden: ${video}"; continue; }
+
+    dir=$(dirname "${video}")
+    base=$(basename "${video}")
+    name="${base%.*}"
+
+    wav_file=$(mktemp /tmp/whisper-transcribe-XXXXXX.wav)
+
+    echo "=== ${base} ==="
+    echo "Extrahiere Audio..."
+    if ! ffmpeg -i "${video}" -ar 16000 -ac 1 -c:a pcm_s16le -loglevel error -y "${wav_file}"; then
+        rm -f "${wav_file}"
+        echo "Fehler: Audio-Extraktion fehlgeschlagen für ${base}"
+        echo ""
+        continue
+    fi
+
+    echo "Transkribiere..."
+    if ! whisper-cli -m "${MODEL_PATH}" -f "${wav_file}" -l "${SPRACHE}" -otxt -oj -of "${dir}/${name}-transkript"; then
+        rm -f "${wav_file}"
+        echo "Fehler: Transkription fehlgeschlagen für ${base}"
+        echo ""
+        continue
+    fi
+
+    rm -f "${wav_file}"
+
+    if [ -f "${dir}/${name}-transkript.txt" ] && [ -f "${dir}/${name}-transkript.json" ]; then
+        echo "Fertig: ${dir}/${name}-transkript.txt, ${dir}/${name}-transkript.json"
+    else
+        echo "Fehler: Transkription fehlgeschlagen für ${base}"
+    fi
+    echo ""
+done
