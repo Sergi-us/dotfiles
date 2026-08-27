@@ -1,0 +1,7 @@
+## 2025-06-24	SARBS
+# Diese Datei definiert die Standard-Formatierungseinstellungen für alle Dateien
+# Hauptdatei liegt im Home Verzeichniss des Benutzers
+# Weitere Informationen: https://editorconfig.org/
+
+root = true
+indent_style = tab
