@@ -40,7 +40,7 @@ update() {
         read -r i < "$arg"
         sum=$(( sum + i ))
     done
-    cache=/tmp/${1##*/}
+    cache=${XDG_RUNTIME_DIR:-/tmp}/sb-nettraf-${1##*/}
     [ -f "$cache" ] && read -r old < "$cache" || old=0
     printf %d\\n "$sum" > "$cache"
     printf %d\\n $(( sum - old ))
