@@ -1,0 +1,391 @@
+#!/bin/sh
+## 2026-08-30 SARBS core DEV
+# Abhängigkeiten: devtools (extra-x86_64-build, mkarchroot, arch-nspawn, repo-add),
+#                 pacman, sudo, yay, curl, notify-send (optional)
+
+# chroot-update - AUR-Pakete isoliert in einer systemweit geteilten
+# chroot-Umgebung bauen und installieren.
+#
+# Konzept:
+#   EINE chroot-Umgebung (/var/lib/archbuild/sarbs-chroot) wird von allen
+#   Nutzern gemeinsam verwendet. Gebaut wird als dedizierter System-Nutzer
+#   "aurbuilder" - dadurch ist das Skript unabhängig vom aufrufenden Nutzer
+#   und alle Nutzer teilen sich dieselbe chroot-Arbeitskopie (spart Platz).
+#   Fertige Pakete landen im lokalen Repo "sarbs-local" und werden von dort
+#   installiert.
+#
+#   Hinweis: extra-x86_64-build/makechrootpkg holen sich intern selbst
+#   root-Rechte (check_root in devtools). Die Arbeitskopie wird nach
+#   $SUDO_USER benannt, also immer "aurbuilder".
+#
+#   Wichtig: extra-x86_64-build hängt an -r <dir> automatisch "extra-x86_64"
+#   an und erstellt/synchronisiert das chroot-Root dabei selbst (beim ersten
+#   Aufruf mkarchroot, danach pacman -Syuu). Ein eigenes Synchronisieren
+#   ist daher nicht nötig. Das eigentliche chroot-Root liegt unter
+#   /var/lib/archbuild/sarbs-chroot/extra-x86_64/root.
+#
+# Einmalige manuelle Einrichtung der sudoers-Regel:
+#   sudo visudo -f /etc/sudoers.d/aurbuilder
+#   Inhalt:
+#     aurbuilder ALL=(root) NOPASSWD: /usr/bin/extra-x86_64-build
+#     %wheel ALL=(aurbuilder) NOPASSWD: /usr/bin/extra-x86_64-build
+#   Zeile 1: devtools darf sich selbst root-Rechte holen (internes check_root).
+#   Zeile 2: wheel-Nutzer dürfen den Build als aurbuilder anstoßen.
+
+CHROOT_DIR="/var/lib/archbuild/sarbs-chroot"
+BUILD_REPO="extra-x86_64"
+CHROOT_ROOT="${CHROOT_DIR}/${BUILD_REPO}/root"
+BUILD_USER="aurbuilder"
+BUILD_HOME="/var/lib/${BUILD_USER}"
+LOCAL_REPO="/var/cache/pacman/pkg/sarbs-local"
+REPO_NAME="sarbs-local"
+WATCHLISTE="${LOCAL_REPO}/aur-pakete.txt"
+BUILD_DIR="/tmp/chroot-update"
+PACMAN_CONF="/etc/pacman.conf"
+STATUSBAR="${STATUSBAR:-dwmblocks}"
+NOTIFY=1
+NEUE_PAKETE=""
+
+meldung() {
+	printf "%s\n" "$1"
+	if [ "${NOTIFY}" = "1" ] && [ -x "$(command -v notify-send)" ]; then
+		notify-send "chroot-update" "$1"
+	fi
+}
+
+nutzung() {
+	printf "Verwendung: chroot-update [--no-notify] <befehl> [paket]\n\n"
+	printf "Befehle:\n"
+	printf "  setup          chroot, Build-Nutzer und lokales Repo einrichten\n"
+	printf "  update         System-Upgrade: offizielle Pakete + AUR im chroot bauen\n"
+	printf "  build <paket>  einzelnes AUR-Paket im chroot bauen und installieren\n"
+	printf "  status         Status von chroot und verfügbaren Updates anzeigen\n"
+	printf "  clean          temporäre Build-Reste und chroot-Arbeitskopien löschen\n"
+	printf "\nOptionen:\n"
+	printf "  --no-notify    Desktop-Benachrichtigungen unterdrücken (für Rofi/dmenu)\n"
+	printf "  -h, help       diese Hilfe\n"
+}
+
+sudo_keepalive() {
+	while true; do
+		sudo -n true 2>/dev/null || break
+		sleep 55
+	done
+}
+
+chroot_pruefen() {
+	# Das chroot-Root selbst legt devtools beim ersten Build automatisch an.
+	# Der Build-Nutzer zeigt daher an, ob setup bereits gelaufen ist.
+	if ! id "${BUILD_USER}" >/dev/null 2>&1; then
+		meldung "Setup noch nicht ausgeführt. Bitte zuerst: chroot-update setup"
+		exit 1
+	fi
+	[ -x "$(command -v yay)" ] || { meldung "Fehler: yay nicht installiert."; exit 1; }
+}
+
+# Pakete aus dem lokalen Repo gelten für pacman nicht mehr als "foreign"
+# und werden daher nicht als AUR-Updates geprüft. Deshalb wird ihre
+# AUR-Version direkt per RPC geprüft (vercmp ist Teil von pacman).
+# DEV-Alternative (ungetestet): auf repo-add verzichten und Pakete nur mit
+# pacman -U installieren - dann bleiben sie "foreign" und yay erkennt
+# Updates von selbst. Nachteil: kein gepflegtes lokales Repo.
+pruefe_aur_version() {
+	pkg="$1"
+	installiert=$(pacman -Qq "${pkg}" 2>/dev/null | cut -d' ' -f2)
+	[ -n "${installiert}" ] || return 1
+	aur_version=$(curl -s "https://aur.archlinux.org/rpc/v5/info?arg[]=${pkg}" |
+		grep -o '"Version":"[^"]*"' | head -1 | cut -d'"' -f4)
+	[ -n "${aur_version}" ] || return 1
+	[ "$(vercmp "${aur_version}" "${installiert}")" -gt 0 ]
+}
+
+updates_analysieren() {
+	mkdir -p "${BUILD_DIR}"
+	# yay -Qu listet ALLE Updates (offiziell + AUR); -a würde auf AUR filtern.
+	# Zeilen mit [ignored] (IgnorePkg in pacman.conf) werden übersprungen.
+	yay -Qu 2>/dev/null | grep -v '\[ignored\]' > "${BUILD_DIR}/alle_updates.txt"
+	awk '{print $1}' "${BUILD_DIR}/alle_updates.txt" |
+		sed 's|^[^/]*/||' | sort -u > "${BUILD_DIR}/update_namen.txt"
+
+	# Kandidaten: fremde (foreign) Pakete + bekannte Pakete aus dem lokalen Repo
+	{
+		pacman -Qm | cut -d' ' -f1
+		if [ -r "${WATCHLISTE}" ]; then
+			while read -r kandidat; do
+				[ -n "${kandidat}" ] || continue
+				pacman -Qq "${kandidat}" >/dev/null 2>&1 && printf '%s\n' "${kandidat}"
+			done < "${WATCHLISTE}"
+		fi
+	} | sort -u > "${BUILD_DIR}/aur_kandidaten.txt"
+
+	AUR_UPDATES=""
+	AUR_ANZAHL=0
+	while read -r pkg; do
+		[ -n "${pkg}" ] || continue
+		if grep -Fxq "${pkg}" "${BUILD_DIR}/update_namen.txt"; then
+			AUR_UPDATES="${AUR_UPDATES} ${pkg}"
+			AUR_ANZAHL=$((AUR_ANZAHL + 1))
+		elif grep -Fxq "${pkg}" "${WATCHLISTE}" 2>/dev/null && pruefe_aur_version "${pkg}"; then
+			AUR_UPDATES="${AUR_UPDATES} ${pkg}"
+			AUR_ANZAHL=$((AUR_ANZAHL + 1))
+		fi
+	done < "${BUILD_DIR}/aur_kandidaten.txt"
+
+	GESAMT_ANZAHL=$(wc -l < "${BUILD_DIR}/alle_updates.txt")
+	OFFIZIELL_ANZAHL=$((GESAMT_ANZAHL - AUR_ANZAHL))
+	[ "${OFFIZIELL_ANZAHL}" -lt 0 ] && OFFIZIELL_ANZAHL=0
+}
+
+watchliste_eintrag() {
+	if ! sudo grep -Fxq "$1" "${WATCHLISTE}" 2>/dev/null; then
+		printf '%s\n' "$1" | sudo tee -a "${WATCHLISTE}" >/dev/null
+	fi
+}
+
+baue_aur_paket() {
+	pkg="$1"
+	pkg_dir="${BUILD_DIR}/${pkg}"
+	printf "\n--- Baue %s im chroot ---\n" "${pkg}"
+
+	sudo rm -rf "${pkg_dir}"
+	mkdir -p "${pkg_dir}"
+
+	# PKGBUILD aus dem AUR holen (yay -G klont in ${BUILD_DIR}/<paketname>)
+	if ! (cd "${BUILD_DIR}" && yay -G "${pkg}" >/dev/null 2>&1) || [ ! -f "${pkg_dir}/PKGBUILD" ]; then
+		meldung "Fehler: PKGBUILD für ${pkg} nicht gefunden."
+		return 1
+	fi
+
+	# makechrootpkg lädt die Quellen als ${BUILD_USER} herunter und braucht
+	# dafür Schreibrechte auf $SRCDEST (= pkg_dir).
+	sudo chown -R "${BUILD_USER}" "${pkg_dir}"
+
+	# DEV: Build läuft als ${BUILD_USER}, nicht als aufrufender Nutzer.
+	# Alternative (verworfen): Build als $USER - würde pro Nutzer eine eigene
+	# chroot-Arbeitskopie (~2 GB) anlegen und ist damit Speicherverschwendung.
+	#
+	# DEV: Argumente nach "--" gehen an makechrootpkg (nicht an makepkg!).
+	# makepkg-Argumente bräuchten daher ein zweites "--", z.B.:
+	#   extra-x86_64-build -r "${CHROOT_DIR}" -- -- --clean --noconfirm
+	# Die makechrootpkg-Standards genügen hier aber (enthalten bereits
+	# --syncdeps --noconfirm --log --holdver --skipinteg).
+	if (cd "${pkg_dir}" && sudo -u "${BUILD_USER}" extra-x86_64-build -r "${CHROOT_DIR}"); then
+		for datei in "${pkg_dir}"/*.pkg.tar.*; do
+			[ -e "${datei}" ] || continue
+			# Nur echte Paketdateien: keine Signaturen, keine Build-/namcap-Logs
+			case "${datei}" in *.sig|*.log) continue ;; esac
+			sudo cp "${datei}" "${LOCAL_REPO}/"
+			NEUE_PAKETE="${NEUE_PAKETE} ${LOCAL_REPO}/$(basename "${datei}")"
+			printf "Paket kopiert: %s\n" "$(basename "${datei}")"
+		done
+		watchliste_eintrag "${pkg}"
+	else
+		meldung "Build fehlgeschlagen für ${pkg} - bitte manuell prüfen."
+		return 1
+	fi
+}
+
+repo_aktualisieren() {
+	[ -n "${NEUE_PAKETE}" ] || return 0
+	printf "\n=== Lokales Repo aktualisieren ===\n"
+	# shellcheck disable=SC2086
+	sudo repo-add -n -p "${LOCAL_REPO}/${REPO_NAME}.db.tar.gz" ${NEUE_PAKETE}
+}
+
+statusbar_aktualisieren() {
+	pkill -RTMIN+5 "${STATUSBAR}" 2>/dev/null
+	pkill -RTMIN+8 "${STATUSBAR}" 2>/dev/null
+	return 0
+}
+
+setup() {
+	[ -x "$(command -v mkarchroot)" ] || {
+		meldung "devtools nicht installiert. Bitte zuerst: sudo pacman -S devtools"
+		exit 1
+	}
+
+	printf "\n=== chroot-Setup ===\n"
+	sudo -v || { meldung "sudo-Zugriff verweigert."; exit 1; }
+
+	if id "${BUILD_USER}" >/dev/null 2>&1; then
+		printf "Build-Nutzer %s existiert bereits.\n" "${BUILD_USER}"
+	else
+		printf "Lege Build-Nutzer %s an...\n" "${BUILD_USER}"
+		sudo useradd --system --create-home --home-dir "${BUILD_HOME}" \
+			--shell /usr/bin/nologin "${BUILD_USER}"
+	fi
+
+	# DEV: devtools würde das chroot-Root beim ersten Build auch selbst
+	# anlegen. Hier wird es vorab erstellt, damit der erste Build schneller
+	# startet und der Fortschritt sichtbar ist.
+	if [ -d "${CHROOT_ROOT}" ]; then
+		printf "chroot-Umgebung existiert bereits unter %s\n" "${CHROOT_ROOT}"
+	else
+		printf "Erstelle chroot-Umgebung unter %s (ca. 500 MB Download)...\n" "${CHROOT_ROOT}"
+		sudo mkdir -p "${CHROOT_DIR}/${BUILD_REPO}"
+		sudo mkarchroot "${CHROOT_ROOT}" base base-devel || {
+			meldung "Fehler: chroot-Erstellung fehlgeschlagen."
+			exit 1
+		}
+	fi
+	# Verwaistes Root aus früherem Skript-Stand (ohne extra-x86_64/...)
+	if [ -d "${CHROOT_DIR}/root" ]; then
+		printf "Hinweis: verwaiste chroot-Kopie %s (entfernbar mit: chroot-update clean)\n" "${CHROOT_DIR}/root"
+	fi
+
+	sudo mkdir -p "${LOCAL_REPO}"
+	# Leere Repo-DB anlegen, damit pacman nicht über fehlende DB warnt
+	if ! sudo test -e "${LOCAL_REPO}/${REPO_NAME}.db.tar.gz"; then
+		sudo repo-add "${LOCAL_REPO}/${REPO_NAME}.db.tar.gz" >/dev/null
+	fi
+	if ! grep -q "^\[${REPO_NAME}\]" "${PACMAN_CONF}"; then
+		printf '\n[%s]\nSigLevel = Optional\nServer = file://%s\n' \
+			"${REPO_NAME}" "${LOCAL_REPO}" | sudo tee -a "${PACMAN_CONF}" >/dev/null
+		printf "Repo [%s] in pacman.conf eingetragen.\n" "${REPO_NAME}"
+	fi
+
+	if sudo -l 2>/dev/null | grep -Fq "(${BUILD_USER})"; then
+		printf "sudoers-Regel für %s gefunden.\n" "${BUILD_USER}"
+	else
+		meldung "Hinweis: sudoers-Regel fehlt. Anleitung siehe Skriptkopf."
+	fi
+
+	meldung "chroot-Setup abgeschlossen."
+}
+
+update() {
+	chroot_pruefen
+	sudo -v || { meldung "sudo-Zugriff verweigert."; exit 1; }
+	sudo_keepalive &
+	KEEPALIVE=$!
+	trap 'kill "${KEEPALIVE}" 2>/dev/null' EXIT
+
+	printf "\n=== Schritt 1: Repository-Synchronisierung ===\n"
+	sudo pacman -Syy --noconfirm >/dev/null 2>&1
+
+	printf "\n=== Schritt 2: Updates analysieren ===\n"
+	updates_analysieren
+	printf "Offizielle Pakete: %s\n" "${OFFIZIELL_ANZAHL}"
+	printf "AUR-Pakete: %s\n" "${AUR_ANZAHL}"
+
+	if [ "${OFFIZIELL_ANZAHL}" -gt 0 ]; then
+		printf "\n=== Schritt 3: Offizielle Pakete installieren ===\n"
+		sudo pacman -Su --noconfirm
+	fi
+
+	if [ "${AUR_ANZAHL}" -gt 0 ]; then
+		printf "\n=== Schritt 4: AUR-Pakete im chroot bauen ===\n"
+		# Hinweis: devtools synchronisiert das chroot-Root dabei selbst.
+		for pkg in ${AUR_UPDATES}; do
+			baue_aur_paket "${pkg}"
+		done
+		repo_aktualisieren
+		if [ -n "${NEUE_PAKETE}" ]; then
+			printf "\n=== Gebaute Pakete installieren ===\n"
+			# shellcheck disable=SC2086
+			sudo pacman -U --noconfirm ${NEUE_PAKETE}
+		fi
+	fi
+
+	sudo rm -rf "${BUILD_DIR}"
+	statusbar_aktualisieren
+	meldung "Upgrade abgeschlossen."
+}
+
+build_cmd() {
+	pkg="$1"
+	[ -n "${pkg}" ] || { meldung "Fehler: Paketname fehlt."; nutzung; exit 1; }
+	chroot_pruefen
+	sudo -v || { meldung "sudo-Zugriff verweigert."; exit 1; }
+
+	if baue_aur_paket "${pkg}"; then
+		repo_aktualisieren
+		if [ -n "${NEUE_PAKETE}" ]; then
+			# shellcheck disable=SC2086
+			sudo pacman -U --noconfirm ${NEUE_PAKETE}
+		fi
+		sudo rm -rf "${BUILD_DIR}"
+		statusbar_aktualisieren
+		meldung "${pkg} gebaut und installiert."
+	else
+		sudo rm -rf "${BUILD_DIR}"
+		exit 1
+	fi
+}
+
+status() {
+	if [ -d "${CHROOT_ROOT}" ]; then
+		printf "chroot:\t\tvorhanden (%s)\n" "${CHROOT_ROOT}"
+	else
+		printf "chroot:\t\tfehlt (wird beim ersten Build automatisch angelegt)\n"
+	fi
+	if id "${BUILD_USER}" >/dev/null 2>&1; then
+		printf "Build-Nutzer:\tvorhanden (%s)\n" "${BUILD_USER}"
+	else
+		printf "Build-Nutzer:\tFEHLT -> chroot-update setup\n"
+	fi
+	if sudo -l 2>/dev/null | grep -Fq "(${BUILD_USER})"; then
+		printf "sudoers-Regel:\tvorhanden\n"
+	else
+		printf "sudoers-Regel:\tFEHLT (Anleitung im Skriptkopf)\n"
+	fi
+	printf "\nUpdate-Prüfung läuft...\n"
+	updates_analysieren
+	printf "Updates offiziell:\t%s\n" "${OFFIZIELL_ANZAHL}"
+	printf "Updates AUR:\t\t%s\n" "${AUR_ANZAHL}"
+	# Best-effort ohne Passwortabfrage (status soll nicht interaktiv sein)
+	sudo -n rm -rf "${BUILD_DIR}" 2>/dev/null
+	return 0
+}
+
+clean() {
+	sudo rm -rf "${BUILD_DIR}"
+	# Verirrte Nicht-Paketdateien aus dem lokalen Repo entfernen (z.B. Logs)
+	for eintrag in "${LOCAL_REPO}"/*; do
+		[ -e "${eintrag}" ] || continue
+		case "${eintrag}" in
+			*.pkg.tar.*|*.db.tar.*|*.files.tar.*|*.txt|*.sig) ;;
+			*)
+				printf "Entferne aus Repo: %s\n" "$(basename "${eintrag}")"
+				sudo rm -f "${eintrag}"
+				;;
+		esac
+	done
+	# chroot-Arbeitskopien entfernen (die root-Kopie bleibt erhalten)
+	if [ -d "${CHROOT_DIR}/${BUILD_REPO}" ]; then
+		for eintrag in "${CHROOT_DIR}/${BUILD_REPO}"/*; do
+			[ "${eintrag}" = "${CHROOT_ROOT}" ] && continue
+			[ -e "${eintrag}" ] || continue
+			printf "Entferne Arbeitskopie: %s\n" "${eintrag}"
+			sudo rm -rf "${eintrag}"
+		done
+	fi
+	# Verwaistes Root aus früherem Skript-Stand (ohne extra-x86_64/...)
+	if [ -d "${CHROOT_DIR}/root" ]; then
+		printf "Entferne verwaiste chroot-Kopie: %s\n" "${CHROOT_DIR}/root"
+		sudo rm -rf "${CHROOT_DIR}/root"
+	fi
+	meldung "Aufräumen abgeschlossen."
+}
+
+while [ $# -gt 0 ]; do
+	case "$1" in
+		--no-notify) NOTIFY=0 ;;
+		-h|--help|help) nutzung; exit 0 ;;
+		*) break ;;
+	esac
+	shift
+done
+
+BEFEHL="${1:-}"
+[ $# -gt 0 ] && shift
+
+case "${BEFEHL}" in
+	setup) setup ;;
+	update) update ;;
+	build) build_cmd "$@" ;;
+	status) status ;;
+	clean) clean ;;
+	"") nutzung ;;
+	*) printf "Unbekannter Befehl: %s\n\n" "${BEFEHL}"; nutzung; exit 1 ;;
+esac

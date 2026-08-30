@@ -1,10 +1,38 @@
 #!/bin/sh
-## 2025-01-09 SARBS
-# Abhängigkeiten: pkill, yay
+## 2026-08-30 SARBS core DEV
+# Abhängigkeiten: pkill, yay, chroot-update
 
 printf "Beginne mit Upgrade.\\n"
 
-yay -Syu --sudoloop
+# DEV-Modus: Chroot-Build oder direktes Upgrade
+# CHROOT_BUILD=1: AUR-Pakete isoliert via chroot-update bauen (Standard)
+# CHROOT_BUILD=0: klassisches Upgrade direkt mit yay
+if [ "${CHROOT_BUILD:-1}" = "1" ]; then
+	# Build-Nutzer vorhanden = chroot-Setup wurde ausgeführt
+	# (das chroot-Root legt devtools beim ersten Build selbst an)
+	if id aurbuilder >/dev/null 2>&1; then
+		printf "\n[Chroot-Modus] Baue Pakete isoliert in chroot-Umgebung...\\n"
+		chroot-update update
+	else
+		printf "\nChroot-Umgebung nicht gefunden (einrichten mit: chroot-update setup).\\n"
+		printf "Stattdessen direktes Upgrade mit yay durchführen? [j/N] "
+		read -r antwort
+		case "${antwort}" in
+			[jJ]*)
+				printf "\n[Direkt-Modus] Standard-Upgrade mit yay...\\n"
+				yay -Syu --sudoloop
+				;;
+			*)
+				printf "Abbruch.\\n"
+				read -r _
+				exit 0
+				;;
+		esac
+	fi
+else
+	printf "\n[Direkt-Modus] Standard-Upgrade mit yay...\\n"
+	yay -Syu --sudoloop
+fi
 
 # Aktualisiere Statusbar-Module nach dem Update
 pkill -RTMIN+5 "${STATUSBAR:-dwmblocks}"   # sb-pacpackages (Update-Symbol entfernen)

@@ -31,8 +31,8 @@ case $BLOCK_BUTTON in
 esac
 
 # date "+%H:%M"
-# date "+$icon%H:%M "
-date "+%d.%h-%H:%M"
+date "+$icon%H:%M"
+# date "+%d.%h-%H:%M"
 # $icon Zeigt die Miniuhr an
 # %a    Wochentag kurz
 # %A    Wochentag lang

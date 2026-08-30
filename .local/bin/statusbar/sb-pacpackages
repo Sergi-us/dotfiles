@@ -13,7 +13,9 @@ case $BLOCK_BUTTON in
 	2) notify-send "$(/usr/bin/pacman -Qu)" ;; # Mittelklick zeigt aktualisierbare Pakete
 	3) notify-send "󰣇 Upgrade-Modul" "󰣇: Anzahl der aktualisierbaren Pakete
 - Linksklick, um Pakete zu aktualisieren
-- Mittelklick, um aktualisierbare Pakete anzuzeigen" ;; # Rechtsklick für Hilfe
+- Mittelklick, um aktualisierbare Pakete anzuzeigen
+- AUR-Build isoliert im chroot via chroot-update (DEV)
+- CHROOT_BUILD=0 erzwingt direktes yay-Upgrade" ;; # Rechtsklick für Hilfe
 	6) setsid -f "$TERMINAL" -e "$EDITOR" "$0" ;; # Strg + Rechtsklick zum Bearbeiten
 esac
 
