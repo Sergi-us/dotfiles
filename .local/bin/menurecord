@@ -1,5 +1,5 @@
 #!/bin/bash
-## 2026-08-13 SARBS core DEV - Universelles Aufnahmeskript (Rofi) + Pegelanzeige
+## 2026-08-30 SARBS core DEV - Universelles Aufnahmeskript (Rofi) + Pegelanzeige
 # Abhängigkeiten: GNU Coreutils (cat, cut, date, head, mkdir, nice, rm, tail, wc), awk, ffmpeg, lspci, notify-send, od, pactl, parec, pkill, rofi, sed, setsid, stream, timeout, xdpyinfo, xrandr
 ## Unterstützt: Intel (VAAPI), AMD (VAAPI), NVIDIA (NVENC), Software-Fallback (libx264)
 ## GPU-Erkennung automatisch oder per ROFIRECORD_GPU=intel|amd|nvidia|software
@@ -19,6 +19,15 @@ FRAMERATE="30"
 THREAD_QUEUE="4096"             # Input-Puffer für x11grab/pulse
 STATUSBAR="dwmblocks"           # Spielt noch keine Rolle im Skript
 STREAM_LOCAL_REC="0"            # 1 = beim Streamen zusätzlich lokal aufnehmen (MKV)
+
+# Gain-Regler für die Tonspuren in screencast_reaction (linear!)
+# 1.0 = unverändert, 2.0 = doppelte Amplitude (+6 dB), 0.5 = halbe Amplitude.
+# Bewusst linear: PulseAudio-Lautstärken wirken kubisch (Slider 50% = 12,5%
+# Amplitude), diese Regler sind dagegen direkt dosierbar und vorhersehbar.
+# Die Regler wirken auf die Mix-Spur (a:0, für Direkt-Upload); die Solo-Spuren
+# (Mikro/System) bleiben unverändert, damit der Videoschnitt roh arbeiten kann.
+REACTION_MIC_GAIN="1.0"
+REACTION_SYS_GAIN="1.0"
 
 # Statusleisten-Icons (Nerd Font Symbole)
 ICON_SCREENCAST=" "
@@ -259,9 +268,13 @@ _reclevel_mon() {
         exit 1
     fi
 
-    # Cleanup beim Beenden
+    # Cleanup beim Beenden: eigene parec-Kinder mit beenden; PID-Datei nur
+    # entfernen, wenn sie noch auf uns zeigt (sonst klaut ein beendeter Loop
+    # einem bereits neu gestarteten Monitor die PID-Datei).
     cleanup() {
-        rm -f "$output_file" "/tmp/reclevel-mon.pid"
+        pkill -P $$ 2>/dev/null
+        [ "$(cat /tmp/reclevel-mon.pid 2>/dev/null)" = "$$" ] && rm -f /tmp/reclevel-mon.pid
+        rm -f "$output_file"
         exit 0
     }
     trap cleanup INT TERM EXIT
@@ -350,9 +363,13 @@ _reclevel_mon_dual() {
         exit 1
     fi
 
-    # Cleanup beim Beenden
+    # Cleanup beim Beenden: eigene parec-Kinder mit beenden; PID-Datei nur
+    # entfernen, wenn sie noch auf uns zeigt (sonst klaut ein beendeter Loop
+    # einem bereits neu gestarteten Monitor die PID-Datei).
     cleanup() {
-        rm -f "$output_file" "$tmp_mic" "$tmp_sys" "/tmp/reclevel-mon.pid"
+        pkill -P $$ 2>/dev/null
+        [ "$(cat /tmp/reclevel-mon.pid 2>/dev/null)" = "$$" ] && rm -f /tmp/reclevel-mon.pid
+        rm -f "$output_file" "$tmp_mic" "$tmp_sys"
         exit 0
     }
     trap cleanup INT TERM EXIT
@@ -454,13 +471,15 @@ start_reclevel() {
     local source1="$1"
     local source2="$2"
 
-    # Alten Monitor beenden falls noch aktiv
+    # Alten Monitor beenden falls noch aktiv (PID-Datei plus Prozessmuster,
+    # damit auch verwaiste Loops ohne gültige PID-Datei erwischt werden)
     if [ -f /tmp/reclevel-mon.pid ]; then
         local old_pid
         old_pid=$(cat /tmp/reclevel-mon.pid)
         kill "$old_pid" 2>/dev/null
         rm -f /tmp/reclevel-mon.pid
     fi
+    pkill -f "_reclevel_mon" 2>/dev/null
 
     # Neuen Monitor im Hintergrund starten
     if [ -n "$source2" ]; then
@@ -472,16 +491,17 @@ start_reclevel() {
     fi
 }
 
-# Pegelmonitor stoppen
+# Pegelmonitor stoppen (inkl. verwaister Loops und Temp-Dateien)
 stop_reclevel() {
     if [ -f /tmp/reclevel-mon.pid ]; then
         local pid
         pid=$(cat /tmp/reclevel-mon.pid)
         kill "$pid" 2>/dev/null
-        rm -f /tmp/reclevel-mon.pid /tmp/recording_icon /tmp/recordingicon
-        rm -f /tmp/reclevel_mic_raw /tmp/reclevel_sys_raw /tmp/reclevel_raw
-        pkill -RTMIN+10 "${STATUSBAR}" 2>/dev/null
     fi
+    pkill -f "_reclevel_mon" 2>/dev/null
+    rm -f /tmp/reclevel-mon.pid /tmp/recording_icon /tmp/recordingicon
+    rm -f /tmp/reclevel_mic_raw /tmp/reclevel_sys_raw /tmp/reclevel_raw
+    pkill -RTMIN+10 "${STATUSBAR}" 2>/dev/null
 }
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -650,7 +670,8 @@ _fallback_to_software() {
 #   screencast_system   - Bildschirm + System-Audio
 #   screencast_mic      - Bildschirm + Mikrofon
 #   screencast_monitor  - Einzelner Monitor + Auswahl System/Mikro
-#   screencast_reaction - Bildschirm + Mikrofon + System-Audio gemischt
+#   screencast_reaction - Bildschirm + 3 Tonspuren: Mix (a:0, Upload),
+#                         Mikrofon (a:1) + System-Audio (a:2) solo für den Schnitt
 #   stream_screencast   - Stream YT/2x Twitch, Monitor-Auswahl, optional lokale Aufnahme
 #   audio               - Nur Mikrofon
 #   webcam              - Webcam + Mikrofon
@@ -794,7 +815,7 @@ screencast_monitor() {
     updateicon "$ICON_MONITOR"
 }
 
-# --- Reaction: Bildschirm + Mikrofon + System-Audio (separate Spuren) ---
+# --- Reaction: Bildschirm + Mix-Spur (Upload) + separate Spuren (Schnitt) ---
 screencast_reaction() {
     local mic sys_audio
     mic=$(detect_microphone) || return 1
@@ -830,14 +851,20 @@ screencast_reaction() {
 
     check_hw_encoder
 
-    # Zwei separate Audiospuren: Spur 1 = Mikrofon, Spur 2 = System-Audio
-    local vf_flag map_params
+    # Drei Tonspuren für beide Anwendungsfälle:
+    #   a:0 = Mix aus Mikro + System (REACTION_MIC_GAIN/REACTION_SYS_GAIN,
+    #         siehe [1]) – YouTube/Player verwenden die erste Tonspur,
+    #         daher ist die Datei direkt upload-/abspielbar.
+    #   a:1 = Mikrofon solo (roh, Input 1:a), a:2 = System-Audio solo (roh,
+    #         Input 2:a) – für den Videoschnitt unverändert erhalten.
+    # normalize=0: ohne den Parameter würde amix jeden Eingang um ~6 dB senken.
+    local filter_complex map_params
     if [ -n "$VF_UPLOAD" ]; then
-        vf_flag="-vf ${VF_UPLOAD}"
-        map_params="-map 0:v -map 1:a -map 2:a"
+        filter_complex="-filter_complex [1:a]volume=${REACTION_MIC_GAIN}[mic];[2:a]volume=${REACTION_SYS_GAIN}[sys];[mic][sys]amix=inputs=2:duration=longest:normalize=0[mix];[0:v]${VF_UPLOAD}[vout]"
+        map_params="-map [vout] -map [mix] -map 1:a -map 2:a"
     else
-        vf_flag=""
-        map_params="-map 0:v -map 1:a -map 2:a"
+        filter_complex="-filter_complex [1:a]volume=${REACTION_MIC_GAIN}[mic];[2:a]volume=${REACTION_SYS_GAIN}[sys];[mic][sys]amix=inputs=2:duration=longest:normalize=0[mix]"
+        map_params="-map 0:v -map [mix] -map 1:a -map 2:a"
     fi
 
     nice -n -10 ffmpeg -y \
@@ -849,15 +876,16 @@ screencast_reaction() {
         -f pulse -sample_rate "$AUDIO_SAMPLERATE" -channels 2 -i "$mic" \
         -thread_queue_size "$THREAD_QUEUE" \
         -f pulse -sample_rate "$AUDIO_SAMPLERATE" -channels 2 -i "$sys_audio" \
-        $vf_flag \
+        $filter_complex \
         $map_params \
         -c:v "$VIDEO_CODEC" $ENCODE_PARAMS \
         -c:a:0 "$AUDIO_CODEC" -ar "$AUDIO_SAMPLERATE" \
         -c:a:1 "$AUDIO_CODEC" -ar "$AUDIO_SAMPLERATE" \
+        -c:a:2 "$AUDIO_CODEC" -ar "$AUDIO_SAMPLERATE" \
         "$out" &
 
     echo $! > /tmp/recordingpid
-    notify "Reaction gestartet (Mikrofon + System-Audio getrennt)"
+    notify "Reaction gestartet (Mix + Mikro/System getrennt)"
     updateicon "$ICON_REACTION"
     start_reclevel "$mic" "$sys_audio"
 }

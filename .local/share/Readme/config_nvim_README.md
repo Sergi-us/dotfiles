@@ -51,18 +51,18 @@ Vereinfachtes Theme-System ohne überladene Picker:
 
 ### 3. Zen-Mode Integration
 
-Speziell für ablenkungsfreies Schreiben:
+Speziell für ablenkungsfreiess Schreiben:
 - Blendet alle UI-Elemente aus
 - Zentriert den Text
 - Arbeitet mit der Transparenz-Einstellung
 
 ## ⌨️ Tastenkombinationen
 
-| Taste | Funktion | Beschreibung |
-|-------|----------|--------------|
-| `<leader>tc` | Theme Cycle | Wechselt zum nächsten Theme |
-| `<leader>ü` | Toggle Transparenz | Transparenz ein/aus |
-| `<leader>z` | Zen Mode | Ablenkungsfreier Schreibmodus |
+| Taste        | Funktion           | Beschreibung                  |
+|--------------|--------------------|-------------------------------|
+| `<leader>tc` | Theme Cycle        | Wechselt zum nächsten Theme   |
+| `<leader>ü`  | Toggle Transparenz | Transparenz ein/aus           |
+| `<leader>z`  | Zen Mode           | Ablenkungsfreiei Schreibmodus |
 
 ## 🎨 Themes
 

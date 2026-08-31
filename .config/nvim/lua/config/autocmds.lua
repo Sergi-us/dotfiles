@@ -65,6 +65,11 @@ vim.cmd([[
   autocmd BufWritePost ~/.local/src/st/config.h !cd ~/.local/src/st/; sudo make install
 ]])
 
+-- ST-DEV auto-compile
+vim.cmd([[
+  autocmd BufWritePost ~/.local/src/st-DEV/config.h !cd ~/.local/src/st-DEV/; sudo make install
+]])
+
 -- DWM auto-compile (mit Neustart)
 vim.cmd([[
   autocmd BufWritePost ~/.local/src/DWM/config.h !cd ~/.local/src/DWM/; sudo make install
@@ -75,6 +80,11 @@ vim.cmd([[
   autocmd BufWritePost ~/.local/src/DWM-local/config.h !cd ~/.local/src/DWM-local/; sudo make install
 ]])
 
+-- DWMDEV auto-compile (mit Neustart)
+vim.cmd([[
+  autocmd BufWritePost ~/.local/src/DWM-DEV/config.h !cd ~/.local/src/DWM-DEV/; sudo make install
+]])
+
 -- DMENU auto-compile
 vim.cmd([[
   autocmd BufWritePost ~/.local/src/dmenu/config.h !cd ~/.local/src/dmenu/; sudo make install
@@ -83,6 +93,16 @@ vim.cmd([[
 -- TABBED auto-compile
 vim.cmd([[
   autocmd BufWritePost ~/.local/src/tabbed/config.h !cd ~/.local/src/tabbed/; sudo make install
+]])
+
+-- TABBED-DEV auto-compile
+vim.cmd([[
+  autocmd BufWritePost ~/.local/src/tabbed-DEV/config.h !cd ~/.local/src/tabbed-DEV/; sudo make install
+]])
+
+-- surf auto-compile
+vim.cmd([[
+  autocmd BufWritePost ~/.local/src/surf/config.h !cd ~/.local/src/surf/; sudo make install
 ]])
 
 -- aktualisiert shortcust nach dem ändern von bm-files und bm-dirs

@@ -1,0 +1,7 @@
+[Unit]
+Description=Automatische Papierkorb-Leerung (älter als 14 Tage)
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/find %h/.local/share/Trash/files -mindepth 1 -mtime +14 -delete
+ExecStart=/usr/bin/find %h/.local/share/Trash/info -mindepth 1 -mtime +14 -delete

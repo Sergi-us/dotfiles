@@ -23,6 +23,9 @@
 # ==== Git Integration ====
 # Custom prompt mit Git-Info (mit alternativen Symbolen)
 cmd on-cd &{{
+    # Zoxide: Verzeichnis lernen
+    zoxide add "$PWD"
+
     # Git branch und Status
     if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
         branch=$(git branch --show-current 2>/dev/null)
@@ -390,14 +393,30 @@ cmd extract ${{
 	}
 }}
 
-# Dateien sicher löschen mit Bestätigungsdialog
+# Dateien in den Papierkorb verschieben (trashy)
 cmd delete ${{
-	clear; tput cup $(($(tput lines)/3)); tput bold
 	set -f
-	printf "%s\n\t" "$fx"
-	printf "Löschen?[y/N]"
-	read ans
-	[ $ans = "y" ] && rm -rf -- $fx
+	trash $fx
+	notify-send "🗑️ Papierkorb" "$(basename -a -- $fx | head -3)..."
+}}
+
+# Dateien aus dem Papierkorb wiederherstellen (trashy)
+cmd trash-restore ${{
+	set -f
+	for file in $fx; do
+		filename="$(basename -- "$file")"
+		trashinfo="$HOME/.local/share/Trash/info/${filename}.trashinfo"
+		
+		if [ ! -f "$trashinfo" ]; then
+			notify-send "❌ Fehler" "Keine Metadaten gefunden für $filename"
+			continue
+		fi
+		
+		original_path="$(grep '^Path=' "$trashinfo" | cut -d= -f2-)"
+		trash restore --match=exact --force "$original_path"
+		notify-send "✓ Wiederhergestellt" "$(basename -- "$original_path")"
+	done
+	lf -remote "send $id reload"
 }}
 
 # Dateien verschieben mit fzf-Zielauswahl
@@ -471,10 +490,10 @@ cmd bulkrename ${{
 	tmpfile_old="$(mktemp)"
 	tmpfile_new="$(mktemp)"
 
-	[ -n "$fs" ] && fs=$(basename -a $fs) || fs=$(ls)
+	[ -n "$fs" ] && fs=$(basename -a -- $fs) || fs=$(ls)
 
-	echo "$fs" > "$tmpfile_old"
-	echo "$fs" > "$tmpfile_new"
+	printf '%s\n' "$fs" > "$tmpfile_old"
+	printf '%s\n' "$fs" > "$tmpfile_new"
 	$EDITOR "$tmpfile_new"
 
 	[ "$(wc -l < "$tmpfile_old")" -eq "$(wc -l < "$tmpfile_new")" ] || { rm -f "$tmpfile_old" "$tmpfile_new"; exit 1; }
@@ -677,6 +696,7 @@ map Am Handy-Musik
 map Af Film-ins-Archiv
 map As Serie-ins-Archiv
 map Ap Dokumente-zu-Paperless
+map Ar trash-restore			# Ar = Papierkorb-Wiederherstellung
 
 # === P Menu für Bildbearbeitung ===
 map P8 bild-80-komprimieren
@@ -697,6 +717,20 @@ map J $lf -remote "send $id cd $(sed -e 's/\s*#.*//' -e '/^$/d' -e 's/^\S*\s*//'
 map H cd ~
 map gg top
 map - search
+
+# === Zoxide Integration ===
+cmd z %{{
+    result="$(zoxide query --exclude "$PWD" "$@" | sed 's/\\/\\\\/g;s/"/\\"/g')"
+    lf -remote "send $id cd \"$result\""
+}}
+
+cmd zi ${{
+    result="$(zoxide query -i | sed 's/\\/\\\\/g;s/"/\\"/g')"
+    lf -remote "send $id cd \"$result\""
+}}
+
+map zz push :z<space>
+map Z zi
 
 # === Dateioperationen ===
 map D delete				# <D> Löschen                (delete)
@@ -738,7 +772,7 @@ map W $setsid -f $TERMINAL >/dev/null 2>&1	# W = Öffnet ein neues Terminal-Fens
 map c push A<c-u>			# c = Startet eine neue Umbenennung, löscht den vorhandenen Namen.
 map i :rename; cmd-home		# I = Startet die Umbenennung am Anfang des Dateinamens.
 map I :rename				# i = Startet die Umbenennung vor der Dateierweiterung.
-map a :rename; cmd-right	# a = Startet die Umbenennung nach der Dateierweiterung.
+# map a :rename; cmd-right	# a = Startet die Umbenennung nach der Dateierweiterung.
 
 # === Zwischenablage ===
 map U $printf "%s" "$fx" | xclip -selection clipboard	# U: Vollständiger Pfad in Zwischenablage
