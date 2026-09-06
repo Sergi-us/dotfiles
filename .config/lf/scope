@@ -2,6 +2,10 @@
 ## 2025-08-15   SARBS - Verbesserte Version
 # Konsistente Cache-Behandlung und Albumcover-Vorschau für mp3
 # der versuch Albuncover für flac anzuzeigen schlug fehl
+# Scrollable Previews für Text und PDF (2026-01-XX)
+
+# Preview-Offset für scrollbare Vorschau (Standard: 1)
+OFFSET="${lf_user_preview_offset:-1}"
 
 # Git-Status Check
 if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
@@ -105,9 +109,11 @@ case "$(file --dereference --brief --mime-type -- "$1")" in
         [ -s "$CACHE" ] && image "$CACHE" "$2" "$3" "$4" "$5" "$1"
         ;;
     */pdf)
-        CACHE="$(get_cache_path "$1" "jpg")"
-        [ ! -s "$CACHE" ] && pdftoppm -jpeg -f 1 -singlefile "$1" "${CACHE%.*}" 2>/dev/null
-        [ -s "$CACHE" ] && image "$CACHE" "$2" "$3" "$4" "$5" "$1"
+        PDF_CACHE="$(get_cache_path "$1" "jpg")"
+        PAGE_CACHE="${PDF_CACHE%.*}.${OFFSET}.jpg"
+        [ ! -s "$PAGE_CACHE" ] && pdftoppm -jpeg -f "$OFFSET" -singlefile "$1" "${PAGE_CACHE%.*}" 2>/dev/null
+        [ -s "$PAGE_CACHE" ] && image "$PAGE_CACHE" "$2" "$3" "$4" "$5" "$1"
+        exit 1
         ;;
     */epub+zip|*/mobi*)
         CACHE="$(get_cache_path "$1" "jpg")"
@@ -121,7 +127,8 @@ case "$(file --dereference --brief --mime-type -- "$1")" in
         man ./ "$1" | col -b
         ;;
     text/*|*/xml|application/json|application/x-ndjson)
-        bat -p --theme ansi --terminal-width "$(($4-2))" -f "$1"
+        bat -p --theme ansi --terminal-width "$(($4-2))" -f "$1" | tail -n "+$OFFSET"
+        exit 1
         ;;
     audio/* | application/octet-stream)
         # Behandlung für Audiodateien mit falschem MIME-Type
@@ -151,7 +158,8 @@ case "$(file --dereference --brief --mime-type -- "$1")" in
         atool --list -- "$1"
         ;;
     *opendocument*)
-        odt2txt "$1"
+        odt2txt "$1" | tail -n "+$OFFSET" | bat -p --color=always --theme ansi
+        exit 1
         ;;
     application/vnd.openxmlformats-officedocument.wordprocessingml.document)
         docx2txt "$1" -

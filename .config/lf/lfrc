@@ -406,12 +406,12 @@ cmd trash-restore ${{
 	for file in $fx; do
 		filename="$(basename -- "$file")"
 		trashinfo="$HOME/.local/share/Trash/info/${filename}.trashinfo"
-		
+
 		if [ ! -f "$trashinfo" ]; then
 			notify-send "❌ Fehler" "Keine Metadaten gefunden für $filename"
 			continue
 		fi
-		
+
 		original_path="$(grep '^Path=' "$trashinfo" | cut -d= -f2-)"
 		trash restore --match=exact --force "$original_path"
 		notify-send "✓ Wiederhergestellt" "$(basename -- "$original_path")"
@@ -643,6 +643,23 @@ cmd Zeige-Vorschau %{{
     fi
 }}
 map zv Zeige-Vorschau
+
+# === Scrollbare Vorschau (Text & PDF) ===
+cmd on-select :set user_preview_offset 1
+
+cmd scroll-preview &{{
+    mime=$(file --dereference --brief --mime-type -- "$f" 2>/dev/null)
+    case "$mime" in
+        */pdf) step=1 ;;
+        *) step=5 ;;
+    esac
+    offset=$((lf_user_preview_offset + $1 * step))
+    [ $offset -lt 1 ] && offset=1
+    lf -remote "send $id :set user_preview_offset $offset; set preview true"
+}}
+
+map <c-j> scroll-preview 1
+map <c-k> scroll-preview -1
 
 # === Symbollinks folgen ===
 cmd folge-Link %{{

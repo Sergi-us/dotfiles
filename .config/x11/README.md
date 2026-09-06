@@ -85,11 +85,29 @@ Prozent-Offset auf die automatisch erkannte DPI. Wirkt **vor** der Rundung
 auf DPI-Stufen - dadurch keine Multiplikator-Kaskade.
 
 ```sh
-# In ~/.zprofile oder direkt in xprofile setzen:
-export DISPLAY_ADJUST=25     # Alles 25% groesser als Auto-Erkennung
-export DISPLAY_ADJUST=-10    # Etwas kleiner
-export DISPLAY_ADJUST=0      # Nur Auto-Erkennung (Default)
+set-dpi -j 25       # Alles 25% groesser als Auto-Erkennung (persistent)
+set-dpi -j -10      # Etwas kleiner
+set-dpi -j 0        # Nur Auto-Erkennung
+set-dpi -j auto     # Automatik: Justierung nach Bildschirmgroesse (Default)
 ```
+
+Im Modus `auto` waehlt `set-dpi` die Justierung anhand des Primaerbildschirms
+(Diagonale + Aufloesung) ueber die Regel-Tabelle `AUTO_ADJUST_RULES` im
+Skript. Erste passende Regel gewinnt, Format: `<max_zoll>|<min_px_breite>|<adjust_prozent>`:
+
+```
+AUTO_ADJUST_RULES="
+99|3800|75      # Grosse 4K-Bildschirme (ab 3800px Breite): +75%
+27|2500|50      # 2.5K am 27-Zoller (z.B. 2560x1440): +50%
+14|0|0          # Laptop bis 14 Zoll: keine Justierung
+"
+```
+
+Weitere Regeln lassen sich beliebig als Zeile ergaenzen (Beispiele stehen
+kommentiert im Skript). Spezifische Regeln muessen vor breiten Auffangregeln
+stehen: Ohne EDID-Daten ist die Diagonale 0 und wuerde sonst in die erste
+(kleine) Zoll-Klasse fallen. Die gerundete Diagonale des Primaerbildschirms
+zeigt `set-dpi -d` an.
 
 Beispiele mit einem Display das 163 Roh-DPI liefert:
 
@@ -149,7 +167,7 @@ Berechnung zu wiederholen.
 | `dpi`    | MASTER_DPI     | `192`    |
 | `scale`  | SCALE_FACTOR   | `1.25`   |
 | `cursor` | XCURSOR_SIZE   | `30`     |
-| `adjust` | DISPLAY_ADJUST | `0`      |
+| `adjust` | DISPLAY_ADJUST | `auto`   |
 
 ## Synchronisierte Konfigurationen
 
@@ -208,7 +226,8 @@ sysact (Systemmenü via rofi)
 | Apply | `set-dpi -a` | Sofort anwenden, Bestaetigung ausgeben (fuer Skripte) |
 | Dry-Run | `set-dpi -d` | Nur berechnete Werte anzeigen, nichts aendern |
 | Interactive | `set-dpi` | Vergleich alt/neu, Rueckfrage vor Anwendung |
-| Justify | `set-dpi -j N` | DISPLAY_ADJUST auf N% setzen und anwenden |
+| Justify | `set-dpi -j N` | DISPLAY_ADJUST fest auf N% setzen und anwenden |
+| Justify-Auto | `set-dpi -j auto` | Automatische Justierung nach Bildschirmgroesse (AUTO_ADJUST_RULES) |
 
 **Wichtig**: `set-dpi` verwendet **kein** `xrdb -load` für die `xresources`-Datei.
 Der einzige `xrdb`-Aufruf ist `xrdb -merge` für die einzelne Property
@@ -308,6 +327,7 @@ set-dpi           # Interaktiv: zeigt Vergleich, fragt vor Anwendung
 set-dpi -d        # Dry-Run: zeigt nur berechnete Werte
 set-dpi -a        # Apply: wendet sofort an (fuer Skripte)
 set-dpi -s        # Silent: fuer xprofile (keine Ausgabe)
+set-dpi -j auto   # Automatische Justierung nach Bildschirmgroesse
 ```
 
 ### Manuelle Berechnung
@@ -369,7 +389,8 @@ set-dpi -d
 
 ### Apps sind zu gross/klein
 
-1. `DISPLAY_ADJUST` in `~/.zprofile` anpassen
+1. Justierung anpassen: `set-dpi -j N` (fest) oder `set-dpi -j auto`
+   (Regel-Tabelle `AUTO_ADJUST_RULES` im Skript)
 2. X11-Session neustarten (`Mod+Shift+Q` oder `pkill dwm`)
 3. Fuer einzelne Apps: Wrapper-Skript in `~/.local/bin/wrapper/` anpassen
 

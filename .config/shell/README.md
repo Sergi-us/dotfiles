@@ -4,13 +4,13 @@
 
 ## Dateien
 
-| Datei | Beschreibung |
-|-------|-------------|
-| `profile` | Login-Shell Konfiguration, setzt Umgebungsvariablen und XDG-Pfade |
-| `aliasrc` | Shell-Aliases für zsh (und andere Shells) |
-| `inputrc` | Readline-Konfiguration für Tastenbindungen |
-| `bm-dirs` | Bookmark-Verzeichnisse für schnelle Navigation |
-| `bm-files` | Bookmark-Dateien für schnellen Zugriff auf Konfigurationen |
+| Datei      | Beschreibung                                                      |
+|------------|-------------------------------------------------------------------|
+| `profile`  | Login-Shell Konfiguration, setzt Umgebungsvariablen und XDG-Pfade |
+| `aliasrc`  | Shell-Aliases für zsh (und andere Shells)                         |
+| `inputrc`  | Readline-Konfiguration für Tastenbindungen                        |
+| `bm-dirs`  | Bookmark-Verzeichnisse für schnelle Navigation                    |
+| `bm-files` | Bookmark-Dateien für schnellen Zugriff auf Konfigurationen        |
 
 ## Bookmark-System (bm-dirs / bm-files)
 
@@ -43,15 +43,15 @@ ${XDG_CACHE_HOME:-$HOME/.cache}/...      # Cache-Dateien
 
 ### Kategorien in bm-files
 
-| Präfix | Kategorie |
-|--------|-----------|
-| `cf-zsh`, `cf-aliasrc`, etc. | Shell & Terminal |
-| `cf-nvim` | Editor |
-| `cf-lf`, `cf-zathura`, etc. | Dateimanager & Viewer |
-| `cf-mpd`, `cf-mpv`, etc. | Media |
+| Präfix                                | Kategorie                |
+|---------------------------------------|--------------------------|
+| `cf-zsh`, `cf-aliasrc`, etc.          | Shell & Terminal         |
+| `cf-nvim`                             | Editor                   |
+| `cf-lf`, `cf-zathura`, etc.           | Dateimanager & Viewer    |
+| `cf-mpd`, `cf-mpv`, etc.              | Media                    |
 | `cf-qutebrowser`, `cf-newsraft`, etc. | Internet & Kommunikation |
-| `cf-picom`, `cf-polybar`, etc. | Desktop & Appearance |
-| `cf-fastfetch`, `cf-wget`, etc. | System & Tools |
+| `cf-picom`, `cf-polybar`, etc.        | Desktop & Appearance     |
+| `cf-fastfetch`, `cf-wget`, etc.       | System & Tools           |
 
 ## Verwendung
 

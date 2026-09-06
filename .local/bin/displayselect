@@ -115,10 +115,15 @@ onescreen() { # Parameter: $1=screen_name, $2=allposs
 
     if [ -n "$chosen_res" ]; then
         # Setze die gewählte Auflösung
-        xrandr --output "$1" --mode "$chosen_res" --scale 1.0x1.0 $turn_off_cmd
+        # DEV: Alter Ansatz - auskommentiert erhalten.
+        # Problem: Ohne --primary bleibt das Primary-Flag auf einem alten,
+        # inaktiven Ausgang. set-dpi nutzt den Primaerbildschirm als Massgabe.
+        # xrandr --output "$1" --mode "$chosen_res" --scale 1.0x1.0 $turn_off_cmd
+        xrandr --output "$1" --mode "$chosen_res" --primary --scale 1.0x1.0 $turn_off_cmd
     else
         # Fallback auf Auto-Modus wenn keine Auflösung gewählt wurde
-        xrandr --output "$1" --auto --scale 1.0x1.0 $turn_off_cmd
+        # xrandr --output "$1" --auto --scale 1.0x1.0 $turn_off_cmd
+        xrandr --output "$1" --auto --primary --scale 1.0x1.0 $turn_off_cmd
     fi
 }
 
@@ -276,8 +281,22 @@ morescreen() { # Parameter: $1=screens. Erlaubt theoretisch beliebig viele Monit
 # 	esac ;}
 
 postrun() { # Aufräumen nach Display-Wechsel
-	# Warten bis xrandr EDID-Daten gelesen hat (physikalische Größe verfügbar)
-	sleep 2
+	# DEV: Alter Ansatz - auskommentiert erhalten.
+	# Problem: Eine feste Wartezeit reicht nicht immer. Die DPI-Berechnung
+	# braucht Aufloesung UND physische Groesse (EDID); xrandr meldet beides
+	# erst nach dem Wechsel. gezieltes Warten ist zuverlaessiger.
+	# sleep 2
+	# Warten bis xrandr EDID-Daten gelesen hat (physikalische Größe verfügbar),
+	# max. 10 Sekunden. Vorzeitiger Abbruch sobald ein aktives Display
+	# Aufloesung und Groesse meldet.
+	_wait=0
+	while [ "$_wait" -lt 10 ]; do
+		if xrandr 2>/dev/null | grep " connected" | grep -E '[0-9]+x[0-9]+\+[0-9]+' | grep -q '[0-9]*mm x [0-9]*mm'; then
+			break
+		fi
+		sleep 1
+		_wait=$((_wait + 1))
+	done
 
 	# DPI und Skalierung neu berechnen für das neue Display-Setup
 	if [ -x "$(command -v set-dpi)" ]; then

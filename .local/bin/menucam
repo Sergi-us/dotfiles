@@ -1,19 +1,16 @@
 #!/bin/sh
 ## 2025-02-10 SARBS
-# Abhängigkeiten: GNU Coreutils (cut, nice), awk, notify-send, rofi, v4l2-ctl
+# Abhängigkeiten: GNU Coreutils (cut, nice), awk, bc, notify-send, rofi, v4l2-ctl
 # Webcam-Script mit Rofi-Abfrage
 
 # Konfigurationsvariablen
-ANDROID_RESOLUTION="1920x1080"
-# STANDARD_RESOLUTION="1080x1080"
 PIXELFORMAT="MJPG"
+ASPECT_RATIO="9:12"
 
 # Reduzierte GPU-Optionen für mpv
 MPV_BASE_OPTIONS="--untimed --no-cache --no-osc --no-input-default-bindings --profile=low-latency --input-conf=/dev/null --title=webcam"
 STANDARD_FILTERS="hflip"
-# STANDARD_FILTERS="crop=1080:1080,scale=1080:1080,hflip"
-# STANDARD_FILTERS="crop=1080:1080,scale=1080:1080"
-ANDROID_FILTERS="rotate=PI/2,hue=s=0,crop=1080:1080,hflip,vflip"
+ANDROID_FILTERS="rotate=PI/2,hue=s=0,hflip,vflip"
 ANDROID_ROTATION=""
 
 # HINWEIS ZU MEHREREN DEVICES PRO KAMERA:
@@ -25,7 +22,7 @@ ANDROID_ROTATION=""
 # Wir listen bewusst alle auf, falls der Capture-Node abweicht.
 
 # Abhängigkeiten prüfen
-for cmd in v4l2-ctl mpv rofi; do
+for cmd in v4l2-ctl mpv rofi bc; do
     if ! command -v "$cmd" >/dev/null 2>&1; then
         notify-send -u critical "Fehlende Abhängigkeit" "Bitte installiere '$cmd' für das Webcam-Skript."
         exit 1
@@ -70,23 +67,75 @@ DEVICE=$(echo "$selected" | awk '{print $1}')
 
 # Konfiguriere das Gerät basierend auf dem Typ
 if is_android_webcam "$DEVICE"; then
-    RESOLUTION=$ANDROID_RESOLUTION
     FILTERS=$ANDROID_FILTERS
     ROTATION=$ANDROID_ROTATION
+    IS_ANDROID=1
 else
-    RESOLUTION=$STANDARD_RESOLUTION
     FILTERS=$STANDARD_FILTERS
     ROTATION=""
+    IS_ANDROID=0
 fi
 
-# Setze die Auflösung
-WIDTH=$(echo "$RESOLUTION" | cut -d'x' -f1)
-HEIGHT=$(echo "$RESOLUTION" | cut -d'x' -f2)
+# Maximale Auflösung für das Pixelformat finden
+SQ="'"
+MAX_RES=$(v4l2-ctl --list-formats-ext --device="$DEVICE" 2>/dev/null | awk -v fmt="$SQ$PIXELFORMAT$SQ" '
+    /\[.*\]:/ {
+        in_format = (index($0, fmt) > 0)
+    }
+    in_format && /Size: Discrete/ {
+        split($3, dim, "x")
+        pixels = dim[1] * dim[2]
+        if (pixels > max_pixels) {
+            max_pixels = pixels
+            max_w = dim[1]
+            max_h = dim[2]
+        }
+    }
+    END { if (max_w) print max_w "x" max_h }
+')
 
-notify-send "Starte Webcam" "Kamera: $DEVICE\nAuflösung: $RESOLUTION"
+if [ -z "$MAX_RES" ]; then
+    notify-send -u critical "Fehler" "Keine unterstützte Auflösung für Pixelformat '$PIXELFORMAT' gefunden."
+    exit 1
+fi
 
-# Auflösung setzen (läuft im Hintergrund, um nicht zu blockieren)
-v4l2-ctl --set-fmt-video="width=$WIDTH,height=$HEIGHT,pixelformat=$PIXELFORMAT" --device="$DEVICE" >/dev/null 2>&1
+WIDTH=$(echo "$MAX_RES" | cut -d'x' -f1)
+HEIGHT=$(echo "$MAX_RES" | cut -d'x' -f2)
+
+# Effektive Dimensionen nach Rotation (Android: Breite/Höhe vertauscht)
+if [ "$IS_ANDROID" -eq 1 ]; then
+    EFF_W=$HEIGHT
+    EFF_H=$WIDTH
+else
+    EFF_W=$WIDTH
+    EFF_H=$HEIGHT
+fi
+
+# Aspect-Ratio-Crop berechnen (zentriert, gerade Dimensionen)
+if [ -n "$ASPECT_RATIO" ]; then
+    AR_W=$(echo "$ASPECT_RATIO" | cut -d':' -f1)
+    AR_H=$(echo "$ASPECT_RATIO" | cut -d':' -f2)
+
+    CROP_W=$(echo "$EFF_H * $AR_W / $AR_H / 2 * 2" | bc)
+
+    if [ "$CROP_W" -lt "$EFF_W" ]; then
+        FILTERS="${FILTERS},crop=${CROP_W}:${EFF_H}"
+    elif [ "$CROP_W" -gt "$EFF_W" ]; then
+        CROP_H=$(echo "$EFF_W * $AR_H / $AR_W / 2 * 2" | bc)
+        FILTERS="${FILTERS},crop=${EFF_W}:${CROP_H}"
+    fi
+fi
+
+notify-send "Starte Webcam" "Kamera: $DEVICE\nAuflösung: ${WIDTH}x${HEIGHT}\nSeitenverhältnis: ${ASPECT_RATIO:-nativ}\nFilter: ${FILTERS}"
+
+# Vorherige mpv-Instanzen beenden
+pkill -f "mpv.*$DEVICE" 2>/dev/null
+
+# Pixelformat für ffmpeg/mpv mappen
+case "$PIXELFORMAT" in
+    MJPG) FFMPEG_FORMAT="mjpeg" ;;
+    *) FFMPEG_FORMAT=$(echo "$PIXELFORMAT" | tr '[:upper:]' '[:lower:]') ;;
+esac
 
 # Starte MPV mit den konfigurierten Optionen
-nice -n 10 mpv $MPV_BASE_OPTIONS $ROTATION --vf="$FILTERS" "$DEVICE" >/dev/null 2>&1
+nice -n 10 mpv $MPV_BASE_OPTIONS ${ROTATION:+"$ROTATION"} --demuxer-lavf-o="video_size=${WIDTH}x${HEIGHT}" --demuxer-lavf-o="input_format=${FFMPEG_FORMAT}" --vf="$FILTERS" "$DEVICE" >/dev/null 2>&1

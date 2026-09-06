@@ -3,5 +3,5 @@
 # Hauptdatei liegt im Home Verzeichniss des Benutzers
 # Weitere Informationen: https://editorconfig.org/
 
-root = true
+root = false
 indent_style = tab

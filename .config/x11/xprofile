@@ -7,7 +7,7 @@
 # === DPI und Skalierfaktor Konfiguration ===
 # Zentrale Logik in set-dpi (siehe ~/.local/bin/set-dpi -h)
 # Default-Wert und DISPLAY_ADJUST werden in set-dpi verwaltet.
-# Justierung aendern: set-dpi -j -15 (persistent, sofort wirksam)
+# Justierung aendern: set-dpi -j -15 oder set-dpi -j auto (persistent, sofort wirksam)
 # Stellschrauben (Umgebungsvariablen):
 #   FORCE_DPI=192      Überspringt Auto-Erkennung komplett
 #   FORCE_SCALE=1.25   Überspringt Scale-Ableitung

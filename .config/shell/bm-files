@@ -4,6 +4,9 @@
 bf	${XDG_CONFIG_HOME:-$HOME/.config}/shell/bm-files	# Diese Datei
 bd	${XDG_CONFIG_HOME:-$HOME/.config}/shell/bm-dirs		# Eine Liste Verzeichnissen "Favoriten" weden von lf und nvim
 
+# Sripte
+sc-menucam    ${XDG_DATA_HOME:-$HOME/.local/bin/menucam
+
 # Nutzerdaten (nu-)
 nu-xresources	${XDG_CONFIG_HOME:-$HOME/.config}/x11/xresources			# Farben, Themes und Variablen für X11
 nu-snippets		${XDG_DATA_HOME:-$HOME/.local/share}/sarbs/snippets			# wird für Snippets genutzt
@@ -12,8 +15,8 @@ nu-cliphist     ${XDG_DATA_HOME:-$HOME/.local/share}/sarbs/cliphist         # Pe
 
 # Konfigurationsdateien (cf-)
 # Shell & Terminal
-cf-zsh			$ZDOTDIR/.zshrc												# zsh (shell) config
-cf-aliasrc		${XDG_CONFIG_HOME:-$HOME/.config}/shell/aliasrc				# aliases für zsh
+cf-zsh	        $ZDOTDIR/.zshrc												# zsh (shell) config
+cf-aliasrc	    ${XDG_CONFIG_HOME:-$HOME/.config}/shell/aliasrc				# aliases für zsh
 cf-profile		${XDG_CONFIG_HOME:-$HOME/.config}/shell/profile				# profile für login settings
 cf-inputrc		${XDG_CONFIG_HOME:-$HOME/.config}/shell/inputrc				# readline config
 cf-fastfetch    ${XDG_CONFIG_HOME:-$HOME/.config}/fastfetch/config.jsonc
