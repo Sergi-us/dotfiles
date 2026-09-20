@@ -1,6 +1,6 @@
 #!/bin/sh
-## 2026-08-16 SARBS core DEV
-# Abhängigkeiten: GNU Coreutils (cut, head, id, paste, sort, tail, wc), arandr, awk, bc, dunst, dunstctl, killall, notify-send, rofi, sed, setbg, set-dpi, xdotool, xrandr
+## 2026-09-08 SARBS core DEV
+# Abhängigkeiten: GNU Coreutils (cut, head, id, paste, sort, tail, wc), arandr, awk, bc, dunst, dunstctl, killall, notify-send, pidof, rofi, sed, setbg, set-dpi, xdotool, xrandr
 ## Abhängigkeiten: xrandr, rofi, awk, sed, grep, bc (für Skalierung), xdotool (Bildschirm-Erkennung via Mausposition)
 # Eine Benutzeroberfläche zum Erkennen, Auswählen und plazieren von Bildschirmen.
 # Prüft mit xrandr verbundene Bildschirme und lässt den Benutzer einen zur Verwendung auswählen.
@@ -17,23 +17,38 @@ get_current_res() { # Parameter: $1=screen_name
         grep -oE '[0-9]+x[0-9]+\+[0-9]+\+[0-9]+' | head -n1 | cut -d+ -f1
 }
 
-# Hilfsfunktion: Formatierte Monitorliste für Rofi (Name + Aktuelle Auflösung)
+# Hilfsfunktion: Formatierte Monitorliste für Rofi (Name + Auflösung + Diagonale)
 get_formatted_screens() {
-    # Erstellt aus "eDP DisplayPort-3" eine Liste wie:
-    # 1: eDP (1920x1080)
-    # 2: DisplayPort-3 (3840x2160)
+    # Erstellt aus "eDP-1 HDMI-1" eine Liste wie:
+    # 1: eDP-1 (1920x1200, 13 Zoll, MFO)
+    # 2: HDMI-1 (3840x2160, 27 Zoll, LS27D70xE)
+    # Die Diagonale und der Monitorname kommen aus dem EDID (set-dpi -e) und
+    # stehen auch fuer inaktive Outputs zur Verfuegung. Das Feld 2 bleibt der
+    # Output-Name, weil alle Aufrufer ihn mit "awk '{print $2}'" herausholen.
+    # DEV: Alter Ansatz - auskommentiert erhalten (ohne Groessenangabe).
+    # printf "%d: %s (%s)\n" "$idx" "$screen" "$res"
     local idx=1
     for screen in $1; do
         local res=$(get_current_res "$screen")
-        # DEV: Alter Ansatz - auskommentiert erhalten.
-        # Problem: $3 enthält nur die Auflösung, wenn der Monitor NICHT primary ist,
-        #          da bei primary-Monitoren das Wort "primary" in diesem Feld steht.
-        # local res=$(echo "$XRANDR_OUT" | awk -v scr="^$screen" '$0 ~ scr {print $3}' | grep -oE "[0-9]+x[0-9]+" | head -n1)
+        local zoll=$(edid_field "$screen" 4)
+        local label=$(edid_field "$screen" 6)
         # Kein aktiver Modus -> Bildschirm ist verbunden, aber abgeschaltet
         [ -z "$res" ] && res="inaktiv"
-        printf "%d: %s (%s)\n" "$idx" "$screen" "$res"
+        # Kein Monitorname im EDID -> Herstellerkuerzel zeigen
+        [ -z "$label" ] && label=$(edid_field "$screen" 5)
+        [ -z "$label" ] && label="unbekannt"
+        [ -z "$zoll" ] && zoll="?"
+        printf "%d: %s (%s, %s Zoll, %s)\n" "$idx" "$screen" "$res" "$zoll" "$label"
         idx=$((idx + 1))
     done
+    # DEV: Alte Schleife - auskommentiert erhalten.
+    # local idx=1
+    # for screen in $1; do
+    #     local res=$(get_current_res "$screen")
+    #     [ -z "$res" ] && res="inaktiv"
+    #     printf "%d: %s (%s)\n" "$idx" "$screen" "$res"
+    #     idx=$((idx + 1))
+    # done
 }
 
 # Menü-Befehl definieren (Zentrale Stelle für einfache Anpassungen)
@@ -41,8 +56,26 @@ rofi_menu() {
     rofi -dmenu -i -location 0 -theme-str 'window { width: 50%; height: 30%; } listview { lines: 5; }' "$@"
 }
 
-# Zentrale Variable für xrandr-Ausgabe (Caching für Performance)
+# Zentrale Variablen für xrandr- und EDID-Auskunft (Caching für Performance)
+# EDID_INFO kommt von "set-dpi -e", eine Zeile pro verbundenem Output:
+#   name|mm_breite|mm_hoehe|zoll|hersteller|monitor_name|header|checksumme
+# Die Daten stammen aus dem EDID-Block des Monitors und stehen damit auch fuer
+# inaktive Outputs bereit - die Bildschirmdiagonale ist bekannt, bevor
+# umgeschaltet wird, und muss danach nicht abgewartet werden.
 XRANDR_OUT=$(xrandr --query)
+EDID_INFO=$(set-dpi -e)
+
+# Hilfsfunktion: einzelnes Feld aus EDID_INFO
+edid_field() { # Parameter: $1=screen_name, $2=feldnummer (siehe set-dpi -e)
+    printf '%s\n' "$EDID_INFO" | awk -F'|' -v s="$1" -v f="$2" '$1 == s {print $f; exit}'
+}
+
+# Hilfsfunktion: aus der dekorierten Rofi-Zeile den Modusnamen fuer xrandr holen.
+# Die Vorschau zeigt z.B. "3840x2160  (288 DPI, Scale 2)", xrandr --mode braucht
+# aber ausschliesslich "3840x2160".
+extract_mode() { # Parameter: $1=rofi_auswahl
+    printf '%s' "$1" | awk '{print $1}'
+}
 
 # Funktion zum Abrufen aller verfügbaren Auflösungen für einen Bildschirm
 get_resolutions() {
@@ -59,6 +92,27 @@ get_resolutions() {
     # Problem 2: sort -nr vergleicht nur bis zur ersten Nicht-Ziffer (Breite),
     #            Auflösungen mit gleicher Breite landen in willkürlicher Reihenfolge.
     # echo "$XRANDR_OUT" | grep -A 20 "^$1 connected" | grep -E "^   [0-9]" | cut -d' ' -f4 | sort -nr
+}
+
+# DEV (neu): Auflösungsliste MIT DPI-Vorschau für Rofi.
+# "set-dpi -p" rechnet pro Modus DPI, Skalierung und Cursor-Groesse aus der
+# EDID-Groesse des Ziel-Outputs - der Output muss dafuer nicht aktiv sein.
+# Damit ist schon vor der Auswahl sichtbar, was sie bewirkt, und alle Werte
+# stehen fest, bevor umgeschaltet wird. Danach muss nichts abgewartet werden.
+# Ausgabeformat von set-dpi -p: modus|dpi|scale|cursor|nativ
+# Die Aufrufer holen den reinen Modusnamen mit extract_mode() zurueck.
+# Scheitert die Vorschau (defekte EDID, unbekannter Output), hat set-dpi den
+# Grund bereits laut auf stderr gemeldet; gezeigt wird dann die reine Modusliste.
+get_resolutions_preview() { # Parameter: $1=screen_name
+    local preview=$(set-dpi -p "$1")
+    if [ -n "$preview" ]; then
+        printf '%s\n' "$preview" | awk -F'|' '{
+            if ($5 != "") printf "%s  (%s DPI, Scale %s, %s)\n", $1, $2, $3, $5
+            else          printf "%s  (%s DPI, Scale %s)\n", $1, $2, $3
+        }'
+        return 0
+    fi
+    get_resolutions "$1"
 }
 
 # DEV (neu): Erkennt den Bildschirm, auf dem sich der Mauszeiger gerade befindet.
@@ -89,12 +143,18 @@ get_mouse_screen() {
 # Im Gegensatz zu onescreen bleiben alle anderen Bildschirme unverändert.
 change_resolution() { # Parameter: $1=screen_name
     local cur=$(get_current_res "$1")
-    local resolutions=$(get_resolutions "$1")
+    # DEV: Vorschau statt reiner Modusliste - zeigt pro Modus die DPI und
+    # Skalierung, gerechnet aus der EDID-Groesse des Ziel-Outputs.
+    # local resolutions=$(get_resolutions "$1")
+    local resolutions=$(get_resolutions_preview "$1")
     [ -z "$resolutions" ] && { notify-send "displayselect" "Keine Modi für $1 verfügbar."; return 1; }
 
     local chosen_res=$(echo "$resolutions" | rofi_menu -p "Neue Auflösung für $1 (aktuell: ${cur:-inaktiv}):")
     # Bei ESC-Abbruch nichts ändern
     [ -z "$chosen_res" ] && return 1
+    # Die Auswahl ist dekoriert ("3840x2160  (288 DPI, Scale 2, nativ)"),
+    # xrandr --mode braucht aber den reinen Modusnamen.
+    chosen_res=$(extract_mode "$chosen_res")
 
     xrandr --output "$1" --mode "$chosen_res" --scale 1.0x1.0
 }
@@ -102,13 +162,19 @@ change_resolution() { # Parameter: $1=screen_name
 ## OPTIMIERUNG (onescreen):
 onescreen() { # Parameter: $1=screen_name, $2=allposs
     # Hole verfügbare Auflösungen für den ausgewählten Bildschirm
-    resolutions=$(get_resolutions "$1")
+    # DEV: Vorschau mit DPI/Skalierung statt reiner Modusliste.
+    # resolutions=$(get_resolutions "$1")
+    resolutions=$(get_resolutions_preview "$1")
 
     # Lasse den Benutzer eine Auflösung auswählen
     chosen_res=$(echo "$resolutions" | rofi_menu -p "Wählen Sie die Auflösung für $1:")
 
     # Bei ESC-Abbruch nichts ändern
     [ -z "$chosen_res" ] && return 1
+
+    # Dekorierte Auswahl ("1920x1080  (240 DPI, Scale 1.5)") auf den reinen
+    # Modusnamen reduzieren, den xrandr --mode erwartet.
+    chosen_res=$(extract_mode "$chosen_res")
 
     # Befehl zum Abschalten nicht aktiver Monitore generieren (DRY-Prinzip)
     turn_off_cmd=$(echo "$2" | grep -v "\b$1" | awk '{print "--output", $1, "--off"}' | paste -sd ' ' -)
@@ -281,41 +347,117 @@ morescreen() { # Parameter: $1=screens. Erlaubt theoretisch beliebig viele Monit
 # 	esac ;}
 
 postrun() { # Aufräumen nach Display-Wechsel
-	# DEV: Alter Ansatz - auskommentiert erhalten.
-	# Problem: Eine feste Wartezeit reicht nicht immer. Die DPI-Berechnung
-	# braucht Aufloesung UND physische Groesse (EDID); xrandr meldet beides
-	# erst nach dem Wechsel. gezieltes Warten ist zuverlaessiger.
+	# DEV: Warteschleifen auf EDID-Daten - auskommentiert erhalten.
+	# Erkenntnis aus den Messungen 2026-09-08: Beide Varianten waren
+	# wirkungslos, unnoetig und teuer.
+	# - Wirkungslos: Abbruch sobald IRGENDEIN verbundener Output Aufloesung und
+	#   mm meldet. Das ist unmittelbar nach dem Wechsel der Fall, im Zweifel
+	#   auch schon vorher - gewartet wird also praktisch nie.
+	# - Unnoetig: "xrandr --output ... --mode ..." ist synchron. Kehrt xrandr
+	#   zurueck, ist der neue Modus aktiv und die mm-Angabe steht in der
+	#   Output-Zeile.
+	# - Teuer: im schlechtesten Fall 10 Sekunden, in denen der halb gesetzte
+	#   Zustand sichtbar bleibt.
+	# Falls je wieder gewartet werden muss: auf den ZIEL-Output pruefen und die
+	# physische Groesse vorab aus dem EDID holen ("xrandr --prop", Bytes 21/22
+	# in cm). Die steht auch fuer inaktive Outputs bereit, also schon bevor
+	# umgeschaltet wird - damit lassen sich Aufloesung UND mm vorab kennen.
 	# sleep 2
-	# Warten bis xrandr EDID-Daten gelesen hat (physikalische Größe verfügbar),
-	# max. 10 Sekunden. Vorzeitiger Abbruch sobald ein aktives Display
-	# Aufloesung und Groesse meldet.
-	_wait=0
-	while [ "$_wait" -lt 10 ]; do
-		if xrandr 2>/dev/null | grep " connected" | grep -E '[0-9]+x[0-9]+\+[0-9]+' | grep -q '[0-9]*mm x [0-9]*mm'; then
-			break
-		fi
-		sleep 1
-		_wait=$((_wait + 1))
-	done
+	# _wait=0
+	# while [ "$_wait" -lt 10 ]; do
+	# 	if xrandr 2>/dev/null | grep " connected" | grep -E '[0-9]+x[0-9]+\+[0-9]+' | grep -q '[0-9]*mm x [0-9]*mm'; then
+	# 		break
+	# 	fi
+	# 	sleep 1
+	# 	_wait=$((_wait + 1))
+	# done
 
-	# DPI und Skalierung neu berechnen für das neue Display-Setup
+	# DPI und Skalierung neu berechnen für das neue Display-Setup.
+	# NO_WM_RELOAD=1: set-dpi laedt dwm nicht selbst neu, das passiert hier
+	# ganz am Ende, wenn Hintergrundbild und Farben (xrdb) stehen.
+	# DEV: Alter Ansatz - auskommentiert erhalten.
+	# Problem: set-dpi -a schickte SIGHUP an dwm. dwm beendet run() aber erst
+	# beim naechsten X-Event, der Neustart landete dadurch mitten in setbg
+	# (hellwal braucht ~1,4 s): dwm startete vor dem neuen Hintergrundbild und
+	# mit den alten Farben in xrdb neu.
+	# dpi_result=$(set-dpi -a)
 	if [ -x "$(command -v set-dpi)" ]; then
-		dpi_result=$(set-dpi -a)
+		dpi_result=$(NO_WM_RELOAD=1 set-dpi -a)
 	fi
 
 	# Hintergrund neu setzen (nach DPI, nutzt neue Skalierung)
-	setbg -s >/dev/null 2>&1
+	# DEV: Alter Ansatz - auskommentiert erhalten.
+	# Problem: "setbg -s" ohne Dateiargument laeuft ueber einen unbeabsichtigten
+	# Pfad: readlink -f '' scheitert, dadurch wird der komplette case-Block in
+	# setbg uebersprungen (Symlink-Pruefung, bgmsg). Dass danach trotzdem
+	# xwallpaper laeuft, ist reiner Zufall. Zusaetzlich war bei einem
+	# Aufloesungswechsel klein -> gross kein Hintergrundbild sichtbar, erst ein
+	# manuelles setbg half. Explizite Uebergabe des Hintergrund-Links macht den
+	# Code-Pfad in setbg eindeutig: Datei wird erkannt, Symlink bestaetigt und
+	# xwallpaper laeuft mit der neuen Bildschirmgroesse.
+	# setbg -s >/dev/null 2>&1
+	_bglink="${XDG_DATA_HOME:-$HOME/.local/share}/bg"
+	# Keine Umleitung mehr (AGENTS.md, kein /dev/null-Nirvana): setbg ist im
+	# Silent-Modus auf stdout ohnehin still. Fehler von xwallpaper oder hellwal
+	# sollen sichtbar bleiben - im Terminal, und bei Start ueber ein Binding im
+	# startx-Terminal, von dem dwm stdout/stderr geerbt hat.
+	# setbg -s >/dev/null 2>&1
+	# setbg -s "$_bglink" >/dev/null
+	setbg -s "$_bglink"
 
-	# Dunst neustarten für korrekte Bildschirmposition (nicht-blockierend)
+	# Dunst neustarten für korrekte Bildschirmposition.
+	# DEV: Alter Ansatz - auskommentiert erhalten.
+	# Problem 1: "dunst & >/dev/null 2>&1" - das "&" beendet den Befehl, die
+	#            Umleitungen danach sind ein eigener Befehl und verbiegen
+	#            stdout/stderr der aktuellen Shell. Alles, was in postrun
+	#            danach kam, war damit stummgeschaltet.
+	# Problem 2: "dunstctl close-all" beendet dunst nicht. Der gewuenschte
+	#            Neustart fuer die neue Geometrie fand also nie statt, der
+	#            zusaetzliche Start kollidierte mit dem dunst, den
+	#            hellwal/postrun bereits gestartet hat:
+	#            "CRITICAL: Cannot acquire org.freedesktop.Notifications".
+	# if [ -x "$(command -v dunstctl)" ]; then
+	# 	dunstctl close-all
+	# else
+	# 	killall -q dunst
+	# fi
+	# dunst & >/dev/null 2>&1
 	if [ -x "$(command -v dunstctl)" ]; then
-		dunstctl close-all
-	else
-		killall -q dunst
+		dunstctl close-all      # alte Benachrichtigungen verwerfen
 	fi
-	dunst & >/dev/null 2>&1
+	killall -q dunst              # beenden, damit die neue Geometrie gilt
+	sleep 0.2
+	# Nur starten, wenn wirklich kein dunst laeuft - sonst kaempfen zwei
+	# Instanzen um den DBus-Namen. pidof wird nur ueber den Exit-Status
+	# benutzt, dessen Ausgabe darf verworfen werden (AGENTS.md, Ausnahme 2).
+	# dunst lebt laenger als dieses Skript, deshalb Logdatei statt /dev/null
+	# (AGENTS.md, Ausnahme 3).
+	# pidof dunst >/dev/null 2>&1 || setsid -f dunst >/dev/null 2>&1
+	_dunstlog="${XDG_STATE_HOME:-$HOME/.local/state}/xsession/dunst.log"
+	[ -d "${_dunstlog%/*}" ] || mkdir -p "${_dunstlog%/*}"
+	pidof dunst >/dev/null 2>&1 || setsid -f dunst >>"$_dunstlog" 2>&1
+
+	# dwm zuletzt neu laden: DPI, Hintergrundbild und die von hellwal in xrdb
+	# gemergten Farben stehen jetzt bereit, dwm startet genau einmal mit dem
+	# fertigen Stand. pidof kann mehrere PIDs liefern, daher bewusst ohne
+	# Anfuehrungszeichen (Wortaufteilung gewollt).
+	_wmpid=$(pidof dwm 2>/dev/null)
+	if [ -n "$_wmpid" ]; then
+		kill -HUP $_wmpid
+	else
+		echo "displayselect: WARNUNG - dwm nicht gefunden, Fenstermanager nicht neu geladen." >&2
+	fi
 
 	# Benachrichtigung NACH allem senden
 	[ -n "$dpi_result" ] && notify-send "Display-Einstellungen aktualisiert" "$dpi_result"
+
+	# Sicherheitsnetz mit 5 Sekunden Verzoegerung: Hintergrundbild erneut setzen.
+	# Der Aufruf schadet nicht, es wird dasselbe Bild gesetzt, und er faengt den
+	# Fall ab, dass Bild und Compositor beim Umschalten nicht zusammengespielt
+	# haben. Subshell mit "&", damit postrun nicht fuenf Sekunden blockiert.
+	# Bewusst ohne -s: Die Benachrichtigung zeigt in der Testphase, dass der
+	# Nachschlag gelaufen ist. Fuer Dauerbetrieb auf "setbg -s" umstellen.
+	( sleep 5; setbg "$_bglink" ) &
 	}
 
 # Alle verfügbaren Ausgänge erfassen
@@ -342,8 +484,17 @@ else
 	res_menu_entry="Auflösung ändern (manuelle Auswahl)"
 fi
 
-# Menü-Einträge für einzelne Bildschirme mit Suffix vorbereiten
-single_screens_menu=$(echo "$screens" | awk '{print $1 " (nur dieser Bildschirm)"}')
+# Menü-Einträge für einzelne Bildschirme mit Monitordaten vorbereiten.
+# get_formatted_screens liefert pro Output Nummer, Name, aktuelle Auflösung,
+# Diagonale in Zoll und den Monitor-Namen aus dem EDID - auch für inaktive
+# Outputs. Damit ist im ersten Menü erkennbar, welcher Eintrag welcher
+# Bildschirm ist, ohne dass erst umgeschaltet werden muss.
+# DEV: Alter Ansatz - auskommentiert erhalten. Der Suffix allein sagt nichts
+# über den Bildschirm aus, die EDID-Daten waren zwar schon verfügbar, wurden
+# hier aber nicht benutzt. Feld 1 war der Output-Name, jetzt steht dort die
+# Nummer - die Auswertung unten im case-Zweig ist entsprechend angepasst.
+# single_screens_menu=$(echo "$screens" | awk '{print $1 " (nur dieser Bildschirm)"}')
+single_screens_menu=$(get_formatted_screens "$screens")
 
 # Benutzerauswahl inkl. Multi-Monitor und manueller Auswahl:
 chosen_menu=$(printf "Mehrere Bildschirme einrichten\n%s\n%s\nManuelle Auswahl (ARANDR)" "$single_screens_menu" "$res_menu_entry" | rofi_menu -p "Wähle Anzeigemodus:") &&
@@ -363,7 +514,10 @@ case "$chosen_menu" in
 		change_resolution "$target" && postrun
 		;;
 	*)
-		chosen=$(echo "$chosen_menu" | awk '{print $1}')
+		# Einzelbildschirm-Eintrag: Format "1: HDMI-1 (3840x2160, 27 Zoll, LS27D70xE)".
+		# Der Output-Name steht in Feld 2, Feld 1 ist die Nummer.
+		# chosen=$(echo "$chosen_menu" | awk '{print $1}')
+		chosen=$(echo "$chosen_menu" | awk '{print $2}')
 		onescreen "$chosen" "$allposs" && postrun
 		;;
 esac

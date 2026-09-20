@@ -1,54 +1,87 @@
 #!/bin/sh
-## 2026-09-01   SARBS
-# Abhängigkeiten: GNU Coreutils (cat, cut, head, mkdir, tail), awk, bc, gsettings, info, pidof, pstree, sed, tree, xrandr, xrdb
-# Zentrale DPI/Skalierungs-Konfiguration für X11-Sitzungen.
-# Massgeblich ist immer der Primaerbildschirm: berechnet dessen Hardware-DPI,
-# wendet DISPLAY_ADJUST an, setzt State-Dateien und konfiguriert xrandr +
-# Umgebungsvariablen.
+## 2026-09-08   SARBS core TESTING
+# Zentrale DPI- und Skalierungs-Konfiguration für X11-Sitzungen.
+# Massgeblich ist immer der Primaerbildschirm: Das Skript bestimmt dessen
+# Hardware-DPI aus Aufloesung und physischer Groesse, wendet die Justierung
+# DISPLAY_ADJUST an, setzt die DPI-Zahl im X-Server und synchronisiert
+# Cursor, GTK, fontconfig und rofi.
+#
+# Abhaengigkeiten (Laufzeit): GNU Coreutils (cat, cut, grep, mkdir, sed), awk,
+#   bc, gsettings, pidof, pstree, xrandr, xdpyinfo, xrdb
+#   xdpyinfo liest nach dem Setzen die tatsaechlich wirksame DPI-Zahl zurueck.
+#   Erst wenn sie stimmt, werden die State-Dateien geschrieben.
+# Werkzeuge nur zum Debuggen, keine Laufzeitabhaengigkeit: xprop, xwininfo, xev,
+#   import/ImageMagick - Wurzel-Fenster und Atom-Pixmaps pixelweise pruefen.
 #
 # Aufruf:
 #   set-dpi           Interaktiver Modus - zeigt Werte, fragt vor Anwendung
 #   set-dpi -s        Start/Silent - für xprofile (setzt alles ohne Ausgabe)
 #   set-dpi -a        Apply - wendet sofort an ohne Rueckfrage (für Skripte)
 #   set-dpi -d        Dry-Run - zeigt nur berechnete Werte, aendert nichts
+#   set-dpi -e        EDID-Auskunft (auch fuer inaktive Outputs), aendert nichts
+#                     Ausgabe: name|mm_breite|mm_hoehe|zoll|hersteller|monitor_name|header|checksumme
+#   set-dpi -e HDMI-1 EDID-Auskunft fuer einen bestimmten Output
+#   set-dpi -p HDMI-1 Vorschau: modus|dpi|scale|cursor|nativ fuer alle Modi des Outputs,
+#                     gerechnet aus der EDID-Groesse - der Output muss nicht aktiv
+#                     sein. Damit stehen Aufloesung UND physische Groesse schon
+#                     vor dem Umschalten fest, es muss nichts abgewartet werden.
 #   set-dpi -j N      Justierung fest auf N% setzen und anwenden (persistent)
 #   set-dpi -j auto   Automatische Justierung nach Bildschirmgroesse aktivieren
 #
 # Stellschrauben (Umgebungsvariablen ueberschreiben alles):
 #   FORCE_DPI=192      Ueberspringt Auto-Erkennung + Adjust komplett
 #   FORCE_SCALE=1.25   Ueberspringt Scale-Ableitung
+#   NO_WM_RELOAD=1     dwm-Neustart (SIGHUP) ueberspringen, der Aufrufer laedt
+#                      dwm selbst. displayselect nutzt das, um dwm erst nach
+#                      Hintergrundbild und Farben neu zu starten.
 #
-# Cursor-Anpassung (apply_dpi):
-#   gsettings          Sofort wirksam fuer GTK3/GTK4-Apps
-#   xrdb -merge + xsetroot  X11-Root-Cursor (wirkt bei neuen Apps)
-#   gtk-*.ini          Persistente Config fuer neu gestartete Apps
-#   HINWEIS: Qt-Apps benoetigen einen Neustart um die Groesse zu uebernehmen
+# Grundsatz: xrandr und EDID sind die einzigen Quellen. Es wird nichts geraten
+# und nicht still auf einen Default-Wert zurueckgefallen. Fehlen Aufloesung oder
+# physische Groesse, meldet das Skript den Grund auf stderr inklusive der
+# xrandr-Zeilen und laesst die State-Dateien unberuehrt. Einzige Ausnahme ist der
+# Silent-Modus (-s): Er darf die Sitzung nicht ohne DPI-Variablen starten lassen
+# und greift dann auf den letzten bekannten Stand aus den State-Dateien zurueck.
+#
+# Cursor-Anpassung in apply_dpi:
+#   gsettings   sofort wirksam fuer laufende GTK3/GTK4-Apps
+#   xrdb        X11-Root-Cursor, wirkt bei neu gestarteten Apps
+#   gtk-*.ini   persistente Konfiguration fuer neu gestartete Apps
+#   Qt-Apps uebernehmen die Groesse erst nach einem Neustart
+#
+# Aufbau des Skripts, Abschnitte in Ausfuehrungsreihenfolge:
+#   1 Konfiguration    Justierungs-Regeln und Default-Werte
+#   2 Grundlagen       Source-Sicherheit, State-Verzeichnis, Modus aus $1
+#   3 Erkennung        xrandr-Ausgabe, Primaerbildschirm, EDID, Modi
+#   4 Berechnung       Roh-DPI, Diagonale, Justierung, DPI-Stufe, Skalierung
+#   5 Abfragemodi      -e und -p, laufen vor der Berechnung und aendern nichts
+#   6 Hauptberechnung  Werte des Primaerbildschirms, Pruefung, Fehlerpfad
+#   7 Anwendung        apply_dpi, wmpid, reload_wm
+#   8 Modusausfuehrung silent, apply, dryrun, interactive
 
-# === Default für DISPLAY_ADJUST ===
-# "auto": Justierung wird ueber AUTO_ADJUST_RULES anhand des Primaerbildschirms
-# bestimmt. Greift wenn die State-Datei noch nicht existiert (frisches System)
-# oder via "set-dpi -j auto" gesetzt wurde.
+# === 1. Konfiguration ===
+# Default fuer DISPLAY_ADJUST. "auto" bestimmt die Justierung ueber
+# AUTO_ADJUST_RULES anhand des Primaerbildschirms. Der Wert greift, wenn die
+# State-Datei noch nicht existiert (frisches System) oder "set-dpi -j auto"
+# gesetzt wurde.
 DISPLAY_ADJUST_DEFAULT="auto"
 
-# === Automatische Justierung nach Primaerbildschirm ===
-# Regel-Tabelle, eine Zeile pro Regel. Aufbau: "<max_zoll>|<min_px_breite>|<adjust_prozent>"
+# Automatische Justierung nach Primaerbildschirm.
+# Regel-Tabelle, eine Zeile pro Regel: "<max_zoll>|<min_px_breite>|<adjust_prozent>"
 #   max_zoll       Bildschirmdiagonale hoechstens (Zoll, gerundet)
 #   min_px_breite  horizontale Aufloesung mindestens (Pixel)
-# Die Zeilen werden von oben nach unten geprueft, erste passende Regel gewinnt.
+# Die Zeilen werden von oben nach unten geprueft, die erste passende gewinnt.
 # Ohne Treffer gilt AUTO_ADJUST_FALLBACK.
-# WICHTIG: Spezifische Regeln (hohe min_px_breite bzw. kleine max_zoll) nach
-# oben, breite Auffangregeln nach unten. Ohne EDID-Daten ist die Diagonale 0
-# und wuerde sonst in die erste (kleine) Zoll-Klasse fallen.
+# Reihenfolge beachten: spezifische Regeln (hohe min_px_breite, kleine max_zoll)
+# nach oben, breite Auffangregeln nach unten.
 #
-# --- Feinjustierung: Weitere Regeln einfach als eigene Zeile ergaenzen ---
-# Beispiele (bei Bedarf einkommentieren bzw. anpassen, Reihenfolge beachten):
+# Feinjustierung: weitere Regeln einfach als eigene Zeile ergaenzen, z.B.
 #   32|3800|60      4K bis 32 Zoll etwas zurueckhaltender (+60%)
 #   24|2500|50      2.5K auch auf kleineren Monitoren (z.B. 24 Zoll) +50%
 #   24|1900|25      FullHD ueber 20 Zoll leicht vergroessern (+25%)
 #   99|0|-10        Auffangregel: alles uebrige leicht verkleinern (-10%)
-# Tipp: Die kaufmaennisch gerundete Diagonale des Primaerbildschirms zeigt
-# "set-dpi -d" an - so lassen sich Regeln gezielt zuschneiden.
-# Default: 4K +75%, 2.5K am 27-Zoller +50%, Laptop bis 14 Zoll ohne Justierung.
+# Die gerundete Diagonale des Primaerbildschirms zeigt "set-dpi -d", die jedes
+# verbundenen Monitors "set-dpi -e" - so lassen sich Regeln gezielt zuschneiden.
+# Default: 4K +75%, 2.5K am 27-Zoller +75%, Laptop bis 14 Zoll ohne Justierung.
 AUTO_ADJUST_RULES="
 99|3800|75
 27|2500|75
@@ -56,24 +89,41 @@ AUTO_ADJUST_RULES="
 "
 AUTO_ADJUST_FALLBACK=0
 
-# === Source-sicher: return statt exit wenn gesourced ===
-# Wenn via ". set-dpi -s" eingebunden, wuerde exit die aufrufende Shell beenden.
-# Erkennung: "return" in einer Subshell gelingt nur in gesourceden Skripten.
+# === 2. Grundlagen ===
+# Source-Sicherheit: Beim Einbinden mit ". set-dpi -s" wuerde ein exit die
+# aufrufende Shell beenden. "return" in einer Subshell gelingt nur in einem
+# gesourcten Skript, daran wird der Fall erkannt.
 if (return 0 2>/dev/null); then
 	_setdpi_quit() { return "${1:-0}"; }
 else
 	_setdpi_quit() { exit "${1:-0}"; }
 fi
 
-# === State-Verzeichnis ===
+# State-Verzeichnis fuer die Dateien dpi, scale, cursor und adjust
 state_dir="${XDG_STATE_HOME:-$HOME/.local/state}/xsession"
 
-# === Modus bestimmen ===
+# Modus aus dem ersten Argument bestimmen
 MODE="interactive"
 case "$1" in
 	-s|--start)  MODE="silent" ;;
 	-a|--apply)  MODE="apply" ;;
 	-d|--dry-run) MODE="dryrun" ;;
+	-e|--edid)
+		# EDID-Auskunft: physische Groesse, Zoll, Hersteller, Monitor-Name.
+		# Funktioniert auch fuer verbundene, aber inaktive Outputs.
+		shift
+		EDID_TARGET="$1"
+		MODE="edid" ;;
+	-p|--preview)
+		# Vorschau: DPI, Skalierung und Cursor fuer jeden Modus eines
+		# Outputs - rechnet mit der EDID-Groesse, aendert nichts.
+		shift
+		PREVIEW_TARGET="$1"
+		if [ -z "$PREVIEW_TARGET" ]; then
+			echo "Fehler: -p erwartet einen Output-Namen (siehe set-dpi -e)"
+			_setdpi_quit 1
+		fi
+		MODE="preview" ;;
 	-j|--justify)
 		# Justierung setzen und sofort anwenden
 		shift
@@ -85,16 +135,24 @@ case "$1" in
 		echo "$1" > "$state_dir/adjust"
 		MODE="apply" ;;
 	-h|--help)
-		echo "Verwendung: set-dpi [-s|-a|-d|-j N|-j auto|-h]"
+		echo "Verwendung: set-dpi [-s|-a|-d|-e [Output]|-p Output|-j N|-j auto|-h]"
 		echo "  (ohne)   Interaktiver Modus"
 		echo "  -s       Start/Silent (für xprofile)"
 		echo "  -a       Apply (sofort anwenden)"
 		echo "  -d       Dry-Run (nur anzeigen)"
+		echo "  -e       EDID-Auskunft, auch für inaktive Outputs"
+		echo "           Ausgabe: name|mm_breite|mm_hoehe|zoll|hersteller|monitor_name|header|checksumme"
+		echo "           ohne Argument: alle verbundenen Outputs"
+		echo "  -p NAME  Vorschau für alle Modi eines Outputs"
+		echo "           Ausgabe: modus|dpi|scale|cursor|nativ"
 		echo "  -j N     Justierung fest auf N% setzen und anwenden"
 		echo "           z.B. set-dpi -j -15  oder  set-dpi -j 0"
 		echo "  -j auto  Automatische Justierung nach Bildschirmgroesse"
 		echo "           (Regeln: AUTO_ADJUST_RULES im Skript)"
 		echo "  -h       Diese Hilfe"
+		echo ""
+		echo "Umgebungsvariablen: FORCE_DPI, FORCE_SCALE, NO_WM_RELOAD"
+		echo "  (Beschreibung im Kopf des Skripts)"
 		echo ""
 		echo "Aktueller DISPLAY_ADJUST: $(cat "$state_dir/adjust" 2>/dev/null || echo "$DISPLAY_ADJUST_DEFAULT")"
 		_setdpi_quit 0 ;;
@@ -102,80 +160,189 @@ case "$1" in
 	*) echo "Unbekannte Option: $1 (siehe set-dpi -h)"; _setdpi_quit 1 ;;
 esac
 
-# === DISPLAY_ADJUST laden ===
-# Prioritaet: 1. State-Datei (persistent, via -j gesetzt) 2. Default aus Skript
+# DISPLAY_ADJUST laden. Prioritaet: 1. State-Datei (persistent, via -j gesetzt)
+# 2. Default aus dem Skript. Erlaubt sind eine Ganzzahl oder "auto".
 DISPLAY_ADJUST=$(cat "$state_dir/adjust" 2>/dev/null) && [ -n "$DISPLAY_ADJUST" ] || DISPLAY_ADJUST=$DISPLAY_ADJUST_DEFAULT
-# Validierung: Ganzzahl oder "auto"
 case "$DISPLAY_ADJUST" in
 	auto) ;;
 	''|*[!0-9-]*) DISPLAY_ADJUST=$DISPLAY_ADJUST_DEFAULT ;;
 esac
 
-# === Display-Erkennung ===
+# === 3. Erkennung ===
+# Ein einziger xrandr-Aufruf wird gecacht, alle weiteren Auswertungen arbeiten
+# damit. Meldungen von xrandr bleiben sichtbar: fehlt xrandr oder gibt es keinen
+# X-Server, steht das im Terminal und zusaetzlich in der Diagnose von dpi_fail().
+XRANDR_OUT=$(xrandr)
 
-# Ermittelt das massgebliche Display (Primaerbildschirm) und liefert
-# "name|aufloesung|physische_groesse" zurueck. Berechnung und Ausgabe
-# verwenden dieselbe Funktion, damit beides zusammenpasst.
-# Strategie:
-# 1. Primary mit aktiver Aufloesung (+X+Y Position)
-# 2. Erstes aktives Display mit Aufloesung (z.B. Primary ist der
-#    zugeklappte Laptop ohne aktives Signal)
-# 3. Primary ohne aktive Aufloesung (native Mode wird verwendet)
-# 4. Erstes verbundenes Display
+# Ermittelt den massgeblichen Bildschirm und liefert
+# "name|aufloesung|mm_breite|mm_hoehe". Regeln, die erste gewinnt:
+#   1. "connected primary" mit aktivem Modus (BxH+X+Y)
+#   2. erster "connected" Output mit aktivem Modus
+#      (zugeklappter Laptop: Primary ist eDP ohne Signal)
+# Eine native Mode wird nicht geraten: ohne aktiven Modus gibt es keine
+# Aufloesung, dann bricht das Skript in der Hauptberechnung laut ab.
 get_display_info() {
-	_info=$(xrandr 2>/dev/null | grep " connected primary" | grep -E '[0-9]+x[0-9]+\+[0-9]+')
-	[ -z "$_info" ] && _info=$(xrandr 2>/dev/null | grep " connected" | grep -E '[0-9]+x[0-9]+\+[0-9]+' | head -n 1)
-	[ -z "$_info" ] && _info=$(xrandr 2>/dev/null | grep " connected primary")
-	[ -z "$_info" ] && _info=$(xrandr 2>/dev/null | grep " connected" | head -n 1)
-	[ -z "$_info" ] && { echo "||"; return; }
-
-	_name=$(echo "$_info" | awk '{print $1}')
-	_res=$(echo "$_info" | grep -oE '[0-9]+x[0-9]+\+[0-9]+\+[0-9]+' | head -n 1 | cut -d'+' -f1)
-
-	# Falls keine aktive Aufloesung: erste (native) Mode aus der Liste holen
-	if [ -z "$_res" ]; then
-		_res=$(xrandr 2>/dev/null | grep -A 1 "^$_name " | tail -n 1 | awk '{print $1}')
-	fi
-	case "$_res" in
-		[0-9]*x[0-9]*) ;;
-		*) _res="" ;;
-	esac
-
-	_phys=$(echo "$_info" | grep -oE '[0-9]+mm x [0-9]+mm')
-	echo "$_name|$_res|$_phys"
+	printf '%s\n' "$XRANDR_OUT" | awk '
+		$2 == "connected" {
+			res = ""; mmw = 0; mmh = 0
+			for (i = 3; i <= NF; i++)
+				if ($i ~ /^[0-9]+x[0-9]+\+[0-9]+\+[0-9]+$/) {
+					split($i, g, "+")
+					res = g[1]
+				}
+			if (match($0, /[0-9]+mm x [0-9]+mm/)) {
+				s = substr($0, RSTART, RLENGTH)
+				gsub(/mm/, "", s)
+				split(s, b, " x ")
+				mmw = b[1]; mmh = b[2]
+			}
+			if (res == "") next
+			line = $1 "|" res "|" mmw "|" mmh
+			if ($3 == "primary") { print line; hit = 1; exit }
+			if (first == "") first = line
+		}
+		END { if (!hit && first != "") print first }
+	'
 }
 
-# Wartet bis xrandr fuer mindestens ein aktives Display die physische Groesse
-# meldet (EDID gelesen). Direkt nach einem Display-Wechsel kann die Angabe
-# kurz fehlen; ohne sie ist keine sinnvolle DPI-Berechnung moeglich.
-# Kurzes Polling (max. 3 Sekunden), damit Login/Wechsel nicht haengen bleibt.
-wait_for_display_size() {
-	_w=0
-	while [ "$_w" -lt 6 ]; do
-		xrandr 2>/dev/null | grep " connected" | grep -E '[0-9]+x[0-9]+\+[0-9]+' | grep -q '[0-9]*mm x [0-9]*mm' && return 0
-		sleep 0.5 2>/dev/null || return 0
-		_w=$((_w + 1))
-	done
+# EDID (Extended Display Identification Data) ist ein 128-Byte-Block im EEPROM
+# des Bildschirms. Die Grafikkarte liest ihn beim Verbinden per DDC/I2C aus, der
+# Kernel haelt ihn im Connector. Er ist damit unabhaengig vom aktiven Modus
+# verfuegbar und aendert sich bei einem Aufloesungswechsel nicht.
+# xrandr druckt die mm-Angabe nur fuer Outputs mit aktivem CRTC; die
+# EDID-Property ("xrandr --prop") liefert sie fuer jeden verbundenen Output.
+#
+# Benutzte Felder (Byte-Positionen 1-basiert, 0-basiert in Klammern):
+#   1-8   (0-7)    Header, muss 00 ff ff ff ff ff ff 00 sein
+#   9-10  (8-9)    Herstellerkuerzel (PNP-ID, 3 Buchstaben)
+#   19-20 (18-19)  EDID-Version
+#   22-23 (21-22)  maximale Bildgroesse in cm - grob, +-10 mm
+#   67-69 (66-68)  Bildgroesse in mm aus dem ersten Detailed Timing Descriptor
+#   128   (127)    Checksumme: Summe aller 128 Bytes mod 256 muss 0 ergeben
+# Monitor-Name: Descriptor-Block mit Tag 0xFC, bis zu 4 Bloecke ab Byte 55 (54).
+#
+# Die mm-Werte des Detailed Timing Descriptors sind exakt die, die xrandr fuer
+# einen aktiven Output aus demselben Block ableitet - gemessen an diesem System:
+# HDMI-1 597x336 mm aus dem EDID, 597mm x 336mm bei xrandr.
+#
+# Grenzen werden geprueft und laut gemeldet, nicht still uebergangen:
+#   Header/Checksumme defekt  kaputte Uebertragung (Kabel, Adapter, KVM)
+#   Bildgroesse 0             generische EDID von Dock, KVM oder DP-MST-Adapter
+#   keine EDID-Property       sehr alte Treiber, virtuelle Outputs
+# Der Kernel erlaubt bewusst EDID-Overrides (drm.edid_firmware); ein
+# korrigierter Block ist ein Feature und kein Widerspruch.
+
+# Wird erst bei Bedarf gelesen, "xrandr --prop" ist teurer als "xrandr".
+EDID_OUT=""
+
+# Liefert pro Output eine Zeile:
+#   name|mm_breite|mm_hoehe|zoll|hersteller|monitor_name|header|checksumme
+# $1 = Output-Name; leer = alle verbundenen Outputs.
+# Die Groesse kommt aus dem Detailed Timing Descriptor 1 (mm-genau); hat der
+# Descriptor keine Groesse, wird auf den Basis-Block (cm) zurueckgegriffen.
+get_edid_info() {
+	[ -n "$EDID_OUT" ] || EDID_OUT=$(xrandr --prop)
+	printf '%s\n' "$EDID_OUT" | awk -v want="${1:-}" '
+	function byte(i) { return strtonum("0x" substr(hex, (i - 1) * 2 + 1, 2)) }
+	function hex2str(from, len,   i, c, s) {
+		s = ""
+		for (i = 0; i < len; i++) {
+			c = strtonum("0x" substr(hex, from + i * 2, 2))
+			if (c == 10) break
+			s = s sprintf("%c", c)
+		}
+		gsub(/[ \t]+$/, "", s)
+		return s
+	}
+	function emit(out, hex,   sum, i, base, v, mfg, mmw, mmh, name, hdr, csum, d) {
+		if (length(hex) < 256) return
+		if (want != "" && out != want) return
+
+		hdr = (substr(hex, 1, 16) == "00ffffffffffff00") ? "ok" : "defekt"
+		sum = 0
+		for (i = 1; i <= 128; i++) sum += byte(i)
+		csum = ((sum % 256) == 0) ? "ok" : "defekt"
+
+		v = byte(9) * 256 + byte(10)
+		mfg = sprintf("%c%c%c", 65 + int(v / 1024) % 32, 65 + int(v / 32) % 32, 65 + v % 32)
+
+		mmw = 0; mmh = 0
+		if (substr(hex, 109, 4) != "0000") {
+			mmw = byte(67) + int(byte(69) / 16) * 256
+			mmh = byte(68) + (byte(69) % 16) * 256
+		}
+		if (mmw == 0 || mmh == 0) {
+			mmw = byte(22) * 10
+			mmh = byte(23) * 10
+		}
+
+		name = ""
+		for (i = 0; i < 4; i++) {
+			base = 54 + i * 18
+			if (substr(hex, (base + 1) * 2 - 1, 4) == "0000" && \
+			    substr(hex, (base + 4) * 2 - 1, 2) == "fc") {
+				name = hex2str((base + 6) * 2 - 1, 13)
+				break
+			}
+		}
+		gsub(/\|/, " ", name)
+
+		d = sqrt(mmw * mmw + mmh * mmh) / 25.4
+		printf "%s|%d|%d|%d|%s|%s|%s|%s\n", out, mmw, mmh, (mmw > 0 ? int(d + 0.5) : 0), mfg, name, hdr, csum
+	}
+	/^[^ \t].* connected/ { if (hex != "") emit(out, hex); out = $1; hex = ""; f = 0 }
+	/^[ \t]*EDID:/ { f = 1; hex = ""; next }
+	f {
+		line = $0
+		gsub(/[ \t]/, "", line)
+		if (line ~ /^[0-9a-f]+$/ && length(line) == 32) hex = hex line
+		else if (hex != "") { emit(out, hex); hex = ""; f = 0 }
+	}
+	END { if (hex != "") emit(out, hex) }
+	'
 }
 
-# === DPI-Berechnung ===
+# Modi eines Outputs aus der gecachten xrandr-Ausgabe, nach Breite und Hoehe
+# absteigend, ohne Doppelte - gleiche Logik wie get_resolutions in displayselect.
+get_modes() {
+	printf '%s\n' "$XRANDR_OUT" | awk -v out="$1" '
+		$1 == out && $2 == "connected" { f = 1; next }
+		/^[^ \t]/ { f = 0 }
+		f && /^[ \t]+[0-9]/ { print $1 }
+	' | sort -t x -k1,1nr -k2,2nr | awk '!seen[$0]++'
+}
+
+# Vom Monitor als bevorzugt gemeldete Modi ("+"-Marke in der xrandr-Ausgabe),
+# also die native Aufloesung. Ein Durchlauf fuer alle Modi, damit die Vorschau
+# nicht pro Modus erneut suchen muss.
+get_preferred_modes() {
+	printf '%s\n' "$XRANDR_OUT" | awk -v out="$1" '
+		$1 == out && $2 == "connected" { f = 1; next }
+		/^[^ \t]/ { f = 0 }
+		f && /^[ \t]+[0-9]/ {
+			for (i = 2; i <= NF; i++)
+				if ($i ~ /\+/) { print $1; break }
+		}
+	'
+}
+
+# === 4. Berechnung ===
+# Alle Funktionen setzen gepruefte Eingaben voraus; die Pruefung macht die
+# Hauptberechnung. Es gibt keine stillen Default-Werte, ein unbrauchbarer Wert
+# soll auffallen. bc-Fehler werden deshalb nicht unterdrueckt.
 
 # Roh-DPI (nicht gerundet) aus Pixelbreite und physischer Breite in mm
 calculate_raw_dpi() {
 	_px_w=$1
 	_mm_w=$2
-	[ -n "$_px_w" ] && [ -n "$_mm_w" ] || { echo 96; return; }
-	[ "$_mm_w" -gt 0 ] 2>/dev/null || { echo 96; return; }
-	_dpi=$(echo "scale=0; ($_px_w * 25.4) / $_mm_w" | bc 2>/dev/null)
-	echo "${_dpi:-96}"
+	echo "scale=0; ($_px_w * 25.4) / $_mm_w" | bc
 }
 
 # Bildschirmdiagonale in Zoll (kaufmaennisch gerundet)
 calculate_diagonal() {
 	_mm_w=$1
 	_mm_h=$2
-	[ "$_mm_w" -gt 0 ] 2>/dev/null && [ "$_mm_h" -gt 0 ] 2>/dev/null || { echo 0; return; }
-	echo "scale=2; d1 = sqrt($_mm_w * $_mm_w + $_mm_h * $_mm_h) / 25.4; scale=0; (d1 + 0.5) / 1" | bc 2>/dev/null
+	echo "scale=2; d1 = sqrt($_mm_w * $_mm_w + $_mm_h * $_mm_h) / 25.4; scale=0; (d1 + 0.5) / 1" | bc
 }
 
 # Automatische Justierung anhand AUTO_ADJUST_RULES
@@ -229,19 +396,146 @@ calculate_scale_factor() {
 	fi
 }
 
-# === Hauptberechnung ===
-# Massgeblich ist immer der Primaerbildschirm.
-# Nach einem Wechsel kurz auf EDID-Daten warten (physische Groesse);
-# FORCE_DPI braucht keine Erkennung und wartet nicht mit.
-[ -n "$FORCE_DPI" ] || wait_for_display_size
-info=$(get_display_info)
-PRIMARY=$(echo "$info" | cut -d'|' -f1)
-RES=$(echo "$info" | cut -d'|' -f2)
-PHYS=$(echo "$info" | cut -d'|' -f3)
+# Vorschau: rechnet fuer jeden Modus eines Outputs DPI, Skalierung und
+# Cursor-Groesse aus der physischen Groesse des EDID. Der Output muss dafuer
+# nicht aktiv sein. Benutzt dieselben Funktionen wie die Hauptberechnung, damit
+# es keine zweite Wahrheit gibt.
+# Ausgabe pro Modus: modus|dpi|scale|cursor|nativ
+print_mode_preview() {
+	_out=$1
+	_edid=$(get_edid_info "$_out")
+	if [ -z "$_edid" ]; then
+		echo "set-dpi: FEHLER - Output '$_out' liefert keine EDID-Property." >&2
+		echo "set-dpi: verbunden laut xrandr:" >&2
+		printf '%s\n' "$XRANDR_OUT" | grep " connected" >&2
+		return 1
+	fi
+	_mmw=$(printf '%s' "$_edid" | cut -d'|' -f2)
+	_mmh=$(printf '%s' "$_edid" | cut -d'|' -f3)
+	_zoll=$(printf '%s' "$_edid" | cut -d'|' -f4)
+	_hdr=$(printf '%s' "$_edid" | cut -d'|' -f7)
+	_csum=$(printf '%s' "$_edid" | cut -d'|' -f8)
 
-PX_W=$(echo "$RES" | cut -d'x' -f1)
-MM_W=$(echo "$PHYS" | cut -d'm' -f1)
-MM_H=$(echo "$PHYS" | cut -d' ' -f3 | cut -d'm' -f1)
+	if [ "$_hdr" != "ok" ] || [ "$_csum" != "ok" ]; then
+		echo "set-dpi: FEHLER - EDID von $_out ist beschaedigt (Header=$_hdr, Checksumme=$_csum)." >&2
+		echo "set-dpi: Ursache ist meist Kabel, Adapter oder ein KVM-Switch." >&2
+		return 1
+	fi
+	if [ "$_mmw" -eq 0 ] || [ "$_mmh" -eq 0 ]; then
+		echo "set-dpi: FEHLER - EDID von $_out enthaelt keine Bildgroesse (0 mm)." >&2
+		echo "set-dpi: Abhilfe: FORCE_DPI=<Wert> setzen oder ein Monitor mit korrekter EDID." >&2
+		return 1
+	fi
+
+	_modes=$(get_modes "$_out")
+	if [ -z "$_modes" ]; then
+		echo "set-dpi: FEHLER - keine Modi fuer $_out in der xrandr-Ausgabe gefunden." >&2
+		return 1
+	fi
+	_pref=" $(get_preferred_modes "$_out" | tr '\n' ' ')"
+
+	for _mode in $_modes; do
+		_pxw=${_mode%x*}
+		_raw=$(calculate_raw_dpi "$_pxw" "$_mmw")
+		if [ "$DISPLAY_ADJUST" = "auto" ]; then
+			_adj=$(auto_adjust "$_pxw" "$_zoll")
+		else
+			_adj=$DISPLAY_ADJUST
+		fi
+		if [ "$_adj" -ne 0 ]; then
+			_raw=$(echo "scale=0; $_raw * (100 + $_adj) / 100" | bc)
+		fi
+		_dpi=$(round_to_dpi_step "$_raw")
+		_scale=$(calculate_scale_factor "$_dpi")
+		_cur=$(echo "scale=0; 24 * $_scale / 1" | bc)
+		# Vom Monitor bevorzugter Modus = native Aufloesung
+		case "$_pref" in
+			*" $_mode "*) _flag="nativ" ;;
+			*) _flag="" ;;
+		esac
+		printf '%s|%s|%s|%s|%s\n' "$_mode" "$_dpi" "$_scale" "$_cur" "$_flag"
+	done
+}
+
+# === 5. Abfragemodi ===
+# EDID-Auskunft und Modi-Vorschau laufen vor der Hauptberechnung: Sie muessen
+# auch funktionieren, wenn gar kein Output aktiv ist - genau dann ist das EDID
+# die einzige verfuegbare Quelle. Beide Modi aendern nichts.
+case "$MODE" in
+	edid)
+		get_edid_info "$EDID_TARGET"
+		_setdpi_quit 0 ;;
+	preview)
+		print_mode_preview "$PREVIEW_TARGET" || _setdpi_quit 1
+		_setdpi_quit 0 ;;
+esac
+
+# === 6. Hauptberechnung ===
+# Massgeblich ist immer der Primaerbildschirm. Die Felder werden einmal zerlegt
+# und sofort auf Brauchbarkeit geprueft.
+info=$(get_display_info)
+PRIMARY=$(printf '%s' "$info" | cut -d'|' -f1)
+RES=$(printf '%s' "$info" | cut -d'|' -f2)
+MM_W=$(printf '%s' "$info" | cut -d'|' -f3)
+MM_H=$(printf '%s' "$info" | cut -d'|' -f4)
+PHYS="${MM_W}mm x ${MM_H}mm"
+
+# Bereinigen: alles was keine Zahl ist wird 0 bzw. leer. Damit ist die Pruefung
+# darunter eindeutig und es gibt kein "integer expression expected".
+case "$MM_W" in ''|*[!0-9]*) MM_W=0 ;; esac
+case "$MM_H" in ''|*[!0-9]*) MM_H=0 ;; esac
+case "$RES" in
+	[0-9]*x[0-9]*) PX_W=${RES%x*} ;;
+	*) RES=""; PX_W="" ;;
+esac
+
+# Diagnose bei unbrauchbaren xrandr-Daten: zeigt, welche Zeilenform erwartet
+# wird und was tatsaechlich geliefert wurde. Die State-Dateien bleiben
+# unberuehrt, damit ein spaeterer Lauf nicht "bereits aktuell" meldet.
+dpi_fail() {
+	echo "set-dpi: FEHLER - xrandr liefert keinen nutzbaren Primaerbildschirm." >&2
+	echo "set-dpi: erwartet wird eine Zeile der Form" >&2
+	echo "set-dpi:   <Name> connected primary <B>x<H>+<X>+<Y> ... <N>mm x <M>mm" >&2
+	echo "set-dpi: connected laut xrandr:" >&2
+	printf '%s\n' "$XRANDR_OUT" | grep " connected" >&2
+	echo "set-dpi: geparst: name='$PRIMARY' aufloesung='$RES' physikalisch='$MM_W x $MM_H mm'" >&2
+	echo "set-dpi: Abhilfe: Aufloesung setzen (displayselect) oder FORCE_DPI=<Wert> verwenden." >&2
+}
+
+# Letzter bekannter Stand aus den State-Dateien. Nur fuer den Silent-Modus,
+# damit die Sitzung nicht ohne exportierte DPI-Variablen startet. Das ist ein
+# Rueckfall auf eigene, frueher verifizierte Werte - kein geratener Default.
+use_last_state() {
+	MASTER_DPI=$(cat "$state_dir/dpi" 2>/dev/null)
+	SCALE_FACTOR=$(cat "$state_dir/scale" 2>/dev/null)
+	XCURSOR_SIZE=$(cat "$state_dir/cursor" 2>/dev/null)
+	case "$MASTER_DPI" in ''|*[!0-9]*) MASTER_DPI="" ;; esac
+	case "$XCURSOR_SIZE" in ''|*[!0-9]*) XCURSOR_SIZE="" ;; esac
+	if [ -n "$MASTER_DPI" ] && [ -n "$SCALE_FACTOR" ]; then
+		XCURSOR_SIZE=${XCURSOR_SIZE:-24}
+		echo "set-dpi: nutze letzten bekannten Stand (DPI=$MASTER_DPI SCALE=$SCALE_FACTOR CURSOR=${XCURSOR_SIZE}px)." >&2
+	else
+		# Erststart ohne State-Dateien: minimaler Satz, damit xprofile
+		# keine leeren Variablen exportiert.
+		MASTER_DPI=96
+		SCALE_FACTOR=1
+		XCURSOR_SIZE=24
+		echo "set-dpi: FEHLER - weder xrandr-Daten noch State-Dateien, starte mit 96 DPI / SCALE 1." >&2
+	fi
+	export XCURSOR_SIZE MASTER_DPI SCALE_FACTOR
+	export GDK_DPI_SCALE="$SCALE_FACTOR"
+	export QT_FONT_DPI="$MASTER_DPI"
+	export QT_SCALE_FACTOR="$SCALE_FACTOR"
+	_setdpi_quit 0
+}
+
+# Ohne FORCE_DPI sind Aufloesung UND physische Groesse Pflicht.
+if [ -z "$FORCE_DPI" ] && { [ -z "$RES" ] || [ "$MM_W" -eq 0 ] || [ "$MM_H" -eq 0 ]; }; then
+	dpi_fail
+	[ "$MODE" = "silent" ] && use_last_state
+	_setdpi_quit 1
+fi
+
 DIAGONAL=$(calculate_diagonal "$MM_W" "$MM_H")
 
 # DISPLAY_ADJUST aufloesen: "auto" -> Regel-Tabelle, sonst fester Wert
@@ -251,6 +545,7 @@ else
 	ADJUST=$DISPLAY_ADJUST
 fi
 
+# Aus Roh-DPI und Justierung die DPI-Stufe bestimmen
 if [ -n "$FORCE_DPI" ]; then
 	MASTER_DPI=$FORCE_DPI
 	RAW_DPI="$FORCE_DPI (erzwungen)"
@@ -258,9 +553,8 @@ else
 	RAW_DPI=$(calculate_raw_dpi "$PX_W" "$MM_W")
 	RAW_DPI_ORIG=$RAW_DPI
 	# DISPLAY_ADJUST anwenden (Prozent-Offset)
-	if [ "$ADJUST" -ne 0 ] 2>/dev/null; then
-		RAW_DPI=$(echo "scale=0; $RAW_DPI * (100 + $ADJUST) / 100" | bc 2>/dev/null)
-		[ -z "$RAW_DPI" ] && RAW_DPI=$RAW_DPI_ORIG
+	if [ "$ADJUST" -ne 0 ]; then
+		RAW_DPI=$(echo "scale=0; $RAW_DPI * (100 + $ADJUST) / 100" | bc)
 	fi
 	MASTER_DPI=$(round_to_dpi_step "$RAW_DPI")
 fi
@@ -268,24 +562,61 @@ fi
 SCALE_FACTOR=${FORCE_SCALE:-$(calculate_scale_factor "$MASTER_DPI")}
 
 # Mauszeiger-Groesse: 24px Basis, skaliert mit SCALE_FACTOR
-XCURSOR_SIZE=$(echo "scale=0; 24 * $SCALE_FACTOR / 1" | bc 2>/dev/null)
-XCURSOR_SIZE=${XCURSOR_SIZE:-24}
+XCURSOR_SIZE=$(echo "scale=0; 24 * $SCALE_FACTOR / 1" | bc)
 
-# === Anwendungs-Funktion ===
+# Endkontrolle, bevor irgendwas angewandt oder geschrieben wird.
+# Faengt Rechenfehler (bc) und Fehlwerte aus FORCE_DPI/FORCE_SCALE ein.
+case "$MASTER_DPI" in ''|*[!0-9]*) MASTER_DPI=0 ;; esac
+case "$XCURSOR_SIZE" in ''|*[!0-9]*) XCURSOR_SIZE=0 ;; esac
+if [ "$MASTER_DPI" -eq 0 ] || [ "$XCURSOR_SIZE" -eq 0 ] || [ -z "$SCALE_FACTOR" ]; then
+	echo "set-dpi: FEHLER - Berechnung lieferte DPI='$MASTER_DPI' SCALE='$SCALE_FACTOR' CURSOR='$XCURSOR_SIZE'." >&2
+	echo "set-dpi: Eingabewerte: aufloesung='$RES' physikalisch='$MM_W x $MM_H mm' adjust='${ADJUST}%'" >&2
+	[ "$MODE" = "silent" ] && use_last_state
+	_setdpi_quit 1
+fi
+
+# === 7. Anwendung ===
+# apply_dpi arbeitet in dieser Reihenfolge:
+#   1. anwenden      xrandr --dpi
+#   2. verifizieren  xdpyinfo liest die wirksame DPI-Zahl zurueck
+#   3. State-Dateien schreiben
+#   4. Cursor, GTK, fontconfig, rofi nachziehen
+#   5. Umgebungsvariablen exportieren
+# Die State-Dateien stehen bewusst an dritter Stelle: Schlug das Setzen fehl,
+# waeren sie sonst schon auf dem neuen Wert und ein spaeterer Lauf wuerde
+# "bereits aktuell" melden, ohne je angewandt zu haben.
+# Rueckgabe: 0 = angewandt und verifiziert, 1 = Fehler, State bleibt unveraendert
 apply_dpi() {
-	# State-Dateien schreiben
+	# 1. Anwenden. Meldungen von xrandr werden eingesammelt und bei Fehler
+	# vollstaendig ausgegeben, statt unbemerkt zu versickern.
+	if ! _xrerr=$(xrandr --dpi "$MASTER_DPI" 2>&1); then
+		echo "set-dpi: FEHLER - xrandr --dpi $MASTER_DPI fehlgeschlagen:" >&2
+		printf '%s\n' "$_xrerr" >&2
+		return 1
+	fi
+
+	# 2. Verifizieren. xdpyinfo rechnet die DPI aus der vom Server gemeldeten
+	# Bildschirmgroesse in mm und rundet, daher Toleranz +-3.
+	if [ -x "$(command -v xdpyinfo)" ]; then
+		_applied=$(xdpyinfo 2>/dev/null | awk '/^[ \t]*resolution:/ {split($2, a, "x"); print a[1]; exit}')
+		case "$_applied" in ''|*[!0-9]*) _applied=0 ;; esac
+		if [ "$_applied" -lt $((MASTER_DPI - 3)) ] || [ "$_applied" -gt $((MASTER_DPI + 3)) ]; then
+			echo "set-dpi: FEHLER - $MASTER_DPI DPI gesetzt, X-Server meldet $_applied DPI." >&2
+			return 1
+		fi
+	else
+		echo "set-dpi: WARNUNG - xdpyinfo fehlt (Paket xorg-xdpyinfo), wirksame DPI koennen nicht zurueckgelesen werden." >&2
+	fi
+
+	# 3. State-Dateien schreiben - erst jetzt, weil die Anwendung bestaetigt ist
 	[ -d "$state_dir" ] || mkdir -p "$state_dir"
 	echo "$SCALE_FACTOR" > "$state_dir/scale"
 	echo "$MASTER_DPI" > "$state_dir/dpi"
 	echo "$XCURSOR_SIZE" > "$state_dir/cursor"
 	echo "$DISPLAY_ADJUST" > "$state_dir/adjust"
 
-	# xrandr DPI setzen
-	xrandr --dpi "$MASTER_DPI"
-
-	# X-Server Cursor-Grösse sofort übernehmen
-	echo "Xcursor.size: $XCURSOR_SIZE" | xrdb -merge 2>/dev/null
-	xsetroot -cursor_name left_ptr 2>/dev/null
+	# 4. X-Server Cursor-Grösse sofort übernehmen
+	echo "Xcursor.size: $XCURSOR_SIZE" | xrdb -merge
 
 	# GTK Cursor-Groesse synchronisieren
 	gtk3_settings="${XDG_CONFIG_HOME:-$HOME/.config}/gtk-3.0/settings.ini"
@@ -293,8 +624,10 @@ apply_dpi() {
 	[ -f "$gtk3_settings" ] && sed -i "s/^gtk-cursor-theme-size=.*/gtk-cursor-theme-size=$XCURSOR_SIZE/" "$gtk3_settings"
 	[ -f "$gtk2_settings" ] && sed -i "s/^gtk-cursor-theme-size=.*/gtk-cursor-theme-size=$XCURSOR_SIZE/" "$gtk2_settings"
 
-	# gsettings für sofortige GTK-Cursor-Anpassung (laufende GTK3/GTK4-Apps)
-	[ -x "$(command -v gsettings)" ] && gsettings set org.gnome.desktop.interface cursor-size "$XCURSOR_SIZE" 2>/dev/null
+	# gsettings für sofortige GTK-Cursor-Anpassung (laufende GTK3/GTK4-Apps).
+	# Befehlsexistenz ist geprueft, die Fehlermeldung selbst bleibt sichtbar:
+	# ohne laufendes dbus scheitert gsettings.
+	[ -x "$(command -v gsettings)" ] && gsettings set org.gnome.desktop.interface cursor-size "$XCURSOR_SIZE"
 
 	# fontconfig DPI synchronisieren
 	fontconf="${XDG_CONFIG_HOME:-$HOME/.config}/fontconfig/fonts.conf"
@@ -313,7 +646,7 @@ apply_dpi() {
 	export QT_SCALE_FACTOR="$SCALE_FACTOR"
 }
 
-# === DWM-Prozess finden ===
+# PID von dwm bestimmen: vorrangig aus dem eigenen Prozessbaum, sonst ueber pidof
 wmpid() {
 	tree="$(pstree -ps $$ 2>/dev/null)"
 	# Sicherstellen, dass wir wirklich DWM im Baum finden
@@ -326,18 +659,45 @@ wmpid() {
 	fi
 }
 
-# === Modus-spezifische Ausfuehrung ===
+# dwm per SIGHUP neu laden, damit er xrdb und die neuen Groessen neu einliest.
+# Mit NO_WM_RELOAD=1 verzichtet das Skript darauf, weil der Aufrufer dwm selbst
+# und zu einem passenden Zeitpunkt neu laedt.
+# Meldungen gehen nach stderr, damit sie bei "dpi_result=$(set-dpi -a)" nicht
+# in der Benachrichtigung landen.
+# Rueckgabe: 0 = neu geladen oder bewusst uebersprungen, 1 = dwm nicht gefunden
+reload_wm() {
+	if [ -n "$NO_WM_RELOAD" ]; then
+		echo "set-dpi: dwm-Neustart uebersprungen (NO_WM_RELOAD=1)." >&2
+		return 0
+	fi
+	_wmpid=$(wmpid)
+	if [ -z "$_wmpid" ]; then
+		echo "set-dpi: WARNUNG - dwm nicht gefunden, Fenstermanager nicht neu geladen." >&2
+		return 1
+	fi
+	kill -HUP "$_wmpid"
+}
+
+# === 8. Modusausfuehrung ===
 case "$MODE" in
 	silent)
-		# xprofile-Modus: Alles setzen, keine Ausgabe
-		apply_dpi
+		# xprofile-Modus: Alles setzen, keine Ausgabe auf stdout.
+		# Ein Fehler geht nach stderr (landet im xinit-Protokoll) und
+		# laesst die State-Dateien unveraendert. Damit xprofile nicht
+		# ohne exportierte DPI-Variablen dasteht, wird bei einem Fehler
+		# der letzte bekannte Stand geladen.
+		apply_dpi || use_last_state
 		;;
 
 	apply)
-		# Skript-Modus: Anwenden + kurze Bestaetigung
-		apply_dpi
-		kill -HUP "$(wmpid)" 2>/dev/null   # Lade den Fenstermanager neu
-		echo "DPI=$MASTER_DPI SCALE=$SCALE_FACTOR CURSOR=${XCURSOR_SIZE}px ADJUST=${ADJUST}%"
+		# Skript-Modus: Anwenden, verifizieren, erst danach dwm neu laden.
+		if apply_dpi; then
+			reload_wm   # Lade den Fenstermanager neu (ausser bei NO_WM_RELOAD=1)
+			echo "DPI=$MASTER_DPI SCALE=$SCALE_FACTOR CURSOR=${XCURSOR_SIZE}px ADJUST=${ADJUST}%"
+		else
+			echo "set-dpi: Nichts angewandt, State-Dateien unveraendert." >&2
+			_setdpi_quit 1
+		fi
 		;;
 
 	dryrun)
@@ -355,6 +715,10 @@ case "$MODE" in
 		echo "MASTER_DPI:     $MASTER_DPI"
 		echo "SCALE_FACTOR:   $SCALE_FACTOR"
 		echo "XCURSOR_SIZE:   $XCURSOR_SIZE"
+		# Ist-Zustand des X-Servers, damit Soll und Ist direkt
+		# vergleichbar sind (xdpyinfo rundet, daher +-1 Abweichung normal).
+		echo "Server aktuell: $(xdpyinfo 2>/dev/null | awk '/^[ \t]*resolution:/ {split($2, a, "x"); print a[1] " DPI"; exit}')"
+		echo "State-Datei:    $(cat "$state_dir/dpi" 2>/dev/null || echo "-") DPI / $(cat "$state_dir/scale" 2>/dev/null || echo "-") SCALE"
 		;;
 
 	interactive)
@@ -362,10 +726,14 @@ case "$MODE" in
 		echo "=== DPI/SCALE Konfiguration ==="
 		echo ""
 
-		# Aktive Displays anzeigen
+		# Aktive Displays anzeigen (gecachte Ausgabe, identisch zur Berechnung)
 		echo "Aktive Displays:"
-		xrandr 2>/dev/null | grep "connected" | grep -v "disconnected"
+		printf '%s\n' "$XRANDR_OUT" | grep " connected"
 		echo ""
+
+		# Tatsaechlich wirksame DPI des X-Servers (xdpyinfo)
+		SERVER_DPI=$(xdpyinfo 2>/dev/null | awk '/^[ \t]*resolution:/ {split($2, a, "x"); print a[1]; exit}')
+		case "$SERVER_DPI" in ''|*[!0-9]*) SERVER_DPI="" ;; esac
 
 		# Details des Primaerbildschirms (identisch zur Berechnung)
 		echo "Primär Display:   $PRIMARY"
@@ -373,6 +741,7 @@ case "$MODE" in
 		echo "  Physisch:       $PHYS"
 		echo "  Diagonale:      $DIAGONAL Zoll"
 		[ -n "$RAW_DPI_ORIG" ] && echo "  Hardware-DPI:   $RAW_DPI_ORIG"
+		echo "  Server-DPI:     ${SERVER_DPI:-unbekannt (xdpyinfo fehlt)}"
 
 		echo ""
 		if [ "$DISPLAY_ADJUST" = "auto" ]; then
@@ -384,7 +753,8 @@ case "$MODE" in
 		echo "  SCALE_FACTOR = $SCALE_FACTOR"
 		echo "  XCURSOR_SIZE = $XCURSOR_SIZE"
 
-		# Vergleich mit aktuellen State-Dateien
+		# Vergleich mit den State-Dateien UND dem X-Server. Nur wenn beide
+		# passen, ist nichts zu tun - sonst wird die Anwendung wiederholt.
 		if [ -f "$state_dir/dpi" ] && [ -f "$state_dir/scale" ]; then
 			old_dpi=$(cat "$state_dir/dpi")
 			old_scale=$(cat "$state_dir/scale")
@@ -395,11 +765,19 @@ case "$MODE" in
 			echo "  SCALE:  $old_scale -> $SCALE_FACTOR"
 			[ -n "$old_cursor" ] && echo "  CURSOR: $old_cursor -> $XCURSOR_SIZE"
 
-			if [ "$old_dpi" = "$MASTER_DPI" ] && [ "$old_scale" = "$SCALE_FACTOR" ]; then
+			# Server-Ist mit Soll vergleichen (xdpyinfo rundet, Toleranz +-3)
+			server_ok=1
+			if [ -n "$SERVER_DPI" ]; then
+				[ "$SERVER_DPI" -ge $((MASTER_DPI - 3)) ] || server_ok=0
+				[ "$SERVER_DPI" -le $((MASTER_DPI + 3)) ] || server_ok=0
+			fi
+
+			if [ "$old_dpi" = "$MASTER_DPI" ] && [ "$old_scale" = "$SCALE_FACTOR" ] && [ "$server_ok" -eq 1 ]; then
 				echo ""
 				echo "Werte sind bereits aktuell, keine Änderungen nötig."
 				_setdpi_quit 0
 			fi
+			[ "$server_ok" -eq 0 ] && echo "  Hinweis: State passt, aber der Server meldet $SERVER_DPI DPI - Anwendung wird wiederholt."
 		fi
 
 		echo ""
@@ -407,11 +785,16 @@ case "$MODE" in
 		read -r answer
 		case "$answer" in
 			j|J|y|Y)
-				apply_dpi
-				kill -HUP "$(wmpid)" 2>/dev/null   # Lade den Fenstermanager neu
-				echo ""
-				echo "Angewandt: DPI=$MASTER_DPI SCALE=$SCALE_FACTOR CURSOR=${XCURSOR_SIZE}px"
-				echo "DWM wurde neu gestartet."
+				if apply_dpi; then
+					reload_wm   # Lade den Fenstermanager neu
+					echo ""
+					echo "Angewandt: DPI=$MASTER_DPI SCALE=$SCALE_FACTOR CURSOR=${XCURSOR_SIZE}px"
+					echo "DWM wurde neu gestartet."
+				else
+					echo ""
+					echo "Fehlgeschlagen: nichts angewandt, State-Dateien unveraendert."
+					_setdpi_quit 1
+				fi
 				;;
 			*)
 				echo "Abgebrochen. Keine Änderungen."

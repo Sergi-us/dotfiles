@@ -1,11 +1,38 @@
 # Diese Dateien werden automatisch aktualisiert (wenn bearbeitet/gespeichert in Vim)
+## 2026-09-20
 
 # keys	filename										# Beschreibung
 bf	${XDG_CONFIG_HOME:-$HOME/.config}/shell/bm-files	# Diese Datei
 bd	${XDG_CONFIG_HOME:-$HOME/.config}/shell/bm-dirs		# Eine Liste Verzeichnissen "Favoriten" weden von lf und nvim
 
 # Sripte
-sc-menucam    ${XDG_DATA_HOME:-$HOME/.local/bin/menucam
+sc-chroot-update		$HOME/.local/bin/chroot-update
+sc-clipctl				$HOME/.local/bin/clipctl
+sc-dotfiles-sarbs		$HOME/.local/bin/dotfiles-sarbs
+sc-getkeys				$HOME/.local/bingetkeys
+sc-iptv-mpv				$HOME/.local/bin/iptv-mpv
+sc-lf-convert			$HOME/.local/bin/lf-convert
+sc-linkhandler			$HOME/.local/bin/linkhandler
+sc-mail-filter-sync		$HOME/.local/bin/mail-filter-sync
+sc-maimpick				$HOME/.local/bin/maimpick
+sc-menucam				$HOME/.local/bin/menucam
+sc-menurecord			$HOME/.local/bin/menurecord
+sc-multichat			$HOME/.local/bin/multichat
+sc-pipes				$HOME/.local/bin/pipes
+sc-remaps				$HOME/.local/bin/remaps
+sc-sarbs-hud-toggle		$HOME/.local/bin/sarbs-hud-toggle
+sc-set-dpi				$HOME/.local/bin/set-dpi
+sc-setbg				$HOME/.local/bin/setbg
+sc-shortcuts			$HOME/.local/bin/shortcuts
+sc-ssh-mounter			$HOME/.local/bin/ssh-mounter
+sc-ssh-unmounter		$HOME/.local/bin/ssh-unmounter
+sc-sysact				$HOME/.local/bin/sysact
+sc-td-toggle			$HOME/.local/bin/td-toggle
+sc-tutorialvids			$HOME/.local/bin/tutorialvids
+sc-unix					$HOME/.local/bin/unix
+sc-unmounter			$HOME/.local/bin/unmounter
+sc-usenet				$HOME/.local/bin/usenet
+sc-whisper-transcribe	$HOME/.local/bin/whisper-transcribe
 
 # Nutzerdaten (nu-)
 nu-xresources	${XDG_CONFIG_HOME:-$HOME/.config}/x11/xresources			# Farben, Themes und Variablen für X11
@@ -15,11 +42,11 @@ nu-cliphist     ${XDG_DATA_HOME:-$HOME/.local/share}/sarbs/cliphist         # Pe
 
 # Konfigurationsdateien (cf-)
 # Shell & Terminal
-cf-zsh	        $ZDOTDIR/.zshrc												# zsh (shell) config
+cf-zsh			${XDG_CONFIG_HOME:-$HOME/.config}/zsh/.zshrc                # zsh (shell) config
 cf-aliasrc	    ${XDG_CONFIG_HOME:-$HOME/.config}/shell/aliasrc				# aliases für zsh
 cf-profile		${XDG_CONFIG_HOME:-$HOME/.config}/shell/profile				# profile für login settings
 cf-inputrc		${XDG_CONFIG_HOME:-$HOME/.config}/shell/inputrc				# readline config
-cf-fastfetch    ${XDG_CONFIG_HOME:-$HOME/.config}/fastfetch/config.jsonc
+cf-fastfetch	${XDG_CONFIG_HOME:-$HOME/.config}/fastfetch/config.jsonc
 
 # Editor
 cf-nvim			${XDG_CONFIG_HOME:-$HOME/.config}/nvim/init.lua				# neovim config
@@ -52,7 +79,6 @@ cf-gtk3			${XDG_CONFIG_HOME:-$HOME/.config}/gtk-3.0/settings.ini		# GTK3 theme
 cf-kvantum		${XDG_CONFIG_HOME:-$HOME/.config}/Kvantum/kvantum.kvconfig	# Qt theme
 
 # System & Tools
-cf-fastfetch	${XDG_CONFIG_HOME:-$HOME/.config}/fastfetch/config.jsonc	# system info
 cf-wget			${XDG_CONFIG_HOME:-$HOME/.config}/wget/wgetrc				# wget config
 cf-python		${XDG_CONFIG_HOME:-$HOME/.config}/python/pythonrc			# python startup
 cf-wikiman		${XDG_CONFIG_HOME:-$HOME/.config}/wikiman/wikiman.conf		# wikiman config

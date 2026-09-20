@@ -51,7 +51,7 @@ default_directory = "."
 #-- File Size Units
 # true: SI decimal units of 1000 (kB, MB, GB).
 # false: IEC binary units of 1024 (KiB, MiB, GiB).
-file_size_use_si = false
+file_size_use_si = true
 
 #-- Default File Sort Type
 # (0: Name, 1: Size, 2: Date Modified, 3: Type).

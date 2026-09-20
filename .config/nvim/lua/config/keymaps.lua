@@ -28,9 +28,12 @@ map("n", "<C-j>", "<C-w>j", { desc = "Fenster unten" })
 map("n", "<C-k>", "<C-w>k", { desc = "Fenster oben" })
 map("n", "<C-l>", "<C-w>l", { desc = "Fenster rechts" })
 
--- Zeilen bewegen
-map("n", "<C-j>", ":m .+1<CR>==", { desc = "Zeile nach unten bewegen" })
-map("n", "<C-k>", ":m .-2<CR>==", { desc = "Zeile nach oben bewegen" })
+-- Zeilen bewegen: J/K statt Alt, weil Alt-j/k im Terminal (st) vom Scrollback abgefangen wird
+-- ACHTUNG: Die Vim-Standards J und K sind dadurch NICHT mehr belegt:
+--   J = Join   -> fügt die Zeile darunter an die aktuelle Zeile an
+--   K = Manpage-> öffnet die Hilfe/Doku zum Wort unter dem Cursor (:keywordprg)
+map("n", "J", ":m .+1<CR>==", { desc = "Zeile nach unten bewegen (überschreibt J/Join)" })
+map("n", "K", ":m .-2<CR>==", { desc = "Zeile nach oben bewegen (überschreibt K/Manpage)" })
 
 -- S für substitute im ganzen Dokument
 map("n", "S", ":%s//g<Left><Left>", { desc = "Substitute in ganzer Datei" })
@@ -40,6 +43,16 @@ map("n", "<leader>bn", ":bnext<CR>", { desc = "Nächster Puffer" })
 map("n", "<leader>bp", ":bprevious<CR>", { desc = "Vorheriger Puffer" })
 
 -- Keybinding für nvim-tree (definiert in plugins/nerd-tree.lua)
+
+-- IDE Split Navigation
+-- Terminal-Mode: Direktes Wechseln aus dem Terminal mit STRG + h/j/k/l
+map('t', '<C-h>', [[<C-\><C-n><C-w>h]], { desc = "Terminal-Fenster links" })
+map('t', '<C-j>', [[<C-\><C-n><C-w>j]], { desc = "Terminal-Fenster unten" })
+map('t', '<C-k>', [[<C-\><C-n><C-w>k]], { desc = "Terminal-Fenster oben" })
+map('t', '<C-l>', [[<C-\><C-n><C-w>l]], { desc = "Terminal-Fenster rechts" })
+
+-- Terminal-Mode: Mit ESC sofort in den Normal-Mode wechseln
+map('t', '<Esc>', [[<C-\><C-n>]], { desc = "Terminal Normal-Mode" })
 
 -- Datumstempel
 map('n', '<leader>dt', ':put=strftime(\'## %Y-%m-%d\')<CR>', { noremap = true, desc = "Datumstempel einfügen" })

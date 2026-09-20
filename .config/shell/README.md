@@ -32,7 +32,6 @@ key		pfad		# optionale Beschreibung
 ### XDG-Konformität
 
 Alle Pfade nutzen XDG-Variablen mit Fallback-Werten:
-
 ```bash
 ${XDG_CONFIG_HOME:-$HOME/.config}/...    # Konfigurationen
 ${XDG_DATA_HOME:-$HOME/.local/share}/... # Anwendungsdaten

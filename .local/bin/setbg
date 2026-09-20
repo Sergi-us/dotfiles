@@ -1,5 +1,5 @@
 #!/bin/sh
-## 2026-04-09   SARBS
+## 2026-09-08   SARBS
 # Abhängigkeiten: GNU Coreutils (ln, mv, readlink, shuf, unlink), bc, convert, file, find, hellwal, magick, notify-send, pidof, xwallpaper
 
 # Dieses Skript macht Folgendes:
@@ -7,6 +7,12 @@
 #	Mit einer Datei: Setzt diese als neues Hintergrundbild.
 #	Mit einem Verzeichnis: Wählt eine zufällige Datei daraus.
 #	Falls wal installiert ist, wird auch ein Farbschema generiert.
+#
+# Ablauf: 1. Symlink auf das Bild setzen
+#         2. xwallpaper  - Bild sofort sichtbar (schnell, nur Bildschirmgroesse)
+#         3. hellwal/wal - Farbschema, xrdb, dunst-Neustart (langsam)
+#         4. dwm-Signal  - Xresources neu laden (muss nach 3 laufen)
+#         5. Benachrichtigung
 
 # Speicherort des Links zum Hintergrundbild.
 bgloc="${XDG_DATA_HOME:-$HOME/.local/share}/bg"
@@ -26,9 +32,27 @@ trueloc="$(readlink -f "$1")" &&
 case "$(file --mime-type -b "$trueloc")" in
 	image/* ) ln -sf "$trueloc" "$bgloc" ; bgmsg="ändere Hintergrundbild..." ;;
 	inode/directory ) ln -sf "$(find "$trueloc" -iregex '.*.\(jpg\|jpeg\|png\|gif\)' -type f | shuf -n 1)" "$bgloc" ; bgmsg="zufälliges Hintergrundbild gewählt." ;;
-	*) [ -z "$silent" ] && notify-send " Fehler" "kein gültiges Bild oder Verzeichnis." ; exit 1;;
+	*) # Fehler immer sichtbar machen: Benachrichtigung interaktiv, stderr im
+	   # Silent-Modus (z.B. Aufruf aus displayselect ohne Terminal).
+	   if [ -z "$silent" ]; then
+	       notify-send " Fehler" "kein gültiges Bild oder Verzeichnis."
+	   else
+	       echo "setbg: FEHLER - '$1' ist kein gültiges Bild oder Verzeichnis." >&2
+	   fi
+	   exit 1;;
 esac
 
+# === 1. Hintergrundbild zuerst setzen ===
+# DEV (neu, 2026-09-08): xwallpaper stand bisher am Ende, hinter hellwal.
+# hellwal braucht ~1,4 s, analysiert das Bild mit ImageMagick und sein postrun
+# beendet und startet dunst neu. Haengt oder scheitert einer dieser Schritte,
+# kam xwallpaper gar nicht mehr zum Zug: das Bild fehlte komplett und erschien
+# erst nach einem manuellen setbg. xwallpaper braucht nur die aktuelle
+# Bildschirmgroesse und ist in wenigen zehn Millisekunden fertig, deshalb steht
+# es jetzt am Anfang - das Bild ist da, bevor die Theme-Arbeit beginnt.
+xwallpaper --zoom "$bgloc"
+
+# === 2. Farbschema generieren ===
 # Falls hellwal installiert ist, benutze es.
 if command -v hellwal >/dev/null 2>&1 ; then
 	hellwal_opts="--dark"
@@ -69,10 +93,20 @@ fi
 # walogram -B -i ~/.local/share/bg >/dev/null 2>&1
 # walogram -i ~/.local/share/bg >/dev/null 2>&1
 
-xwallpaper --zoom "$bgloc"
+# DEV: Alter Platz von xwallpaper - auskommentiert erhalten. Es laeuft jetzt
+# oben direkt nach dem Setzen des Symlinks, siehe "1. Hintergrundbild zuerst".
+# xwallpaper --zoom "$bgloc"
+
+# === 3. dwm Xresources neu laden lassen ===
+# Muss NACH hellwal laufen, denn hellwal merged die neuen Farben in xrdb.
 # Falls dwm läuft, sende Signal zum Aktualisieren des Farbschemas.
 # pidof dwm >/dev/null && xdotool key super+F5
 pidof dwm >/dev/null && kill -USR1 $(pidof dwm)
 
 # Notification NACH hellwal/postrun senden, damit dunst-Neustart sie nicht killt
-[ -z "$silent" ] && [ -n "$bgmsg" ] && notify-send -i "$bgloc" "$bgmsg"
+# DEV: Als if-Block statt "&&"-Kette. Die Kette lieferte im Silent-Modus immer
+# Exit-Status 1 (die erste Bedingung ist dort falsch), dadurch war fuer
+# aufrufende Skripte nicht erkennbar, ob setbg erfolgreich war.
+if [ -z "$silent" ] && [ -n "$bgmsg" ]; then
+	notify-send -i "$bgloc" "$bgmsg"
+fi

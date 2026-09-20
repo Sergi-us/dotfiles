@@ -4,4 +4,12 @@
 # Weitere Informationen: https://editorconfig.org/
 
 root = false
+[*]
+# Optionen: space, tab
 indent_style = tab
+
+# Standard-Einrückungstiefe: 4 Leerzeichen
+indent_size = 4
+
+# Maximale Zeilenlänge: 80 Zeichen (Zeilenumbruch für Prosa/Markdown)
+max_line_length = 80

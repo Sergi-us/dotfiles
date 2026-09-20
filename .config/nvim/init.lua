@@ -294,4 +294,13 @@ for _, file in ipairs(vim.fn.glob(config_path .. "/*.lua", false, true)) do
   pcall(require, module)
 end
 
+-- LSP soll die Faltungen (Folds) berechnen
+vim.opt.foldmethod = "expr"
+vim.opt.foldexpr = "v:lua.vim.lsp.foldexpr()"
+
+-- Verhindert, dass beim Öffnen einer Datei sofort alles zugeklappt ist
+vim.opt.foldlevel = 99
+vim.opt.foldlevelstart = 99
+vim.opt.foldenable = true
+
 pcall(require, "config.keymaps")      -- Tastenkombinationen

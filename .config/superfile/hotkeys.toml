@@ -1,10 +1,8 @@
 ##############################################
-#                                            #
+## 2026-04-10   SARBS                        #
+# TODO Keybindings an LF anpassen            #
 #           Superfile Configuration          #
-#                                            #
 ##############################################
-## 2026-04-10   SARBS
-# TODO Keybindings an LF anpassen
 
 # This contains the hotkey config file for superfile! More details can be found at
 # https://superfile.dev/configure/custom-hotkeys/.
@@ -27,8 +25,8 @@ page_down = ['pgdown','']
 page_up = ['pgup','']
 
 #-- File Panel Controls
-close_file_panel = ['w', '']
 create_new_file_panel = ['n', '']
+close_file_panel = ['w', '']
 next_file_panel = ['tab', 'L']
 open_sort_options_menu = ['o', '']
 pinned_directory = ['P', '']

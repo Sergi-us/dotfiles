@@ -396,28 +396,60 @@ cmd extract ${{
 # Dateien in den Papierkorb verschieben (trashy)
 cmd delete ${{
 	set -f
-	trash $fx
-	notify-send "🗑️ Papierkorb" "$(basename -a -- $fx | head -3)..."
-}}
+	clear; tput cup $(($(tput lines)/3)); tput bold
 
-# Dateien aus dem Papierkorb wiederherstellen (trashy)
-cmd trash-restore ${{
-	set -f
-	for file in $fx; do
-		filename="$(basename -- "$file")"
-		trashinfo="$HOME/.local/share/Trash/info/${filename}.trashinfo"
+	trash_failed=""
+	trash_success_count=0
+	fail_count=0  # <-- Hier starten wir einen Zähler
 
-		if [ ! -f "$trashinfo" ]; then
-			notify-send "❌ Fehler" "Keine Metadaten gefunden für $filename"
-			continue
+# 1. Versuchen, jede selektierte Datei in den Papierkorb zu verschieben
+	while IFS= read -r x; do
+		[ -z "$x" ] && continue
+
+		if trash "$x" 2>/dev/null; then
+			trash_success_count=$((trash_success_count + 1))
+		else
+			trash_failed="${trash_failed}${x}
+"
+			fail_count=$((fail_count + 1))
+		fi
+	done <<< "$fx"
+
+# 2. Falls Dateien nicht in den Papierkorb geschoben werden konnten -> Rückfrage
+	if [ "$fail_count" -gt 0 ]; then
+		tput sgr0
+		printf '⚠️  Kein Papierkorb verfügbar für folgende Datei(en):\n\n'
+		printf '%s' "$trash_failed" | head -n 5
+
+		if [ "$fail_count" -gt 5 ]; then
+			printf '... und %s weitere\n' "$((fail_count - 5))"
 		fi
 
-		original_path="$(grep '^Path=' "$trashinfo" | cut -d= -f2-)"
-		trash restore --match=exact --force "$original_path"
-		notify-send "✓ Wiederhergestellt" "$(basename -- "$original_path")"
-	done
+		printf '\n%s Datei(en) ENDGÜLTIG löschen? [y/N] ' "$fail_count"
+		read -r ans
+		case "$ans" in
+			y|Y|j|J)
+				printf '%s' "$trash_failed" | while read -r file; do
+					[ -n "$file" ] && rm -rf -- "$file"
+				done
+				notify-send "🗑️ Endgültig gelöscht" "${fail_count} Datei(en) entfernt."
+				;;
+			*)
+				notify-send "❌ Abgebrochen" "Keine Dateien gelöscht."
+				;;
+		esac
+	fi
+
+# 3. Benachrichtigung für die erfolgreich im Papierkorb gelandeten Dateien
+	if [ "$trash_success_count" -gt 0 ]; then
+		notify-send "🗑️ Papierkorb" "${trash_success_count} Element(e) in den Papierkorb verschoben."
+	fi
+
 	lf -remote "send $id reload"
 }}
+
+# Dateien aus dem Papierkorb wiederherstellen (Interaktiv im Terminal)
+# TODO Wiederherstellungslogik bauen...
 
 # Dateien verschieben mit fzf-Zielauswahl
 cmd moveto ${{
@@ -713,7 +745,6 @@ map Am Handy-Musik
 map Af Film-ins-Archiv
 map As Serie-ins-Archiv
 map Ap Dokumente-zu-Paperless
-map Ar trash-restore			# Ar = Papierkorb-Wiederherstellung
 
 # === P Menu für Bildbearbeitung ===
 map P8 bild-80-komprimieren

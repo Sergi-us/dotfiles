@@ -1,5 +1,16 @@
 [Desktop Entry]
+Version=1.0
 Type=Application
-Name=󰨡 Browser
-Exec=qutebrowser %u
+Name=󰨡 Qutebrowser
 Name[de]=󰨡 Browser
+GenericName=Webbrowser
+GenericName[de]=Internet-Browser
+Comment=Ein tastaturgesteuerter, vim-ähnlicher Browser basierend auf Python und Qt
+Exec=qutebrowser %u
+Terminal=false
+Icon=qutebrowser
+Categories=Network;WebBrowser;
+MimeType=text/html;application/xhtml+xml;x-scheme-handler/http;x-scheme-handler/https;
+StartupNotify=true
+Name[de]=󰨡 Qutebrowser
+Comment[de]=Ein tastaturgesteuerter, vim-ähnlicher Browser basierend auf Python und Qt

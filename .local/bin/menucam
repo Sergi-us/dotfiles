@@ -99,8 +99,13 @@ if [ -z "$MAX_RES" ]; then
     exit 1
 fi
 
-WIDTH=$(echo "$MAX_RES" | cut -d'x' -f1)
-HEIGHT=$(echo "$MAX_RES" | cut -d'x' -f2)
+# Auflösung setzen
+v4l2-ctl --set-fmt-video="width=$(echo "$MAX_RES" | cut -d'x' -f1),height=$(echo "$MAX_RES" | cut -d'x' -f2),pixelformat=$PIXELFORMAT" --device="$DEVICE" >/dev/null 2>&1
+
+# Tatsächliche Auflösung abfragen (mpv verwendet diese)
+CURRENT_FMT=$(v4l2-ctl --get-fmt-video --device="$DEVICE" 2>/dev/null)
+WIDTH=$(echo "$CURRENT_FMT" | awk '/Width\/Height/ {print $3}' | cut -d'/' -f1)
+HEIGHT=$(echo "$CURRENT_FMT" | awk '/Width\/Height/ {print $3}' | cut -d'/' -f2)
 
 # Effektive Dimensionen nach Rotation (Android: Breite/Höhe vertauscht)
 if [ "$IS_ANDROID" -eq 1 ]; then
