@@ -121,15 +121,15 @@ export WTTRURL="wttr.in"
 export GNUPGHOME="$XDG_DATA_HOME/gnupg"					# ok GnuPG Home-Verzeichnis
 
 # === Less Viewer Programmeinstellungen ===
-export LESS="R"											# Less Pager Optionen
-export LESS_TERMCAP_mb="$(printf '%b' '[1;31m')"		# Less Farbanpassungen
-export LESS_TERMCAP_md="$(printf '%b' '[1;36m')"
-export LESS_TERMCAP_me="$(printf '%b' '[0m')"
-export LESS_TERMCAP_so="$(printf '%b' '[01;44;33m')"
-export LESS_TERMCAP_se="$(printf '%b' '[0m')"
-export LESS_TERMCAP_us="$(printf '%b' '[1;32m')"
-export LESS_TERMCAP_ue="$(printf '%b' '[0m')"
-export LESSOPEN="| /usr/bin/highlight -O ansi %s 2>/dev/null"	# Syntax-Hervorhebung für Less
+##export LESS="R"											# Less Pager Optionen
+##export LESS_TERMCAP_mb="$(printf '%b' '[1;31m')"		# Less Farbanpassungen
+##export LESS_TERMCAP_md="$(printf '%b' '[1;36m')"
+##export LESS_TERMCAP_me="$(printf '%b' '[0m')"
+##export LESS_TERMCAP_so="$(printf '%b' '[1;40;37m')"
+##export LESS_TERMCAP_se="$(printf '%b' '[0m')"
+##export LESS_TERMCAP_us="$(printf '%b' '[1;32m')"
+##export LESS_TERMCAP_ue="$(printf '%b' '[0m')"
+##export LESSOPEN="| /usr/bin/highlight -O ansi %s 2>/dev/null"	# Syntax-Hervorhebung für Less
 
 # === Prüfe, ob die Shortcut-Konfiguration ===
 [ ! -f "$XDG_CONFIG_HOME/shell/shortcutrc" ] && setsid -f shortcuts >/dev/null 2>&1

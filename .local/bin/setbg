@@ -1,6 +1,6 @@
 #!/bin/sh
 ## 2026-09-25   SARBS
-# Abhängigkeiten: GNU Coreutils (ln, mv, readlink, shuf, unlink), bc, file, find, hellwal, notify-send, pidof, xwallpaper
+# Abhängigkeiten: GNU Coreutils (ln, mv, readlink, shuf, unlink), file, find, hellwal, notify-send, pidof, xwallpaper
 
 # Dieses Skript macht Folgendes:
 #	Ohne Argumente: Setzt das Hintergrundbild (beim X-Start).
@@ -55,30 +55,13 @@ xwallpaper --zoom "$bgloc"
 # === 2. Farbschema generieren ===
 # Falls hellwal installiert ist, benutze es.
 if command -v hellwal >/dev/null 2>&1 ; then
+	# Einheitliche Optionen fuer alle Bilder, bewusst ohne Helligkeitserkennung:
+	# --dark           : Dunkles Farbschema (background dunkel, foreground hell)
+	# --check-contrast : hellwal prueft selbst die Lesbarkeit jeder Akzentfarbe
+	#                    gegen den Hintergrund und korrigiert nur wo noetig.
+	# Keine Offsets (--dark-offset/--bright-offset): Sie veraendern die ganze
+	# Palette und machten dunkle Bilder in Tests flach bzw. zu dunkel.
 	hellwal_opts="--dark --check-contrast"
-
-	# Helligkeit des Bildes über JSON-Pre-Flight bestimmen.
-	# hellwal --json gibt nur die Farbwerte aus (kein Template-Rendering).
-	# Relative Luminanz (ITU-R BT.709) aus der Hintergrundfarbe berechnen.
-	if command -v bc >/dev/null 2>&1 ; then
-		json=$(hellwal -i "$(readlink -f "$bgloc")" --json 2>/dev/null)
-		bg_color=$(printf '%s' "$json" | grep -o '"background":"[^"]*"' | sed 's/.*"//')
-		if [ -n "$bg_color" ]; then
-			h=$(printf '%s' "$bg_color" | sed 's/^#//')
-			r=$(printf '%d' "0x$(printf '%s' "$h" | cut -c1-2)")
-			g=$(printf '%d' "0x$(printf '%s' "$h" | cut -c3-4)")
-			b=$(printf '%d' "0x$(printf '%s' "$h" | cut -c5-6)")
-			lum=$(echo "scale=4; (0.2126 * $r + 0.7152 * $g + 0.0722 * $b) / 255" | bc -l)
-
-			if [ "$(echo "$lum > 0.80" | bc -l)" -eq 1 ]; then
-				# Helles Bild: Alle Akzentfarben abdunkeln
-				hellwal_opts="$hellwal_opts --dark-offset 0.35"
-			else
-				# Dunkles Bild: Alle Akzentfarben moderat aufhellen
-				hellwal_opts="$hellwal_opts --bright-offset 0.25"
-			fi
-		fi
-	fi
 
 	hellwal -i "$(readlink -f "$bgloc")" $hellwal_opts -o ~/.cache/wal/ -s "${XDG_CONFIG_HOME:-$HOME/.config}/hellwal/postrun" -q
 # Weiche auf pywal aus, falls hellwal nicht verfügbar ist

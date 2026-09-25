@@ -139,15 +139,15 @@ In `~/.local/bin/setbg` werden die hellwal-Parameter gesteuert:
 | Option | Standard | Beschreibung |
 |---|---|---|
 | `--dark` | immer | Dunkles Farbschema erzwingen |
-| `--check-contrast` | immer | Mindestkontrast für Lesbarkeit prüfen |
-| `--dark-offset 0.35` | lum > 0.40 | Akzentfarben um 35 % abdunkeln (helle Bilder) |
-| `--bright-offset 0.25` | lum ≤ 0.40 | Akzentfarben um 25 % aufhellen (dunkle Bilder) |
+| `--check-contrast` | immer | hellwal prüft jede Akzentfarbe gegen den Hintergrund und korrigiert nur wo nötig |
 | `-o ~/.cache/wal/` | fest | Ausgabeverzeichnis |
 | `-s <postrun>` | fest | Postrun-Skript-Pfad |
 | `-q` | fest | Quiet-Modus (weniger Ausgabe) |
 
-**Helligkeitsbestimmung:** Relative Luminanz (ITU-R BT.709) aus der
-Hintergrundfarbe via `hellwal --json` Pre-Flight. Kein ImageMagick mehr.
+**Bewusst keine Offsets** (`--dark-offset`/`--bright-offset`) und keine
+Helligkeitserkennung: Sie verändern die gesamte Palette inklusive Foreground
+und machten dunkle Bilder in Tests flach bzw. matschig. `--check-contrast`
+korrigiert gezielt nur die Farben, die wirklich unlesbar wären.
 
 **Experimentelle Optionen** (in setbg einfügbar):
 
