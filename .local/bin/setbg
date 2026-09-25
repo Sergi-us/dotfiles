@@ -1,6 +1,6 @@
 #!/bin/sh
-## 2026-09-08   SARBS
-# Abhängigkeiten: GNU Coreutils (ln, mv, readlink, shuf, unlink), bc, convert, file, find, hellwal, magick, notify-send, pidof, xwallpaper
+## 2026-09-25   SARBS
+# Abhängigkeiten: GNU Coreutils (ln, mv, readlink, shuf, unlink), bc, file, find, hellwal, notify-send, pidof, xwallpaper
 
 # Dieses Skript macht Folgendes:
 #	Ohne Argumente: Setzt das Hintergrundbild (beim X-Start).
@@ -55,28 +55,29 @@ xwallpaper --zoom "$bgloc"
 # === 2. Farbschema generieren ===
 # Falls hellwal installiert ist, benutze es.
 if command -v hellwal >/dev/null 2>&1 ; then
-	hellwal_opts="--dark"
+	hellwal_opts="--dark --check-contrast"
 
-	if command -v magick >/dev/null 2>&1 ; then
-		# Auflösung für die Analyse: Je kleiner, desto schneller. Je größer, desto genauer.
-		sample_size="300x300"
-		mean=$(magick "$(readlink -f "$bgloc")" -resize "$sample_size" -format "%[fx:mean]" info: 2>/dev/null)
-	elif command -v convert >/dev/null 2>&1 ; then
-		sample_size="300x300"
-		mean=$(convert "$(readlink -f "$bgloc")" -resize "$sample_size" -format "%[fx:mean]" info: 2>/dev/null)
-	fi
+	# Helligkeit des Bildes über JSON-Pre-Flight bestimmen.
+	# hellwal --json gibt nur die Farbwerte aus (kein Template-Rendering).
+	# Relative Luminanz (ITU-R BT.709) aus der Hintergrundfarbe berechnen.
+	if command -v bc >/dev/null 2>&1 ; then
+		json=$(hellwal -i "$(readlink -f "$bgloc")" --json 2>/dev/null)
+		bg_color=$(printf '%s' "$json" | grep -o '"background":"[^"]*"' | sed 's/.*"//')
+		if [ -n "$bg_color" ]; then
+			h=$(printf '%s' "$bg_color" | sed 's/^#//')
+			r=$(printf '%d' "0x$(printf '%s' "$h" | cut -c1-2)")
+			g=$(printf '%d' "0x$(printf '%s' "$h" | cut -c3-4)")
+			b=$(printf '%d' "0x$(printf '%s' "$h" | cut -c5-6)")
+			lum=$(echo "scale=4; (0.2126 * $r + 0.7152 * $g + 0.0722 * $b) / 255" | bc -l)
 
-	if [ -n "$mean" ] && command -v bc >/dev/null 2>&1 ; then
-		# Dynamische Kontrastanpassung bei dunklen Bildern
-		if [ "$(echo "$mean < 0.35" | bc -l)" -eq 1 ]; then
-			hellwal_opts="$hellwal_opts --check-contrast -b 0.9"
-		elif [ "$(echo "$mean < 0.55" | bc -l)" -eq 1 ]; then
-			hellwal_opts="$hellwal_opts --check-contrast -b 0.7"
-		else
-			hellwal_opts="$hellwal_opts --check-contrast"
+			if [ "$(echo "$lum > 0.80" | bc -l)" -eq 1 ]; then
+				# Helles Bild: Alle Akzentfarben abdunkeln
+				hellwal_opts="$hellwal_opts --dark-offset 0.35"
+			else
+				# Dunkles Bild: Alle Akzentfarben moderat aufhellen
+				hellwal_opts="$hellwal_opts --bright-offset 0.25"
+			fi
 		fi
-	else
-		hellwal_opts="$hellwal_opts --check-contrast"
 	fi
 
 	hellwal -i "$(readlink -f "$bgloc")" $hellwal_opts -o ~/.cache/wal/ -s "${XDG_CONFIG_HOME:-$HOME/.config}/hellwal/postrun" -q
