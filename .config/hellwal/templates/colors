@@ -1,16 +1,21 @@
-#%%color0%%
-#%%color1%%
-#%%color2%%
-#%%color3%%
-#%%color4%%
-#%%color5%%
-#%%color6%%
-#%%color7%%
-#%%color8%%
-#%%color9%%
-#%%color10%%
-#%%color11%%
-#%%color12%%
-#%%color13%%
-#%%color14%%
-#%%color15%%
+#%% background.hex %%
+#%% foreground.hex %%
+#%% cursor.hex %%
+#%% border.hex %%
+
+#%% color0.hex %%
+#%% color1.hex %%
+#%% color2.hex %%
+#%% color3.hex %%
+#%% color4.hex %%
+#%% color5.hex %%
+#%% color6.hex %%
+#%% color7.hex %%
+#%% color8.hex %%
+#%% color9.hex %%
+#%% color10.hex %%
+#%% color11.hex %%
+#%% color12.hex %%
+#%% color13.hex %%
+#%% color14.hex %%
+#%% color15.hex %%

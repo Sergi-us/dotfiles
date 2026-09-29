@@ -9,13 +9,13 @@ xrdb -merge "$waldir/colors.Xresources" 2>/dev/null
 
 # Symlink dunstrc, zathurarc, kitty und alacritty colors zu config dirs
 dunstconf="${XDG_CONFIG_HOME:-$HOME/.config}/dunst/dunstrc"
-zathuraconf="${XDG_CONFIG_HOME:-$HOME/.config}/zathura/zathurarc"
+zathuraconf="${XDG_CONFIG_HOME:-$HOME/.config}/zathura/zathura-colors"
 kittyconf="${XDG_CONFIG_HOME:-$HOME/.config}/kitty/colors-kitty.conf"
 alacrittyconf="${XDG_CONFIG_HOME:-$HOME/.config}/alacritty/colors-alacritty.toml"
 
 mkdir -p "${dunstconf%/*}" "${zathuraconf%/*}" "${kittyconf%/*}" "${alacrittyconf%/*}"
 ln -sf "$waldir/dunstrc" "$dunstconf"
-ln -sf "$waldir/zathurarc" "$zathuraconf"
+ln -sf "$waldir/zathura-colors" "$zathuraconf"
 ln -sf "$waldir/colors-kitty.conf" "$kittyconf"
 ln -sf "$waldir/colors-alacritty.toml" "$alacrittyconf"
 

@@ -131,6 +131,26 @@ export GNUPGHOME="$XDG_DATA_HOME/gnupg"					# ok GnuPG Home-Verzeichnis
 ##export LESS_TERMCAP_ue="$(printf '%b' '[0m')"
 ##export LESSOPEN="| /usr/bin/highlight -O ansi %s 2>/dev/null"	# Syntax-Hervorhebung für Less
 
+# === Less-Statuszeile aus der hellwal-Palette (Option D, Truecolor) ===
+# Grund = color15 (hellster Slot), Schrift = color0 (dunkelster Slot):
+# derselbe Look wie Terminfo-Reverse-Video, folgt aber der Wallpaper-Palette.
+# Der Kontrast ist durch --dark garantiert, da diese beiden Slots immer die
+# Extreme der Palette sind. Wirkt ab dem naechsten Login bzw. in neuen
+# Terminals; laufende Shells behalten den alten Wert.
+if [ -f "${XDG_CACHE_HOME:-$HOME/.cache}/wal/colors.sh" ]; then
+	. "${XDG_CACHE_HOME:-$HOME/.cache}/wal/colors.sh"
+	export LESS_TERMCAP_so="$(printf '\033[1;48;2;%d;%d;%dm\033[38;2;%d;%d;%dm' \
+		"$(printf '%d' "0x$(printf '%s' "$color15" | cut -c2-3)")" \
+		"$(printf '%d' "0x$(printf '%s' "$color15" | cut -c4-5)")" \
+		"$(printf '%d' "0x$(printf '%s' "$color15" | cut -c6-7)")" \
+		"$(printf '%d' "0x$(printf '%s' "$color0" | cut -c2-3)")" \
+		"$(printf '%d' "0x$(printf '%s' "$color0" | cut -c4-5)")" \
+		"$(printf '%d' "0x$(printf '%s' "$color0" | cut -c6-7)")")"
+	# Reset muss gesetzt sein: terminfo-rmso schaltet nur Reverse-Video aus,
+	# nicht aber die Truecolor-Farben der Statuszeile.
+	export LESS_TERMCAP_se="$(printf '\033[0m')"
+fi
+
 # === Prüfe, ob die Shortcut-Konfiguration ===
 [ ! -f "$XDG_CONFIG_HOME/shell/shortcutrc" ] && setsid -f shortcuts >/dev/null 2>&1
 

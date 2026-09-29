@@ -1,5 +1,5 @@
 #!/bin/sh
-## 2026-08-30 SARBS core DEV
+## 2026-09-28 SARBS core DEV
 # Abhängigkeiten: devtools (extra-x86_64-build, mkarchroot, arch-nspawn, repo-add),
 #                 pacman, sudo, yay, curl, notify-send (optional)
 
@@ -91,7 +91,16 @@ chroot_pruefen() {
 # Updates von selbst. Nachteil: kein gepflegtes lokales Repo.
 pruefe_aur_version() {
 	pkg="$1"
-	installiert=$(pacman -Qq "${pkg}" 2>/dev/null | cut -d' ' -f2)
+	# DEV (2026-09-28): war "pacman -Qq ${pkg} 2>/dev/null | cut -d' ' -f2".
+	# Fehler: pacman -Qq gibt NUR den Paketnamen aus, kein "name version".
+	# Das cut -f2 lieferte deshalb den Namen selbst (bzw. auf Systemen mit
+	# normalem cut eine leere Zeile - dann wäre die Prüfung stillschweigend
+	# immer "kein Update"). vercmp verglich daraufhin Version gegen
+	# Paketnamen und meldete JEDEN Watchlist-Eintrag als AUR-Update.
+	# Fix: pacman -Q ohne -q, damit wirklich "name version" kommt.
+	# awk statt cut: liefert bei fehlendem Trenner zuverlässig ein leeres
+	# Feld, cut gibt je nach Version die ganze Zeile zurück.
+	installiert=$(pacman -Q "${pkg}" | awk '{print $2}')
 	[ -n "${installiert}" ] || return 1
 	aur_version=$(curl -s "https://aur.archlinux.org/rpc/v5/info?arg[]=${pkg}" |
 		grep -o '"Version":"[^"]*"' | head -1 | cut -d'"' -f4)
@@ -150,8 +159,46 @@ baue_aur_paket() {
 	sudo rm -rf "${pkg_dir}"
 	mkdir -p "${pkg_dir}"
 
-	# PKGBUILD aus dem AUR holen (yay -G klont in ${BUILD_DIR}/<paketname>)
-	if ! (cd "${BUILD_DIR}" && yay -G "${pkg}" >/dev/null 2>&1) || [ ! -f "${pkg_dir}/PKGBUILD" ]; then
+	# === PKGBUILD aus dem AUR holen ===
+	#
+	# yay -G/-Ga klont nach ${BUILD_DIR}/<paketname>
+	#
+	# DEV (2026-09-28): "-a/--aur" ist zwingend nötig.
+	# Ohne -a sucht yay zuerst in den Sync-Datenbanken nach dem Paketnamen.
+	# Unsere selbst gebauten Pakete stehen über repo-add im lokalen Repo
+	# sarbs-local und sind damit für pacman KEINE "foreign"-Pakete mehr.
+	# yay hält sie deshalb für Repo-Pakete und klont stattdessen
+	#   https://gitlab.archlinux.org/archlinux/packaging/packages/<paket>.git
+	# Das ist nicht öffentlich, git will einen Usernamen, ohne TTY bricht der
+	# Clone ab - und yay fällt NICHT auf den AUR zurück. Ergebnis:
+	# "Fehler: PKGBUILD für <paket> nicht gefunden."
+	# Das Skript verriegelt sich damit selbst: nach dem ersten erfolgreichen
+	# Build kann dasselbe Paket nie wieder gebaut werden.
+	#
+	# Ansatz A (umgesetzt, in Test): yay -Ga erzwingt die AUR als Quelle.
+	#   + kleinster Eingriff, yay macht den Rest (ABS-Snapshot, VCS-PKGBUILD).
+	#   - hängt weiterhin an yay und an dessen Interpretation der Datenbanken.
+	#
+	# Ansatz B (auskommentiert, ungetestet): PKGBUILD direkt aus dem AUR holen,
+	# komplett unabhängig von pacman-Datenbanken und yay.
+	#   Vorteil: kann nicht durch das eigene Repo oder eine geänderte
+	#   yay-Version beeinflusst werden.
+	#   Nachteil: Snapshot-URL muss selbst gepflegt werden, VCS-PKGBUILDs
+	#   (pkgname = "-git") brauchen Sonderbehandlung.
+	#
+	#   curl -sL -o "${pkg_dir}.tar.gz" \
+	#       "https://aur.archlinux.org/cgit/aur.git/snapshot/${pkg}.tar.gz" || return 1
+	#   tar xf "${pkg_dir}.tar.gz" -C "${BUILD_DIR}" || return 1
+	#   rm -f "${pkg_dir}.tar.gz"
+	#
+	# Alte Zeile (vor 2026-09-28, mit unterdrückter yay-Fehlerausgabe -
+	# auskommentiert erhalten, weil genau diese Umleitung die eigentliche
+	# Ursache, die gitlab-URL im git-Fehlertext, unsichtbar gemacht hat):
+	#   if ! (cd "${BUILD_DIR}" && yay -G "${pkg}" >/dev/null 2>&1) || ...
+	#
+	# Kein 2>/dev/null mehr: der yay-Fehlertext nennt die URL und den Grund
+	# und ist damit die eigentliche Diagnose.
+	if ! (cd "${BUILD_DIR}" && yay -Ga "${pkg}") || [ ! -f "${pkg_dir}/PKGBUILD" ]; then
 		meldung "Fehler: PKGBUILD für ${pkg} nicht gefunden."
 		return 1
 	fi
